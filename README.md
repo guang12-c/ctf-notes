@@ -2,10 +2,15 @@
 
 Web 安全知识点 + 靶场 WP 的个人站点，基于 **MkDocs Material**。
 
+> **线上地址：** https://guang12-c.github.io/ctf-notes/
+>
+> **维护 / 交接文档：** [MAINTENANCE.md](MAINTENANCE.md) —— 结构、发布流程、样式参数、所有踩过的坑都在里面。**新会话接手先读它。**
+
 ## 本地预览
 
 ```powershell
 cd E:\dsh\ctf-notes
+$env:SITE_URL = "http://127.0.0.1:8000/"
 python -m mkdocs serve
 # 打开 http://127.0.0.1:8000/
 ```
