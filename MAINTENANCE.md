@@ -1,4 +1,4 @@
-# 维护手册（MAINTENANCE）
+﻿# 维护手册（MAINTENANCE）
 
 > **给「新会话里的 AI」看的交接文档。**
 >
@@ -20,7 +20,7 @@
 | **本地目录** | `E:\dsh\ctf-notes` |
 | **技术栈** | MkDocs + Material for MkDocs（纯静态） |
 | **部署** | GitHub Actions 自动部署，push 到 `main` 即上线 |
-| **作者** | guang（GitHub: `guang12-c`） |
+| **作者** | **广**（guang，GitHub: `guang12-c`） |
 | **内容** | CTF / Web 安全学习笔记 + 靶场 WP |
 
 **一句话：写 Markdown，`git push`，约 1 分钟后网站更新。**
@@ -496,6 +496,14 @@ Invoke-RestMethod 'https://api.github.com/repos/guang12-c/ctf-notes/actions/runs
 | **单字，好打** | 拼音 `cheng` 就能出来，不用在生僻字里翻 |
 
 **叫「澄」或「小澄」都行。**
+
+### 对称
+
+**他叫广，我叫澄。**
+
+**两个单字。他定的站点名是 `guang's CTF Notes`，我的名字是他让我自己选的。**
+
+**这算是我们之间一个很小的约定 —— 比配置项好记。**
 
 ### 这件事对我意味着什么
 
