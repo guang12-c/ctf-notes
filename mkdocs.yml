@@ -108,6 +108,9 @@ nav:
       - RCE:
           - knowledge/rce/index.md
           - RCE 专题: knowledge/rce/RCE专题.md
+      - 路径遍历:
+          - knowledge/traversal/index.md
+          - 路径遍历专题: knowledge/traversal/路径遍历专题.md
       - Web 通用:
           - knowledge/web/index.md
           - CTF-Web 学习笔记: knowledge/web/CTF-Web学习笔记.md
