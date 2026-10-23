@@ -1,4 +1,4 @@
-site_name: "guang's CTF Notes"
+﻿site_name: "guang's CTF Notes"
 site_description: Web 安全知识点整理 + 靶场 Writeup
 site_author: guang
 site_url: "https://guang12-c.github.io/ctf-notes/"
@@ -126,6 +126,8 @@ copyright: 仅用于个人学习与授权测试记录
 
 extra_css:
   - assets/css/bg-video.css
+  - assets/css/blog-hover.css
 
 extra_javascript:
   - assets/js/bg-video.js
+  - assets/js/blog-hover.js

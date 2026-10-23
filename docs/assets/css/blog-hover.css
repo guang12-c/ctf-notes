@@ -1,0 +1,114 @@
+/* ===========================================
+   博客侧栏悬停预览
+   由 assets/js/blog-hover.js 注入 .blog-hover-pop
+   =========================================== */
+
+.blog-hover-pop {
+  position: fixed;
+  z-index: 60;
+  min-width: 230px;
+  max-width: 360px;
+  padding: 0.35rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 18, 30, 0.94);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.13s ease, transform 0.13s ease, visibility 0.13s;
+  pointer-events: none;
+}
+
+.blog-hover-pop.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+[data-md-color-scheme="default"] .blog-hover-pop {
+  background: rgba(255, 255, 255, 0.97);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.18);
+}
+
+/* 顶部小标题 */
+.blog-hover-pop__head {
+  padding: 0.3rem 0.5rem 0.35rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  margin-bottom: 0.25rem;
+}
+
+[data-md-color-scheme="default"] .blog-hover-pop__head {
+  border-bottom-color: rgba(0, 0, 0, 0.07);
+}
+
+/* 每一条文章 */
+.blog-hover-pop__item {
+  display: block;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--md-default-fg-color);
+  transition: background 0.12s ease;
+}
+
+.blog-hover-pop__item:hover,
+.blog-hover-pop__item:focus-visible {
+  background: rgba(99, 108, 255, 0.18);
+  outline: none;
+}
+
+/* 标题：超长截断 + 右缘渐隐 */
+.blog-hover-pop__t {
+  display: block;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent 100%);
+  mask-image: linear-gradient(90deg, #000 88%, transparent 100%);
+}
+
+/* 日期 */
+.blog-hover-pop__d {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.6rem;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 底部“查看全部” */
+.blog-hover-pop__more {
+  display: block;
+  margin-top: 0.2rem;
+  padding: 0.35rem 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 0.66rem;
+  color: var(--md-primary-fg-color);
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+[data-md-color-scheme="default"] .blog-hover-pop__more {
+  border-top-color: rgba(0, 0, 0, 0.07);
+}
+
+.blog-hover-pop__more:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* 触屏设备不需要 */
+@media (hover: none) {
+  .blog-hover-pop {
+    display: none !important;
+  }
+}
