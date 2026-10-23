@@ -3,3 +3,12 @@
 __pycache__/
 *.pyc
 preview/
+
+# 临时文件/截图用的浏览器配置
+_shotprof/
+_pp*/
+_prof*/
+_edgeprof*/
+_shot/
+_frames/
+*.log
