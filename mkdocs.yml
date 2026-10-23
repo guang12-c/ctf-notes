@@ -1,7 +1,7 @@
 ﻿site_name: "guang's CTF Notes"
 site_description: Web 安全知识点整理 + 靶场 Writeup
 site_author: guang
-site_url: "https://guang12-c.github.io/ctf-notes/"
+site_url: !ENV [SITE_URL, "https://guang12-c.github.io/ctf-notes/"]
 
 repo_name: "guang12-c/ctf-notes"
 repo_url: "https://github.com/guang12-c/ctf-notes"
