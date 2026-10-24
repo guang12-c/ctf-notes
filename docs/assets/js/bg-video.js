@@ -1,29 +1,72 @@
 /* ===========================================
-   背景视频注入
-   - 桌面和手机都加载（手机竖屏也生效）
-   - 省流模式 / 减少动效 → 不加载
-   - 移动端适配：内联播放（微信/QQ X5 内核、iOS Safari）
-   - 自动播放被拦 → 首次触摸时补播
+   背景层注入
+   两种模式：
+     桌面 → <video> 播雪林循环视频
+     手机 → 静态图 + CSS 飘雪（iOS 上视频不可靠，静止又难看）
+   自动播放/兼容性都不再依赖 video 在移动端工作
    =========================================== */
 (function () {
   "use strict";
 
-  // 1) 省流 / 减少动效 → 不加载
+  // 1) 省流 / 减少动效 → 什么都不放（CSS 已有纯色兜底）
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var saveData = navigator.connection && navigator.connection.saveData;
   if (reduce || saveData) return;
 
-  // 2) 用脚本自身位置推算资源根目录
-  //    脚本在 <site>/assets/js/bg-video.js → 资源根 <site>/assets/
+  // 2) 资源根目录（脚本在 <site>/assets/js/bg-video.js）
   var self = document.currentScript;
   var assets = self
     ? new URL("../", self.src)
     : new URL("assets/", location.href);
 
-  // 3) 构建背景容器
+  var posterUrl = new URL("video/snowfall-poster.jpg", assets).href;
+  var videoUrl = new URL("video/snowfall.mp4", assets).href;
+
+  // 3) 判断是否用静态模式
+  //    触屏设备（iPhone/iPad/Android）一律静态：
+  //    iOS 上自动播放 + position:fixed + 滚动 = 三个坑叠一起，不值得赌
+  var isTouch =
+    window.matchMedia("(hover: none) and (pointer: coarse)").matches ||
+    /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
+  var isNarrow = window.matchMedia("(max-width: 76.1875em)").matches;
+  var useStill = isTouch || isNarrow;
+
+  // 4) 容器
   var wrap = document.createElement("div");
   wrap.className = "ctf-bg";
   wrap.setAttribute("aria-hidden", "true");
+
+  function mount(node) {
+    if (document.querySelector(".ctf-bg")) return;
+    // 挂到 <html>：避开 body 上可能的 transform（否则 fixed 会变成跟着滚）
+    var host = document.documentElement;
+    host.insertBefore(node || wrap, host.firstChild);
+  }
+
+  /* ================= 静态模式：图 + 飘雪 ================= */
+
+  if (useStill) {
+    wrap.setAttribute("data-mode", "still");
+    wrap.style.setProperty("--bg-still", "url('" + posterUrl + "')");
+
+    var still = document.createElement("div");
+    still.className = "ctf-still";
+
+    var snow = document.createElement("div");
+    snow.className = "ctf-snow";
+
+    wrap.appendChild(still);
+    wrap.appendChild(snow);
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", function () { mount(wrap); }, { once: true });
+    } else {
+      mount(wrap);
+    }
+    return;
+  }
+
+  /* ================= 桌面模式：视频 ================= */
 
   var video = document.createElement("video");
   video.autoplay = true;
@@ -32,73 +75,49 @@
   video.defaultMuted = true;
   video.playsInline = true;
   video.preload = "auto";
-  // 关键：移动端要"内联播放"，否则会被系统播放器接管或干脆不渲染
   video.setAttribute("muted", "");
   video.setAttribute("playsinline", "");
-  video.setAttribute("webkit-playsinline", "");
-  video.setAttribute("x5-playsinline", "");          // 微信/QQ X5 内核
-  video.setAttribute("x5-video-player-type", "h5");  // X5 用 H5 播放器
-  video.setAttribute("x5-video-player-fullscreen", "false");
+  video.setAttribute("x5-playsinline", "");
+  video.setAttribute("x5-video-player-type", "h5");
   video.setAttribute("disablepictureinpicture", "");
-  video.setAttribute("controlslist", "nodownload");
-  video.poster = new URL("video/snowfall-poster.jpg", assets).href;
-  video.src = new URL("video/snowfall.mp4", assets).href;
+  video.poster = posterUrl;
+  video.src = videoUrl;
 
   wrap.appendChild(video);
-
-  /* ---------- 播放控制 ---------- */
+  wrap.setAttribute("data-mode", "video");
 
   var started = false;
-
   function tryPlay() {
     if (started) return;
     var p = video.play();
     if (p && typeof p.then === "function") {
-      p.then(function () {
-        started = true;
-      }).catch(function () {
-        // 被拦（iOS 低电量 / 部分 WebView）→ 等用户第一次触摸再试
-        armGestureFallback();
+      p.then(function () { started = true; }).catch(function () {
+        // 被拦 → 等用户第一次交互再补播
+        if (tryPlay.armed) return;
+        tryPlay.armed = true;
+        var h = function () {
+          var q = video.play();
+          if (q && q.then) q.then(function () { started = true; }).catch(function () {});
+          ["touchstart", "click", "scroll"].forEach(function (e) {
+            document.removeEventListener(e, h, true);
+          });
+        };
+        ["touchstart", "click", "scroll"].forEach(function (e) {
+          document.addEventListener(e, h, true);
+        });
       });
     } else {
       started = !video.paused;
     }
   }
 
-  // 用户第一次触摸/点击时补播（这是浏览器允许的"用户手势"）
-  function armGestureFallback() {
-    if (armGestureFallback.done) return;
-    armGestureFallback.done = true;
-    var handler = function () {
-      var p = video.play();
-      if (p && typeof p.then === "function") {
-        p.then(function () { started = true; }).catch(function () {});
-      }
-      document.removeEventListener("touchstart", handler, true);
-      document.removeEventListener("click", handler, true);
-      document.removeEventListener("scroll", handler, true);
-    };
-    document.addEventListener("touchstart", handler, true);
-    document.addEventListener("click", handler, true);
-    document.addEventListener("scroll", handler, true);
-  }
-
-  // 数据够了再播，避免还没解码就 play 失败
   video.addEventListener("loadeddata", tryPlay, { once: true });
   video.addEventListener("canplay", tryPlay, { once: true });
 
-  function mount() {
-    if (document.querySelector(".ctf-bg")) return;
-    // 挂到 <html> 而不是 <body>：避开 body 上任何可能存在的 transform，
-    // 保证 position: fixed 真正相对视口（手机上尤其重要）
-    var host = document.documentElement;
-    host.insertBefore(wrap, host.firstChild);
-    tryPlay();
-  }
-
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", mount, { once: true });
+    document.addEventListener("DOMContentLoaded", function () { mount(wrap); tryPlay(); }, { once: true });
   } else {
-    mount();
+    mount(wrap);
+    tryPlay();
   }
 })();

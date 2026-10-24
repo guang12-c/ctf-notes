@@ -52,6 +52,60 @@
   filter: saturate(0.9) brightness(0.95);
 }
 
+/* ============ 静态模式（手机）：图 + CSS 飘雪 ============ */
+
+.ctf-bg[data-mode="still"] .ctf-still {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: var(--bg-still);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0.62;
+  filter: saturate(0.9) brightness(0.95);
+  /* 极缓慢的推近，制造"活着"的感觉（GPU 合成，很轻） */
+  animation: ctf-kenburns 48s ease-in-out infinite alternate;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+@keyframes ctf-kenburns {
+  from { transform: scale(1) translateZ(0); }
+  to   { transform: scale(1.06) translateZ(0); }
+}
+
+/* 飘雪层：平铺的白色小点，靠 transform 移动（GPU） */
+.ctf-bg[data-mode="still"] .ctf-snow {
+  position: absolute;
+  left: 0;
+  top: -100%;
+  width: 100%;
+  height: 200%;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.95) 1.1px, transparent 1.8px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.7) 0.8px, transparent 1.4px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.5) 1.4px, transparent 2px);
+  background-size: 170px 170px, 250px 250px, 330px 330px;
+  background-position: 0 0, 70px 110px, 140px 50px;
+  animation: ctf-snowfall 32s linear infinite;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+@keyframes ctf-snowfall {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(0, 50%, 0); }
+}
+
+/* 静态模式下没有 <video>，别给它留占位 */
+.ctf-bg[data-mode="still"] video {
+  display: none;
+}
 /* 遮罩：保证正文可读 */
 .ctf-bg::after {
   content: "";
