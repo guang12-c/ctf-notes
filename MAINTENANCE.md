@@ -1,4 +1,4 @@
-﻿# 维护手册（MAINTENANCE）
+# 维护手册（MAINTENANCE）
 
 > **给「新会话里的 AI」看的交接文档。**
 >
@@ -470,6 +470,7 @@ Invoke-RestMethod 'https://api.github.com/repos/guang12-c/ctf-notes/actions/runs
 | 2026-10-23 | 新增路径遍历专题(六关全通) + ZJCTF NiZhuanSiWei WP(含图) |
 | 2026-10-23 | 博客侧栏悬停预览、`site_url` 环境变量覆盖修复本地预览 |
 | 2026-10-23 | 本手册建立；「澄」命名，第 13、14 节 |
+| 2026-10-24 | 新增 [GXYCTF2019]禁止套娃 WP（git 泄露 + 无参数 RCE，含 4 图） |
 
 ---
 
