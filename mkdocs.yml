@@ -1,4 +1,4 @@
-﻿site_name: "guang's CTF Notes"
+site_name: "guang's CTF Notes"
 site_description: Web 安全知识点整理 + 靶场 Writeup
 site_author: guang
 site_url: !ENV [SITE_URL, "https://guang12-c.github.io/ctf-notes/"]
@@ -111,6 +111,9 @@ nav:
       - 路径遍历:
           - knowledge/traversal/index.md
           - 路径遍历专题: knowledge/traversal/路径遍历专题.md
+      - 文件包含:
+          - knowledge/inclusion/index.md
+          - 文件包含专题: knowledge/inclusion/文件包含专题.md
       - Web 通用:
           - knowledge/web/index.md
           - CTF-Web 学习笔记: knowledge/web/CTF-Web学习笔记.md
