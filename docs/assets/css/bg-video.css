@@ -1,4 +1,4 @@
-/* ===========================================
+﻿/* ===========================================
    背景视频样式
    由 assets/js/bg-video.js 注入 .ctf-bg 容器
 
@@ -25,11 +25,23 @@
 
 .ctf-bg {
   position: fixed;
-  inset: 0;
+  /* 不用 inset:手机上部分内核对其支持不稳,显式写四个方向 */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
   background: #0d1220;
+  /* 提升为独立图层:减少 iOS / Android 滚动时的重绘延迟,
+     并让它真正脱离文档流跟随视口 */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .ctf-bg video {
