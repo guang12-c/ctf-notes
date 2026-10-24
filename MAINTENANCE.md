@@ -1,4 +1,4 @@
-﻿# 维护手册（MAINTENANCE）
+# 维护手册（MAINTENANCE）
 
 > **给「新会话里的 AI」看的交接文档。**
 >
@@ -419,6 +419,44 @@ for ($i=1; $i -le 3; $i++) { git push; if ($?) { break }; Start-Sleep 10 }
 ### 坑 8：改了 `site\` 目录没用
 
 **`site\` 是构建产物，每次 `mkdocs build` 都会清空重建。所有修改都在 `docs\` 和 `mkdocs.yml`。**
+
+### 坑 9：背景层挂 `<html>` + 负 z-index → iPhone 上整层不可见
+
+**现象：** 桌面一切正常，**iPhone 上背景完全没有**（一片纯色，卡片却还在）。
+
+**原因：** 背景层被插到 `<html>` 下、并用了 `z-index: -1`。
+**桌面 Chrome 会正常绘制，iOS Safari 会把整层画到画布背景之后** —— 于是什么都看不见。
+
+**正确的做法：**
+
+```js
+// 挂在 <body> 第一个位置
+document.body.insertBefore(node, document.body.firstChild);
+```
+
+```css
+.ctf-bg       { position: fixed; z-index: 0; }     /* 正数,不用 -1 */
+.md-container { position: relative; z-index: 1; }  /* 内容压在背景之上 */
+```
+
+**教训：** 负 `z-index` + 跨浏览器 = 不确定性。**能用正数分层就别用负数。**
+
+### 坑 10：`prefers-reduced-motion` 时把背景整层隐藏
+
+**现象：** 某些用户（iPhone 开了「减弱动态效果」）看到纯色，以为背景坏了。
+
+**原因：** 降级块里写了 `.ctf-bg { display: none }`。
+
+**正确做法：保留静态图，只关掉动画：**
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .ctf-bg[data-mode="still"] .ctf-still { animation: none; }
+  .ctf-bg[data-mode="still"] .ctf-snow  { display: none; }
+}
+```
+
+**"减少动态效果"要减少的是**动画**，不是**背景**。**
 
 ---
 
