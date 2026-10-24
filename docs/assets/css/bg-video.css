@@ -148,10 +148,68 @@ body {
   background: rgba(255, 255, 255, 0.6);
 }
 
-/* ============ 降级 ============ */
+/* ============ 移动端适配 ============ */
 
-/* 窄屏 / 省流 / 减少动效：不加载视频，回到纯色背景 */
-@media (max-width: 48em), (prefers-reduced-motion: reduce) {
+/* 手机上没有 hover，侧栏是抽屉；卡片要更实一些保证可读 */
+@media (max-width: 76.1875em) {
+  /* 宽表格在窄屏内横向滚动，而不是撑破整页（只在小屏改，桌面端不受影响） */
+  .md-typeset table:not([class]) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ctf-bg {
+    /* 移动端地址栏会伸缩，100dvh 比 100vh 稳 */
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .ctf-bg video {
+    /* 竖屏时视频是 16:9，横向裁切很正常，保证铺满 */
+    object-fit: cover;
+    opacity: 0.5;
+  }
+
+  .md-content__inner {
+    background: rgba(12, 18, 30, 0.78);
+    padding: 1rem 1.05rem;
+    border-radius: 10px;
+  }
+
+  [data-md-color-scheme="default"] .md-content__inner {
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  .md-sidebar__scrollwrap {
+    border-radius: 10px;
+    padding: 0.6rem 0.5rem;
+  }
+}
+
+/* 小屏（手机竖屏）再压一点留白 */
+@media (max-width: 48em) {
+  .md-content__inner {
+    padding: 0.9rem 0.85rem;
+    border-radius: 8px;
+    margin-bottom: 0.8rem;
+  }
+
+  .ctf-bg video {
+    opacity: 0.48;
+  }
+
+  /* 首页卡片在小屏上一列排开 */
+  .md-typeset .grid.cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============ 降级：只在真的不该动的时候关掉 ============ */
+
+/* 系统开了「减少动效」→ 完全关掉视频，回到纯色 */
+@media (prefers-reduced-motion: reduce) {
   .ctf-bg {
     display: none;
   }

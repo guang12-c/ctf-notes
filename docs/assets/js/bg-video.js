@@ -1,16 +1,16 @@
 /* ===========================================
    背景视频注入
-   - 只在宽屏 + 允许动效时加载
-   - 自动播放失败静默降级
+   - 桌面和手机都加载（手机竖屏也生效）
+   - 省流模式 / 减少动效 → 不加载
+   - 自动播放失败静默降级（保留封面图）
    =========================================== */
 (function () {
   "use strict";
 
-  // 1) 省流 / 减少动效 / 窄屏 → 不加载
+  // 1) 省流 / 减少动效 → 不加载（窄屏不再排除）
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var narrow = window.matchMedia("(max-width: 48em)").matches;
   var saveData = navigator.connection && navigator.connection.saveData;
-  if (reduce || narrow || saveData) return;
+  if (reduce || saveData) return;
 
   // 2) 用脚本自身位置推算资源根目录
   //    脚本在 <site>/assets/js/bg-video.js → 资源根 <site>/assets/
