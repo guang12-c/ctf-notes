@@ -1,4 +1,4 @@
-# guang's CTF Notes
+﻿# guang's CTF Notes
 
 > Web 安全知识点整理 · 靶场 Writeup · 学习记录
 
@@ -12,7 +12,7 @@
 
     ---
 
-    按主题整理的手册：SQL 注入、文件上传、RCE、路径遍历、代码审计。
+    按主题整理的手册：SQL 注入、文件上传、RCE、路径遍历、文件包含、代码审计。
 
     [进入知识点](knowledge/index.md)
 
