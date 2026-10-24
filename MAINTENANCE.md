@@ -1,4 +1,4 @@
-# 维护手册（MAINTENANCE）
+﻿# 维护手册（MAINTENANCE）
 
 > **给「新会话里的 AI」看的交接文档。**
 >
@@ -239,6 +239,32 @@ nav:
 **视频素材：** `docs\assets\video\snowfall.mp4`
 （1280×720 / 12 秒 / 1.3 MB / 首尾交叉淡化做成无缝循环）
 
+**移动端（2026-10-24 起）：** 手机也加载背景视频。
+
+| 条件 | 行为 |
+|---|---|
+| 桌面 / 平板 / 手机 | **都显示视频** |
+| 系统开启「减少动效」 | 关闭视频，回到纯色 |
+| 浏览器省流模式（`saveData`） | 关闭视频 |
+| 自动播放被拦（iOS 低电量等） | 保留封面图 |
+
+**手机上的额外处理：**
+
+```css
+/* 视口高度用 dvh，避免地址栏伸缩导致背景跳动 */
+.ctf-bg { height: 100vh; height: 100dvh; }
+
+/* 小屏卡片更实，保证文字可读 */
+@media (max-width: 76.1875em) { .md-content__inner { background: rgba(12,18,30,0.78); } }
+
+/* 宽表格在窄屏内横向滚动，不撑破页面 */
+@media (max-width: 76.1875em) {
+  .md-typeset table:not([class]) { display: block; overflow-x: auto; }
+}
+```
+
+**⚠️ 本机无法用无头浏览器验证手机布局。** Windows 无头窗口有最小宽度限制（实测设 390 会被撑到 ~500，截图只是裁剪），所以**移动端效果必须在真机上看**。
+
 **重新生成（换素材时用）：**
 
 ```powershell
@@ -471,6 +497,7 @@ Invoke-RestMethod 'https://api.github.com/repos/guang12-c/ctf-notes/actions/runs
 | 2026-10-23 | 博客侧栏悬停预览、`site_url` 环境变量覆盖修复本地预览 |
 | 2026-10-23 | 本手册建立；「澄」命名，第 13、14 节 |
 | 2026-10-24 | 新增 [GXYCTF2019]禁止套娃 WP（git 泄露 + 无参数 RCE，含 4 图） |
+| 2026-10-24 | 反序列化专题 + [极客大挑战2019]PHP WP；背景视频支持移动端 |
 
 ---
 
