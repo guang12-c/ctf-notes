@@ -64,7 +64,7 @@
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
-  opacity: 0.62;
+  opacity: 0.85;
   filter: saturate(0.9) brightness(0.95);
   /* 极缓慢的推近，制造"活着"的感觉（GPU 合成，很轻） */
   animation: ctf-kenburns 48s ease-in-out infinite alternate;
@@ -85,21 +85,21 @@
   width: 100%;
   height: 200%;
   pointer-events: none;
-  opacity: 0.72;
+  opacity: 0.85;
   /* 三层不同大小的雪花：柔边（中心实、边缘渐隐），才像雪不像噪点 */
   background-image:
     radial-gradient(circle at center,
-      rgba(255, 255, 255, 0.95) 0 2.4px,
-      rgba(255, 255, 255, 0.35) 2.4px 3.4px,
-      rgba(255, 255, 255, 0) 4.2px),
+      rgba(255, 255, 255, 1) 0 3.6px,
+      rgba(255, 255, 255, 0.45) 3.6px 5px,
+      rgba(255, 255, 255, 0) 6.2px),
     radial-gradient(circle at center,
-      rgba(255, 255, 255, 0.85) 0 1.5px,
-      rgba(255, 255, 255, 0.25) 1.5px 2.2px,
-      rgba(255, 255, 255, 0) 2.9px),
+      rgba(255, 255, 255, 0.95) 0 2.3px,
+      rgba(255, 255, 255, 0.35) 2.3px 3.3px,
+      rgba(255, 255, 255, 0) 4.4px),
     radial-gradient(circle at center,
-      rgba(255, 255, 255, 0.6) 0 0.9px,
-      rgba(255, 255, 255, 0) 1.8px);
-  background-size: 230px 230px, 150px 150px, 105px 105px;
+      rgba(255, 255, 255, 0.75) 0 1.4px,
+      rgba(255, 255, 255, 0) 2.8px);
+  background-size: 240px 240px, 165px 165px, 120px 120px;
   background-position: 0 0, 70px 110px, 140px 50px;
   animation: ctf-snowfall 32s linear infinite;
   transform: translateZ(0);
@@ -251,6 +251,13 @@ body {
     /* 竖屏时视频是 16:9，横向裁切很正常，保证铺满 */
     object-fit: cover;
     opacity: 0.5;
+  }
+
+  /* 手机上遮罩压得浅一些，整体更亮 */
+  .ctf-bg::after {
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(120, 160, 220, 0.14), transparent 70%),
+      linear-gradient(180deg, rgba(10, 16, 28, 0.16), rgba(10, 16, 28, 0.38));
   }
 
   .md-content__inner {
