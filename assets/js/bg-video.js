@@ -11,7 +11,9 @@
   // 1) 省流 / 减少动效 → 什么都不放（CSS 已有纯色兜底）
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var saveData = navigator.connection && navigator.connection.saveData;
-  if (reduce || saveData) return;
+  // 省流模式才彻底不加载；"减弱动态效果"仍然保留静态图（CSS 会把动画关掉），
+  // 否则 iOS 开了这个选项的用户会看到一片纯色，像是背景坏了
+  if (saveData) return;
 
   // 2) 资源根目录（脚本在 <site>/assets/js/bg-video.js）
   var self = document.currentScript;
@@ -29,7 +31,7 @@
     window.matchMedia("(hover: none) and (pointer: coarse)").matches ||
     /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
   var isNarrow = window.matchMedia("(max-width: 76.1875em)").matches;
-  var useStill = isTouch || isNarrow;
+  var useStill = isTouch || isNarrow || reduce;
 
   // 4) 容器
   var wrap = document.createElement("div");
@@ -38,9 +40,9 @@
 
   function mount(node) {
     if (document.querySelector(".ctf-bg")) return;
-    // 挂到 <html>：避开 body 上可能的 transform（否则 fixed 会变成跟着滚）
-    var host = document.documentElement;
-    host.insertBefore(node || wrap, host.firstChild);
+    // 挂在 <body> 第一个位置：可见性靠 CSS 的 z-index 分层解决，
+    // 不用负 z-index（iOS Safari 上会把整层画到画布后面，导致完全看不见）
+    document.body.insertBefore(node || wrap, document.body.firstChild);
   }
 
   /* ================= 静态模式：图 + 飘雪 ================= */
@@ -51,6 +53,8 @@
 
     var still = document.createElement("div");
     still.className = "ctf-still";
+    // 直接内联图片地址，不依赖 CSS 变量（少一个失败点）
+    still.style.backgroundImage = "url('" + posterUrl + "')";
 
     var snow = document.createElement("div");
     snow.className = "ctf-snow";

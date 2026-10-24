@@ -32,7 +32,7 @@
   bottom: 0;
   width: 100%;
   height: 100%;
-  z-index: -1;
+  z-index: 0;
   overflow: hidden;
   pointer-events: none;
   background: #0d1220;
@@ -122,9 +122,15 @@ body {
   background: #0d1220;
 }
 
-.md-container,
-.md-main {
+/* 背景层 z-index:0 → 内容层必须在上层（不用负 z-index，iOS 上更可靠） */
+.md-container {
+  position: relative;
+  z-index: 1;
   background: transparent !important;
+}
+
+.md-main {
+  background: transparent;
 }
 
 /* ============ 正文：毛玻璃卡片 ============ */
@@ -272,30 +278,15 @@ body {
   }
 }
 
-/* ============ 降级：只在真的不该动的时候关掉 ============ */
+/* ============ 减弱动态效果：保留静态图，只关动画 ============ */
 
-/* 系统开了「减少动效」→ 完全关掉视频，回到纯色 */
 @media (prefers-reduced-motion: reduce) {
-  .ctf-bg {
+  /* 不动画，但背景还在 —— 不能整层隐藏，否则看起来像背景坏了 */
+  .ctf-bg[data-mode="still"] .ctf-still {
+    animation: none;
+  }
+
+  .ctf-bg[data-mode="still"] .ctf-snow {
     display: none;
-  }
-
-  .md-container,
-  .md-main {
-    background: var(--md-default-bg-color) !important;
-  }
-
-  .md-content__inner {
-    background: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    box-shadow: none;
-    border-radius: 0;
-    padding: 0;
-  }
-
-  .md-header {
-    background: var(--md-primary-fg-color) !important;
-    backdrop-filter: none;
   }
 }
