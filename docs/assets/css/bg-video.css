@@ -85,12 +85,21 @@
   width: 100%;
   height: 200%;
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.72;
+  /* 三层不同大小的雪花：柔边（中心实、边缘渐隐），才像雪不像噪点 */
   background-image:
-    radial-gradient(circle, rgba(255, 255, 255, 0.95) 1.1px, transparent 1.8px),
-    radial-gradient(circle, rgba(255, 255, 255, 0.7) 0.8px, transparent 1.4px),
-    radial-gradient(circle, rgba(255, 255, 255, 0.5) 1.4px, transparent 2px);
-  background-size: 170px 170px, 250px 250px, 330px 330px;
+    radial-gradient(circle at center,
+      rgba(255, 255, 255, 0.95) 0 2.4px,
+      rgba(255, 255, 255, 0.35) 2.4px 3.4px,
+      rgba(255, 255, 255, 0) 4.2px),
+    radial-gradient(circle at center,
+      rgba(255, 255, 255, 0.85) 0 1.5px,
+      rgba(255, 255, 255, 0.25) 1.5px 2.2px,
+      rgba(255, 255, 255, 0) 2.9px),
+    radial-gradient(circle at center,
+      rgba(255, 255, 255, 0.6) 0 0.9px,
+      rgba(255, 255, 255, 0) 1.8px);
+  background-size: 230px 230px, 150px 150px, 105px 105px;
   background-position: 0 0, 70px 110px, 140px 50px;
   animation: ctf-snowfall 32s linear infinite;
   transform: translateZ(0);
