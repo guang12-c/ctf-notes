@@ -2002,6 +2002,103 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-10-24 00:00:00+00:00">2026-10-24</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../category/%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB/" class="md-meta__link">文件包含</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="hctf-2018-warmup"><a class="toclink" href="../../hctf2018-warmup/">[HCTF 2018] WarmUp</a></h2>
+<p>这道题打开一个靶场后就一个滑稽笑脸，查看页面源代码，发现 <code>source.php</code>，访问后进行代码审计。</p>
+<p><img alt="source.php 源码" src="../../../assets/images/hctf2018-warmup/01-source.png" /></p>
+<p><img alt="include 部分" src="../../../assets/images/hctf2018-warmup/02-include.png" /></p>
+<h3 id="_1"><a class="toclink" href="../../hctf2018-warmup/#_1">代码结构</a></h3>
+<p>代码由两部分做成。</p>
+<p><strong>前半部分是函数的实现</strong>（<code>class emmm</code> 里的 <code>checkFile</code>），<strong>后半部分是调用</strong>：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="x">if (!empty($_REQUEST['file'])</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="x">    &amp;&amp; is_string($_REQUEST['file'])</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="x">    &amp;&amp; emmm::checkFile($_REQUEST['file'])</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="x">) {</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="x">    include $_REQUEST['file'];</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="x">    exit;</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="x">} else {</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="x">    echo "&lt;br&gt;&lt;img src=\"https://i.loli.net/2018/11/01/5bdb0d93dc794.jpg\" /&gt;";</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="x">}</span>
+</span></code></pre></div>
+<p>先看 <code>hint.php</code>，它给了 flag 的名字。</p>
+<h3 id="checkfile"><a class="toclink" href="../../hctf2018-warmup/#checkfile">checkFile 的三轮检查</a></h3>
+<p>白名单只有两个：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="x">$whitelist = ["source" =&gt; "source.php", "hint" =&gt; "hint.php"];</span>
+</span></code></pre></div>
+<p>然后对传入的 <code>$page</code> 做三轮判断：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">① 原样比对</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="x">   if (in_array($page, $whitelist)) return true;</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="x">② 截断到 ? 再比对</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="x">   $_page = mb_substr($page, 0, mb_strpos($page . '?', '?'));</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="x">   if (in_array($_page, $whitelist)) return true;</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="x">③ urldecode 之后再截断到 ? 再比对</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="x">   $_page = urldecode($page);</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="x">   $_page = mb_substr($_page, 0, mb_strpos($_page . '?', '?'));</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="x">   if (in_array($_page, $whitelist)) return true;</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="x">都不过 → echo "you can't see it"; return false;</span>
+</span></code></pre></div>
+<p><strong>核心就是第 ② 轮：<code>mb_strpos($page . '?', '?')</code> 找到</strong>第一个问号<strong>，只把问号</strong>前面<strong>那一段拿去比对。</strong></p>
+<p><strong>所以只要开头是 <code>source.php</code>，后面接什么都行。</strong></p>
+<h3 id="payload"><a class="toclink" href="../../hctf2018-warmup/#payload">构造 payload</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>?file=source.php?/../../../../ffffllllaaaagggg
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title"><code>../</code> 的数量</p>
+<p>一个一个往上加，直到跳出 web 根目录，正好够到 <code>/ffffllllaaaagggg</code>。</p>
+</div>
+<p><strong>为什么能过：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>checkFile 看到:  source.php?/../../../../ffffllllaaaagggg
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>                 └────┬────┘
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>                 截断到 ? → "source.php" → 在白名单里 ✅
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>include 拿到:    source.php?/../../../../ffffllllaaaagggg
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>                 └─ 整条原样送进去,? 后面的 ../ 才发挥作用
+</span></code></pre></div>
+<p><strong>校验看的是"截断后"，<code>include</code> 用的是"整条" —— 两者不是同一个字符串。</strong></p>
+<h3 id="flag"><a class="toclink" href="../../hctf2018-warmup/#flag">得到 flag</a></h3>
+<p><img alt="拿到 flag" src="../../../assets/images/hctf2018-warmup/03-flag.png" /></p>
+<h3 id="_2"><a class="toclink" href="../../hctf2018-warmup/#_2">这道题的要点</a></h3>
+<p><strong>① 校验和使用的字符串不一致</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>checkFile 用 $_page(截断后的)
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>include   用 $_REQUEST['file'](原始的)
+</span></code></pre></div>
+<p><strong>和路径遍历那六关是同一个模型：</strong>校验发生在哪一步，绕过就发生在哪一步之前。</p>
+<p><strong>② 还有个没被用上的口子</strong></p>
+<p>第 ③ 轮是 <code>urldecode</code> 之后才截断 —— 这意味着 <code>%3f</code> 编码的问号也能触发截断。这次没用上，但换一道题可能就得靠它。</p>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-10-23 00:00:00+00:00">2026-10-23</time></li>
         
           <li class="md-meta__item">
