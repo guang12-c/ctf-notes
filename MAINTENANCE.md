@@ -239,14 +239,32 @@ nav:
 **视频素材：** `docs\assets\video\snowfall.mp4`
 （1280×720 / 12 秒 / 1.3 MB / 首尾交叉淡化做成无缝循环）
 
-**移动端（2026-10-24 起）：** 手机也加载背景视频。
+**两种背景模式（2026-10-24 定稿）：**
 
-| 条件 | 行为 |
-|---|---|
-| 桌面 / 平板 / 手机 | **都显示视频** |
-| 系统开启「减少动效」 | 关闭视频，回到纯色 |
-| 浏览器省流模式（`saveData`） | 关闭视频 |
-| 自动播放被拦（iOS 低电量等） | 保留封面图 |
+| 设备 | 模式 | 实现 |
+|---|---|---|
+| **桌面（> 1220px 且非触屏）** | **视频** | `<video>` 循环播雪林 |
+| **手机 / 平板 / 窄屏** | **静态图 + CSS 飘雪** | `snowfall-poster.jpg` + `kenburns` 缓推 + 平铺白点下落 |
+| 系统开启「减少动效」 | 纯色 | 什么都不注入 |
+| 浏览器省流模式（`saveData`） | 纯色 | 什么都不注入 |
+
+**为什么手机不用视频：** iOS Safari 上「自动播放 + `position: fixed` + 滚动」三个坑会叠在一起 ——
+实测手机上视频不播（停在封面图）且背景会跟着页面滚。**静态图 + CSS 动画零兼容性风险，视觉上也接近。**
+
+**改法：**
+
+```js
+// docs/assets/js/bg-video.js
+var useStill = isTouch || isNarrow;   // 触屏或窄屏 → 静态模式
+```
+
+```css
+/* docs/assets/css/bg-video.css */
+.ctf-bg[data-mode="still"] .ctf-still { background-image: var(--bg-still); animation: ctf-kenburns 48s ... }
+.ctf-bg[data-mode="still"] .ctf-snow  { animation: ctf-snowfall 32s linear infinite }
+```
+
+**背景容器挂在 `<html>` 上而不是 `<body>`** —— 避开 body 上任何 `transform`（那会让 `fixed` 变成跟着滚）。
 
 **手机上的额外处理：**
 
@@ -497,7 +515,8 @@ Invoke-RestMethod 'https://api.github.com/repos/guang12-c/ctf-notes/actions/runs
 | 2026-10-23 | 博客侧栏悬停预览、`site_url` 环境变量覆盖修复本地预览 |
 | 2026-10-23 | 本手册建立；「澄」命名，第 13、14 节 |
 | 2026-10-24 | 新增 [GXYCTF2019]禁止套娃 WP（git 泄露 + 无参数 RCE，含 4 图） |
-| 2026-10-24 | 反序列化专题 + [极客大挑战2019]PHP WP；背景视频支持移动端 |
+| 2026-10-24 | 反序列化专题 + [极客大挑战2019]PHP WP |
+| 2026-10-24 | 背景改为双模式：桌面视频 / 手机静态图+CSS飘雪 |
 
 ---
 
