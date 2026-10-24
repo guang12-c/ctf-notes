@@ -114,6 +114,9 @@ nav:
       - 文件包含:
           - knowledge/inclusion/index.md
           - 文件包含专题: knowledge/inclusion/文件包含专题.md
+      - 反序列化:
+          - knowledge/deserialization/index.md
+          - 反序列化专题: knowledge/deserialization/反序列化专题.md
       - Web 通用:
           - knowledge/web/index.md
           - CTF-Web 学习笔记: knowledge/web/CTF-Web学习笔记.md
