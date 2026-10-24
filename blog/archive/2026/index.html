@@ -1988,11 +1988,9 @@
 </span></code></pre></div>
 <p>成功得到 flag：</p>
 <p><img alt="拿到 flag" src="../../../assets/images/gxyctf-taowa/04-flag.png" /></p>
-<h3 id="_3"><a class="toclink" href="../../gxyctf2019-taowa/#_3">这道题的两个坑</a></h3>
-<p><strong>① <code>git-dumper</code> 的路径</strong></p>
+<h3 id="_3"><a class="toclink" href="../../gxyctf2019-taowa/#_3">踩的坑</a></h3>
+<p><strong><code>git-dumper</code> 的路径</strong></p>
 <p>写成 <code>/git</code> 拉不下来，必须是 <code>/.git/</code>。dirsearch 扫出来的 <code>.git/HEAD</code> 就是答案 —— 别自己"简化"。</p>
-<p><strong>② <code>(?R)?</code> 里的 <code>?</code></strong></p>
-<p>一开始以为"加了 <code>?</code> 是为了能递归多次"，其实反了：<strong><code>(?R)</code> 才是递归，<code>?</code> 是让它能停。</strong> 没有出口的递归匹配不了任何东西。</p>
     
     
   </div>
