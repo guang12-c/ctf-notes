@@ -1,4 +1,4 @@
-﻿# 知识点
+# 知识点
 
 按主题整理的手册。**每章只保留"判断依据"和"为什么有效"，不堆 payload。**
 
@@ -13,7 +13,7 @@
 | **[文件包含](inclusion/index.md)** | 伪协议全家桶、五个路径技巧、从读文件到 RCE 的五条路 | 9 章 |
 | **[反序列化](deserialization/index.md)** | 序列化格式、魔术方法、四种绕过、phar、POP 链 | 11 章 |
 | **[代码审计](audit/index.md)** | PHP / Java 审计入门 | — |
-| **[Web 通用](web/index.md)** | PortSwigger 13 关复盘、通用方法论 | — |
+| **[Web 通用](web/index.md)** | PortSwigger 13 关复盘、通用方法论、[工具命令速查](web/工具命令速查.md) | — |
 
 ## 怎么用
 
