@@ -148,58 +148,6 @@ s:2:"op";i:2;
 1. **浏览器把 `<?` 当成 bogus comment（无效注释）**，一路吞到下一个 `>`，所以这段字不在渲染结果里 —— `Ctrl+U` 看源代码就有；
 2. **`__destruct` 是在脚本结束时才触发的**，输出天然追加在页面最末尾、`highlight_file` 的源码后面。
 
-## 卡点
-
-### 坑 1：`curl: (35) SEC_E_CERT_EXPIRED`
-
-**现象**：curl 一句都还没发出去就报 TLS 错。
-
-![证书过期](../../assets/images/dasctf-ezphp/02-cert-expired.png)
-
-**原因**：题目环境的通配符证书过期了（`*.http-ctf2.dasctf.com`，2026/8/7 到期，我打的时候是 10/25）。本机时间是对的，不是自己的问题。
-
-**正确做法**：加 `-k`。靶场专用，真实站点别养成习惯。
-
-!!! note "看清楚是哪一层挂了"
-
-    `curl: (35)` + `schannel:` 开头 = **TLS 握手**失败，payload 根本没发出去，别去改 payload。
-
-### 坑 2：`op` 写成字符串 `"2"` 会清空 flag.php
-
-**现象**：页面只回个 `Successful!` 或者干脆没反应。
-
-**原因**：`__destruct` 用强比较，字符串 `"2"` 会被改成 `"1"` 走 `write()`，而它在上一行已经把 `content` 清空了：
-
-```php
-$this->content = "";
-$this->process();   // → file_put_contents("flag.php", "")
-```
-
-本地拿副本试的：**41 字节的文件，打完之后 0 字节**。
-
-在真题上这么打，flag.php 直接被清空，只能等环境重置。
-
-**正确做法**：`op` 用整数 `i:2`。
-
-### 坑 3：手抄 base64 抄错
-
-**现象**：解出来一串乱码，中间冒出 `0x13`、`0x93`、`0x96` 这种控制字符残渣。
-
-**原因**：base64 区分大小写。`<?php ` 的 base64 是 `PD9waHAg`，手抄成 `PD9waHag` 就变成 `hv\xa0`。终端还会自动换行，一断行更容易错。
-
-**正确做法**：别手抄，让命令自己取、自己解：
-
-```powershell
-$url = 'https://xxx.dasctf.com/'
-$p   = 'O:11:"FileHandler":3:{s:2:"op";i:2;s:57:"php://filter/read=convert.base64-encode/resource=flag.php";s:7:"content";s:0:"";}'
-
-$r   = curl.exe -sS -k -G $url --data-urlencode "str=$p"
-$b64 = [regex]::Match($r, 'PD9waHA[A-Za-z0-9+/=]*').Value
-[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b64))
-```
-
-其实这题直接读 `flag.php` 就是明文，连 base64 都不用。
-
 ## 收获
 
 - **同一个属性在不同位置可以是不同类型检查**：`=== "2"` 拦字符串，`== "2"` 收整数。找"哪个类型能同时过两道"比硬刚一个点快。
