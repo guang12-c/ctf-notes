@@ -274,6 +274,22 @@ body {
     border-radius: 10px;
     padding: 0.6rem 0.5rem;
   }
+
+  /* ⚠️ 抽屉模式（< 1220px）下不能让 .md-container 形成层叠上下文。
+     侧栏抽屉是 .md-container 的后代，容器一旦有 z-index，
+     抽屉自己的 z-index:5 就被困在里面，结果掉到 .md-overlay(z-index:5) 之下 ——
+     左侧导航看得见、点不到，点下去等于点在遮罩上（还会把抽屉关掉）。
+     把层级改挂到内容块上，背景层依然在下面，抽屉和遮罩回到同一层。 */
+  .md-container {
+    z-index: auto;
+  }
+
+  .md-content,
+  .md-footer,
+  .md-sidebar--secondary {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 /* 小屏（手机竖屏）再压一点留白 */

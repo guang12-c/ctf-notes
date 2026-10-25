@@ -7,7 +7,7 @@
 >
 > **维护者：澄**（AI，作者给的名字 —— **如果用户叫你「澄」，那就是你**，见第 13 节）
 >
-> 最后更新：2026-10-23
+> 最后更新：2026-10-25
 
 ---
 
@@ -458,6 +458,40 @@ document.body.insertBefore(node, document.body.firstChild);
 
 **"减少动态效果"要减少的是**动画**，不是**背景**。**
 
+### 坑 11：给 `.md-container` 加 `z-index` → 手机上侧栏导航点不动
+
+**现象：** 窗口窄的时候（< 1220px，Material 进「抽屉模式」），左侧导航栏**看得见、点不到** ——
+点「归档 / 分类」没反应，有时还会把抽屉直接关掉。桌面宽窗口一切正常。
+
+**原因：** 为了把内容压在背景层上面，曾给 `.md-container` 写了 `position: relative; z-index: 1`。
+`.md-container` 一旦有 `z-index` 就**形成层叠上下文**，而侧栏抽屉是它的后代
+（`.md-sidebar--primary` → `.md-main__inner` → `.md-main` → `.md-container`）。
+抽屉自己的 `z-index: 5` 被困在这个上下文里，整体只按 **1** 层参与排序；
+遮罩 `.md-overlay` 是 `<body>` 的直接子元素、`z-index: 5`，在根层级 —— **5 > 1，遮罩盖在整个侧栏上面**。
+点击全落在遮罩上，导航自然没反应。
+
+**诊断方法（不用肉眼猜）：**
+
+```js
+// 在页面上点 F12 → Console：
+document.elementFromPoint(x, y)   // 导航项中心坐标
+// 返回 .md-overlay 而不是 .md-nav__link → 就是这个问题
+```
+
+**正确做法（已实施，见 `bg-video.css` 移动端媒体查询）：**
+
+```css
+/* 抽屉模式：不让 .md-container 形成层叠上下文，层级改挂到内容块上 */
+@media (max-width: 76.1875em) {
+  .md-container { z-index: auto; }
+  .md-content, .md-footer, .md-sidebar--secondary { position: relative; z-index: 1; }
+}
+```
+
+**教训：** 在 Material 里调层级，**别把 `z-index` 加在「装着抽屉的那个祖先」上** ——
+抽屉、遮罩、搜索框都靠根层级的 `z-index: 5` 互相排序，祖辈一旦形成上下文，它们就全部错位。
+要抬高层级，加在**内容叶子块**上（`.md-content`），不加在容器上。
+
 ---
 
 ## 9. 内容风格约定（延续作者习惯）
@@ -489,8 +523,8 @@ document.body.insertBefore(node, document.body.firstChild);
 
 **知识点文档的结构偏好：** 每章先给「判断依据」，再给「为什么有效」，最后才是 payload。
 
-**已知的五个专题：** SQL 注入、文件上传、RCE、路径遍历、代码审计。
-**下一步计划（作者提过）：** 文件包含（LFI）、反序列化、DVWA/CTFHub/BUUCTF 实战。
+**已建的七个专题：** SQL 注入、文件上传、RCE、路径遍历、文件包含、反序列化、代码审计。
+**下一步计划（作者提过）：** DVWA / CTFHub / BUUCTF 实战。
 
 ---
 
@@ -555,6 +589,10 @@ Invoke-RestMethod 'https://api.github.com/repos/guang12-c/ctf-notes/actions/runs
 | 2026-10-24 | 新增 [GXYCTF2019]禁止套娃 WP（git 泄露 + 无参数 RCE，含 4 图） |
 | 2026-10-24 | 反序列化专题 + [极客大挑战2019]PHP WP |
 | 2026-10-24 | 背景改为双模式：桌面视频 / 手机静态图+CSS飘雪 |
+| 2026-10-24 | 修复 iOS 背景不可见（回到 `<body>` + 正 `z-index`）；减弱动效保留静态图 |
+| 2026-10-24 | 雪花放大 + 柔边三层；手机端浓度/遮罩微调 |
+| 2026-10-24 | 新增米米的奇幻之旅 WP（六关）、Stage1 FlaskLogin WP |
+| 2026-10-25 | **修手机端侧栏导航点不动**（`.md-container` 的 z-index 把抽屉层级困住，遮罩盖住侧栏）；手册补坑 11 |
 
 ---
 
