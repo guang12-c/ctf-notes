@@ -120,6 +120,7 @@ nav:
       - Web 通用:
           - knowledge/web/index.md
           - CTF-Web 学习笔记: knowledge/web/CTF-Web学习笔记.md
+          - 工具命令速查: knowledge/web/工具命令速查.md
       - 代码审计:
           - knowledge/audit/index.md
           - 代码审计入门: knowledge/audit/代码审计入门-PHP与Java.md

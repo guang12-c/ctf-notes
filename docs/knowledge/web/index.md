@@ -1,8 +1,12 @@
-﻿# Web 通用
+# Web 通用
 
 ## PortSwigger 13 关复盘
 
 覆盖 7 个漏洞家族：文件操作、访问控制、认证缺陷、SSRF、文件上传、命令注入、SQL 注入。
+
+## 工具命令
+
+打题时手上要用的命令都收在一页里：[**工具命令速查**](工具命令速查.md) —— curl / dirsearch / sqlmap / ghauri / git-dumper / php / exiftool，附本机路径和 Windows 上的坑。
 
 ## 核心方法论
 
