@@ -117,14 +117,10 @@ s:2:"op";i:2;
 
 `protected` 属性序列化后是 `\0*\0op`（两个空字节夹一个星号），而 `is_valid` 卡的是 `ord() >= 32`，空字节 `ord = 0` 直接被拒。
 
-但这题**根本不用碰空字节** —— `unserialize` 是按属性名写入对象的，**不做可见性检查**。类里声明了 `protected $op`，序列化串里写 `s:2:"op"` 就会直接写进那个 protected 槽。
-
-本地复刻验证过（`E:\dsh\ctf-work\ser\`）：
+但这题**根本不用碰空字节** —— `unserialize` 不对属性做检验，所以构建序列化串的时候直接用 public 属性名就行，`protected $op` 一样写得进去：
 
 ```text
-喂进去:  O:1:"A":1:{s:1:"x";s:7:"dynamic";}     ← 类里是 protected $x
-读出来:  dynamic
-重序列化: O:1:"A":1:{s:4:"\0*\0x";s:7:"dynamic";}   ← 值确实落在 protected 槽里
+s:2:"op";i:2;        ← 属性是 protected，但这里按 public 写
 ```
 
 ## 最终 payload
