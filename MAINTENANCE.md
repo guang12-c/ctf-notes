@@ -593,6 +593,7 @@ Invoke-RestMethod 'https://api.github.com/repos/guang12-c/ctf-notes/actions/runs
 | 2026-10-24 | 雪花放大 + 柔边三层；手机端浓度/遮罩微调 |
 | 2026-10-24 | 新增米米的奇幻之旅 WP（六关）、Stage1 FlaskLogin WP |
 | 2026-10-25 | **修手机端侧栏导航点不动**（`.md-container` 的 z-index 把抽屉层级困住，遮罩盖住侧栏）；手册补坑 11 |
+| 2026-10-25 | 新增「工具命令速查」页（curl / dirsearch / sqlmap / ghauri / git-dumper / php / exiftool，附本机路径）|
 
 ---
 
