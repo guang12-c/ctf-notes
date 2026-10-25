@@ -2371,6 +2371,7 @@
 
 <h1 id="dasctf-filehandler">[DASCTF] FileHandler 反序列化<a class="headerlink" href="#dasctf-filehandler" title="Permanent link">&para;</a></h1>
 <p>打开题目直接就是源码，<code>highlight_file</code> 把整个文件摊出来了。先审计。</p>
+<p><img alt="题目源码" src="../../assets/images/dasctf-ezphp/01-source.png" /></p>
 <div class="language-php highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="cp">&lt;?php</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">include</span><span class="p">(</span><span class="s2">"flag.php"</span><span class="p">);</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
@@ -2490,6 +2491,7 @@
 <p>返回：</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>[Result]: &lt;br&gt;&lt;?php $flag='CTF2{a8da662d-ba4e-44da-9655-ffd89b301ecb}';
 </span></code></pre></div>
+<p><img alt="拿到 flag" src="../../assets/images/dasctf-ezphp/03-flag.png" /></p>
 <h2 id="_2">页面为什么看着什么都没有<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p>两个原因叠在一起：</p>
 <ol>
@@ -2499,6 +2501,7 @@
 <h2 id="_3">卡点<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <h3 id="1curl-35-sec_e_cert_expired">坑 1：<code>curl: (35) SEC_E_CERT_EXPIRED</code><a class="headerlink" href="#1curl-35-sec_e_cert_expired" title="Permanent link">&para;</a></h3>
 <p><strong>现象</strong>：curl 一句都还没发出去就报 TLS 错。</p>
+<p><img alt="证书过期" src="../../assets/images/dasctf-ezphp/02-cert-expired.png" /></p>
 <p><strong>原因</strong>：题目环境的通配符证书过期了（<code>*.http-ctf2.dasctf.com</code>，2026/8/7 到期，我打的时候是 10/25）。本机时间是对的，不是自己的问题。</p>
 <p><strong>正确做法</strong>：加 <code>-k</code>。靶场专用，真实站点别养成习惯。</p>
 <div class="admonition note">
