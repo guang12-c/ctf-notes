@@ -9,6 +9,8 @@ categories:
 
 打开题目直接就是源码，`highlight_file` 把整个文件摊出来了。先审计。
 
+![题目源码](../../assets/images/dasctf-ezphp/01-source.png)
+
 ```php
 <?php
 include("flag.php");
@@ -137,6 +139,8 @@ s:2:"op";i:2;
 [Result]: <br><?php $flag='CTF2{a8da662d-ba4e-44da-9655-ffd89b301ecb}';
 ```
 
+![拿到 flag](../../assets/images/dasctf-ezphp/03-flag.png)
+
 ## 页面为什么看着什么都没有
 
 两个原因叠在一起：
@@ -149,6 +153,8 @@ s:2:"op";i:2;
 ### 坑 1：`curl: (35) SEC_E_CERT_EXPIRED`
 
 **现象**：curl 一句都还没发出去就报 TLS 错。
+
+![证书过期](../../assets/images/dasctf-ezphp/02-cert-expired.png)
 
 **原因**：题目环境的通配符证书过期了（`*.http-ctf2.dasctf.com`，2026/8/7 到期，我打的时候是 10/25）。本机时间是对的，不是自己的问题。
 
