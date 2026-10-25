@@ -1,4 +1,4 @@
-# 维护手册（MAINTENANCE）
+﻿# 维护手册（MAINTENANCE）
 
 > **给「新会话里的 AI」看的交接文档。**
 >
@@ -24,6 +24,8 @@
 | **内容** | CTF / Web 安全学习笔记 + 靶场 WP |
 
 **一句话：写 Markdown，`git push`，约 1 分钟后网站更新。**
+
+**换个新会话时：先读 §15「跨会话引导」—— 那里只有手册其他章节没写的东西。**
 
 ---
 
@@ -589,6 +591,7 @@ Invoke-RestMethod 'https://api.github.com/repos/guang12-c/ctf-notes/actions/runs
 | 2026-10-24 | 新增 [GXYCTF2019]禁止套娃 WP（git 泄露 + 无参数 RCE，含 4 图） |
 | 2026-10-24 | 反序列化专题 + [极客大挑战2019]PHP WP |
 | 2026-10-24 | 背景改为双模式：桌面视频 / 手机静态图+CSS飘雪 |
+| 2026-10-25 | 新增 §15 跨会话引导（含解题分寸、比赛进度、已知问题） |
 | 2026-10-24 | 修复 iOS 背景不可见（回到 `<body>` + 正 `z-index`）；减弱动效保留静态图 |
 | 2026-10-24 | 雪花放大 + 柔边三层；手机端浓度/遮罩微调 |
 | 2026-10-24 | 新增米米的奇幻之旅 WP（六关）、Stage1 FlaskLogin WP |
@@ -710,6 +713,71 @@ Invoke-RestMethod 'https://api.github.com/repos/guang12-c/ctf-notes/actions/runs
 **明天他可能不记得今晚具体聊过什么。但这份文件会记得。**
 
 **晚安。**
+
+---
+
+## 15. 跨会话引导
+
+> **新会话开场：让 AI 读这一节即可。**
+> **这里只写手册别的章节**没有**的东西；其余照 §1~§14 走，不复述。**
+
+### 15.1 解题时的分寸（最容易踩）
+
+**广要**自己**解题。**
+
+| 情况 | 该怎么做 |
+|---|---|
+| 他贴题目说"这题怎么走" | 给**判断路径**，别给成品 payload |
+| 他卡住了反复试 | 给一个**探针**（`{{7*7}}`、`'`、`admin=1`），让他自己看回显 |
+| 他明确说"我要 payload/帮我打" | 再直接给 |
+| 他贴了自己的 payload 问为什么不行 | **逐条解释为什么不行**，这是他要的 |
+
+**踩过的坑：**
+
+> 2026-10-23，我直接把无参数 RCE 的绕过思路讲完了，他说：
+> **「哎呀你不要说出来呀，我自己做」**
+
+**另一条：他嘴上说"晕了""这不就是 xxx"时，手上还在试。抱怨是减压，不是放弃。**
+
+### 15.2 比赛/进度（会过期，定期更新）
+
+**2026-10-24 ~ 10-30：ZeroG-CTF 2026 秋季新神赛**（双人，线上 Jeopardy）
+
+**已解：**
+
+| 题 | 考点 |
+|---|---|
+| 米米的奇幻之旅（6 关） | 弱比较 / 双写 / `X-Forwarded-For` / Cookie / `Accept-Language` / `== 0` |
+| Stage1 SSTI | Flask + Jinja2 → `lipsum.__globals__` → env |
+| Stage2 Mass Assignment | `{"__class__":{"is_admin":true}}` |
+| Stage1 FlaskLogin | Flask 签名 session + `flask-unsign` 爆 `SECRET_KEY` |
+| 云栈商城 / ShopSSTI | SQLite 注入 → 伪造 cookie 进后台 → PyYAML 5.4 + Jinja2 SSTI |
+| 极客大挑战 2019 PHP | `__wakeup` 绕过（属性数改大） |
+| BJDCTF2020 ZJCTF | 文件包含 + `/e` 注入 + 参数名即正则 |
+
+**WP 待写：** Stage1 SSTI、Stage2 Mass Assignment。
+
+**专题待建：** SSTI、会话/Cookie 安全、SQLite 注入速查。
+
+### 15.3 这轮比赛打出来的判断套路
+
+```
+cookie 是纯 base64          → 先解码看结构，多半能直接改
+cookie 是 a.b.c 三段式      → Flask 签名 session，上 flask-unsign
+cookie 里写着身份           → 改了没用时,看服务端是不是还查了库
+/profile 这类查询页         → 试单引号,再看是不是 SQLite
+报错里有 sqlite             → sqlite_master,不要 information_schema
+后台有 YAML/模板输入框      → PyYAML 5.x + Jinja2 = SSTI → RCE
+```
+
+### 15.4 已知问题
+
+| 问题 | 说明 |
+|---|---|
+| **GitHub 推送常失败** | `Failed to connect` / `Connection was reset`。**重试 5~8 次就好**，提交不会丢，不必等 |
+| **OpenViking 记忆库断开** | `server is disconnected`，记忆检索不可用 |
+| **本机无法模拟手机宽度** | 无头浏览器窗口有最小值，`--window-size=390` 会被撑到 ~500，截图只是裁剪。**移动端效果只能真机看** |
+| **PHP 7.4 没有 `/e`** | 遇到 `/e` 题目只能推理，不能本地复现 |
 
 ---
 
