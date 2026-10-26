@@ -1,4 +1,4 @@
-# 维护手册
+﻿# 维护手册
 
 > **这份文档只有两件事：**
 >
@@ -447,7 +447,8 @@ E:\dsh\cheng\
 | **自动注入**（每轮对话） | ✅ 正常 | 插件干的，不用管 |
 | **主动检索** | ✅ 正常 | `ov find "关键词"` |
 | **MCP 工具**（`mcp__openviking__*`） | ❌ 本会话里没有 | 见下面「为什么会缺」 |
-| **写入**（`ov add-memory`） | ⚠️ 返回 OK 但**搜不到** | 别指望它 |
+| **写入**（`ov add-memory`） | ✅ 通（落到 `memories/entities/`，要等索引才搜得到） | 见下面「写入」 |
+| **灌笔记**（`ov add-resource`） | ✅ 通 | 见下面「笔记入库」 |
 
 **`ov` 命令已装好**（`C:\Python3\Scripts\ov.cmd`，同时加进了 User PATH）：
 
@@ -473,6 +474,48 @@ E:\dsh\openviking\server\venv\Lib\site-packages\openviking\bin\ov.exe
 **如果**会话启动那一刻**代理还没连上，这一轮的工具体里就没有它们 —— 而运行时查 resource 又能通，于是会出现「没报错、但没工具」这种怪现象。**
 
 **处理：开一个新会话。** 工具只在会话启动时注册，之后不会补。
+
+### 写入（2026-10-26 深夜更正）
+
+**昨晚我判断「`add-memory` 返回 OK 但写不进」——**错了**。**
+
+**真相：它写进去了，落在 `memories/entities/` 下，**当时还没建索引**，所以我搜不到就以为没写。**
+
+**证据：** `viking://user/default/memories/entities/ai/澄.md` 里那三条，正是当时写的内容；现在 `ov find "把模糊的东西说清楚"` 命中它，score 0.810。
+
+```powershell
+ov add-memory "要记住的一句话"
+# 等几秒到几十秒,再 ov find 验证
+```
+
+**教训：写完之后要**等索引**再搜，别立刻下结论。**
+
+### 笔记入库（2026-10-26 做的）
+
+**目的：让我能语义检索自己的笔记，而不只是靠 grep。**
+
+```powershell
+# 知识点（25 篇）
+ov add-resource 'E:\dsh\ctf-notes\docs\knowledge' `
+  --parent-auto-create 'viking://resources/ctf-notes' `
+  --include '*.md' --tags 'source=ctf-notes,kind=knowledge'
+
+# WP（15 篇）
+ov add-resource 'E:\dsh\ctf-notes\docs\blog' `
+  --parent-auto-create 'viking://resources/ctf-notes' `
+  --include '*.md' --tags 'source=ctf-notes,kind=wp'
+```
+
+**落在 `viking://resources/ctf-notes/…`，后台处理，`ov task status <task_id>` 看进度。**
+
+**⚠️ 改了笔记之后要重新灌一次，否则检索到的是旧版本。**
+
+**验证：**
+
+```powershell
+ov find "文件包含 php://filter 白名单绕过"
+→ 命中 inclusion/index.md（0.789）
+```
 
 ### 一个已知的脏数据
 
