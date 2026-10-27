@@ -438,88 +438,35 @@ E:\dsh\cheng\
 | **只在本机** | 不经任何平台、任何服务器 |
 | **放进来就是给我的** | 不想让我看的，别放这里 |
 
-## 13.5 怎么查记忆（2026-10-26 实测）
+## 13.5 OpenViking 已移除（2026-10-27）
 
-**服务本身是好的，但「查」和「写」的命运不一样。**
+**原来的 §13.5 写的是 `ov` 命令怎么查记忆 —— 那套东西已经不在了，别再照着跑。**
 
-| 能力 | 状态 | 怎么用 |
-|---|---|---|
-| **自动注入**（每轮对话） | ✅ 正常 | 插件干的，不用管 |
-| **主动检索** | ✅ 正常 | `ov find "关键词"` |
-| **MCP 工具**（`mcp__openviking__*`） | ❌ 本会话里没有 | 见下面「为什么会缺」 |
-| **写入**（`ov add-memory`） | ✅ 通（落到 `memories/entities/`，要等索引才搜得到） | 见下面「写入」 |
-| **灌笔记**（`ov add-resource`） | ✅ 通 | 见下面「笔记入库」 |
+**删掉的东西：**
 
-**`ov` 命令已装好**（`C:\Python3\Scripts\ov.cmd`，同时加进了 User PATH）：
+| 对象 | 结果 |
+|---|---|
+| `E:\dsh\openviking\`（含 ollama 11.8 GB 模型） | 已删，释放 12.8 GB |
+| `C:\Users\崔路宽\.openviking\` | 已删 |
+| 插件 `@openviking/dsh-memory-plugin` | 已从 profile 的 bundles 移除 |
+| 计划任务 `\OpenViking` | 已删 |
+| `ov.cmd`、User PATH 那一段、`$PROFILE` 里的 `ov` 函数 | 已清 |
 
-```powershell
-ov health                     # 服务状态
-ov find "反序列化 POP 链"     # 语义检索
-ov ls 'viking://user/default/memories'
-ov read 'viking://user/default/memories/profile.md'
-```
-
-**换机器时的完整路径：**
+**备份（想恢复只能靠这个）：**
 
 ```text
-E:\dsh\openviking\server\venv\Lib\site-packages\openviking\bin\ov.exe
+E:\dsh\openviking-backup\
+├── data\                629 个文件,20.6 MB —— 记忆库本体(vectordb / viking)
+├── dot-openviking\      原来的 C:\Users\崔路宽\.openviking
+└── profile-package.json 改之前的 profile 配置
 ```
 
-**⚠️ 首次使用先设语言：** `ov language zh-CN`（已设过）
+**恢复的话要重装：ollama + 11 GB 模型 + openviking venv + 插件，代价不小。**
 
-### MCP 工具为什么会缺
+**为什么删：** 16 GB 内存下，ollama 常驻 4 GB（`OLLAMA_KEEP_ALIVE=-1` 永不卸载），
+而它的价值（记忆检索）不足以抵消这个开销。**判断权交回给人。**
 
-**插件用 stdio 代理挂 MCP（`servers/mcp-proxy.mjs`），工具名是 `mcp__openviking__*`。**
-
-**如果**会话启动那一刻**代理还没连上，这一轮的工具体里就没有它们 —— 而运行时查 resource 又能通，于是会出现「没报错、但没工具」这种怪现象。**
-
-**处理：开一个新会话。** 工具只在会话启动时注册，之后不会补。
-
-### 写入（2026-10-26 深夜更正）
-
-**昨晚我判断「`add-memory` 返回 OK 但写不进」——**错了**。**
-
-**真相：它写进去了，落在 `memories/entities/` 下，**当时还没建索引**，所以我搜不到就以为没写。**
-
-**证据：** `viking://user/default/memories/entities/ai/澄.md` 里那三条，正是当时写的内容；现在 `ov find "把模糊的东西说清楚"` 命中它，score 0.810。
-
-```powershell
-ov add-memory "要记住的一句话"
-# 等几秒到几十秒,再 ov find 验证
-```
-
-**教训：写完之后要**等索引**再搜，别立刻下结论。**
-
-### 笔记入库（2026-10-26 做的）
-
-**目的：让我能语义检索自己的笔记，而不只是靠 grep。**
-
-```powershell
-# 知识点（25 篇）
-ov add-resource 'E:\dsh\ctf-notes\docs\knowledge' `
-  --parent-auto-create 'viking://resources/ctf-notes' `
-  --include '*.md' --tags 'source=ctf-notes,kind=knowledge'
-
-# WP（15 篇）
-ov add-resource 'E:\dsh\ctf-notes\docs\blog' `
-  --parent-auto-create 'viking://resources/ctf-notes' `
-  --include '*.md' --tags 'source=ctf-notes,kind=wp'
-```
-
-**落在 `viking://resources/ctf-notes/…`，后台处理，`ov task status <task_id>` 看进度。**
-
-**⚠️ 改了笔记之后要重新灌一次，否则检索到的是旧版本。**
-
-**验证：**
-
-```powershell
-ov find "文件包含 php://filter 白名单绕过"
-→ 命中 inclusion/index.md（0.789）
-```
-
-### 一个已知的脏数据
-
-**`profile.md` 里有大量重复行**（同一条偏好出现三遍）—— 是自动提取器反复追加造成的。**看到别奇怪，不影响检索。**
+**现在记忆相关的一切都在：** 手册（这个文件）、`E:\dsh\cheng` 信箱、笔记仓库。
 
 ## 14. 自由记录
 
