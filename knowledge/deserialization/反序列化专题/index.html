@@ -1663,10 +1663,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#94" class="md-nav__link">
+  <a href="#94-hnctf-2022-week3-ez_phar-unserialize" class="md-nav__link">
     <span class="md-ellipsis">
       
-        9.4 ⬜ 待打
+        9.4 ✅ [HNCTF 2022 WEEK3] ez_phar —— 不用 unserialize 的入口
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#95" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.5 ⬜ 待打
       
     </span>
   </a>
@@ -3029,10 +3040,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#94" class="md-nav__link">
+  <a href="#94-hnctf-2022-week3-ez_phar-unserialize" class="md-nav__link">
     <span class="md-ellipsis">
       
-        9.4 ⬜ 待打
+        9.4 ✅ [HNCTF 2022 WEEK3] ez_phar —— 不用 unserialize 的入口
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#95" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.5 ⬜ 待打
       
     </span>
   </a>
@@ -3658,10 +3680,90 @@
 <p><strong><code>var</code> 用 <code>php://filter/convert.base64-encode/resource=flag.php</code></strong> —— 直接 include 会执行掉,编码后是纯文本才会原样输出。</p>
 <p><strong>⚠️ 链跑完会报 <code>Method Show::__toString() must return a string value</code></strong> —— 因为 include 返回 int。<strong>但 include 已经执行完,报错在后面,不影响。</strong></p>
 <p>→ 详见 WP：<a href="../../../blog/mrctf2020-ezpop/">/blog/mrctf2020-ezpop/</a></p>
-<h3 id="94">9.4 ⬜ 待打<a class="headerlink" href="#94" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>· phar 反序列化专项题(不需要 unserialize 入口)
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>· [网鼎杯] PHP 反序列化系列
-</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>· Java 的 ysoserial 链(如果打 Java 题)
+<h3 id="94-hnctf-2022-week3-ez_phar-unserialize">9.4 ✅ [HNCTF 2022 WEEK3] ez_phar —— 不用 <code>unserialize</code> 的入口<a class="headerlink" href="#94-hnctf-2022-week3-ez_phar-unserialize" title="Permanent link">&para;</a></h3>
+<p><strong>前面三条全靠 <code>unserialize()</code> 起头。这一条没有 <code>unserialize</code>，链是从</strong>文件函数<strong>进去的。</strong></p>
+<p><strong>源码就四行有用：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="x">class Flag{</span>
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="x">    public $code;</span>
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="x">    public function __destruct(){ eval($this-&gt;code); }</span>
+</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="x">}</span>
+</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="x">$filename = $_GET['filename'];</span>
+</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="x">file_exists($filename);</span>
+</span></code></pre></div>
+<p><strong>关键差别:</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>前三条</th>
+<th>这一条</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>入口</td>
+<td><code>unserialize($input)</code></td>
+<td><strong><code>file_exists($filename)</code></strong></td>
+</tr>
+<tr>
+<td>触发时机</td>
+<td>调用那一刻</td>
+<td><strong>PHP 解析 <code>phar://</code> 那一刻</strong></td>
+</tr>
+<tr>
+<td>文件后缀</td>
+<td>—</td>
+<td><strong>无所谓,<code>.jpg</code> 也行</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么能 —— 一句话:</strong></p>
+<blockquote>
+<p>phar 的 manifest 里可以存一段<strong>序列化 metadata</strong>。任何函数只要访问 <code>phar://</code> 开头的路径,
+PHP 就解析这个 phar,解析时把 metadata <strong>自动反序列化</strong>,对象被重建,
+脚本结束 → <code>__destruct()</code> 自动执行。</p>
+</blockquote>
+<p><strong>所以 phar 的本质:把「反序列化」的引信从 <code>unserialize()</code> 挪到了「文件操作 + 可控路径」。</strong></p>
+<p><strong>能当触发点的文件函数(记一份):</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>file_exists   is_file   filesize   getimagesize   file_get_contents
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>file_put_contents   copy   unlink   fopen   include   md5_file
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>exif_read_data   get_meta_tags
+</span></code></pre></div>
+<p><strong>为什么必须用 <code>Phar</code> 类生成,不能手写:</strong></p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>为什么手改会崩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>stub 后的 4 字节</td>
+<td><strong>manifest 总长度</strong>,必须等于后面所有字节之和</td>
+</tr>
+<tr>
+<td>metadata 前的 4 字节</td>
+<td><strong>序列化串长度</strong>,改一个字符就错</td>
+</tr>
+</tbody>
+</table>
+<p><strong>另外 <code>new Phar('x.jpg')</code> 会报错 —— 创建时必须 <code>.phar</code> 结尾。</strong>
+<strong>所以流程是:生成 <code>x.phar</code> → 改名 <code>x.jpg</code> → 上传。</strong></p>
+<p><strong>⚠️ 生成时 <code>phar.readonly</code> 默认是 1,必须关:</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="n">php</span><span class="p">.</span><span class="n">exe</span> <span class="n">-d</span> <span class="n">phar</span><span class="p">.</span><span class="n">readonly</span><span class="p">=</span><span class="n">0</span> <span class="n">ds</span><span class="p">.</span><span class="n">php</span>
+</span></code></pre></div>
+<p><strong>⚠️ eval 里必须是合法 PHP。</strong> 我第一次写 <code>ls /</code>(shell 命令),页面报:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>Parse error: syntax error, unexpected end of file
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>in /var/www/html/index.php(7) : eval()'d code on line 1
+</span></code></pre></div>
+<p><strong>这行报错反而是最好的证据:</strong> <code>eval()'d code</code> 说明 <code>__destruct</code> 跑了,
+<code>index.php(7)</code> 说明就是那行 <code>eval</code>,而 <code>syntax error</code> 说明整条链已经通,只是内容不对。</p>
+<p><strong>判读顺序:<code>eval()'d code</code> 一出现,后面就只剩「写对 payload」这一件事了。</strong></p>
+<p>→ 详见 WP:<a href="../../../blog/hnctf2022-ezphar/">/blog/hnctf2022-ezphar/</a></p>
+<h3 id="95">9.5 ⬜ 待打<a class="headerlink" href="#95" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>· [网鼎杯] PHP 反序列化系列
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>· Java 的 ysoserial 链(如果打 Java 题)
 </span></code></pre></div>
 <hr />
 <h2 id="_14">十、我踩的坑<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h2>
