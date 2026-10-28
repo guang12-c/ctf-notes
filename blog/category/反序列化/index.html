@@ -1771,6 +1771,8 @@
       
         
       
+        
+      
     
     
     
@@ -1818,6 +1820,36 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../pop-%E9%93%BE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    POP 链
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2367,6 +2399,92 @@
       <header class="md-typeset">
         <h1 id="_1">反序列化<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-28 00:00:00+00:00">2026-10-28</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="./" class="md-meta__link">反序列化</a>, 
+              <a href="../pop-%E9%93%BE/" class="md-meta__link">POP 链</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="magic-invoker2026zerogctf"><a class="toclink" href="../../zerog-magic-invoker/">Magic Invoker（2026ZeroGCTF）</a></h2>
+<h3 id="_1"><a class="toclink" href="../../zerog-magic-invoker/#_1">源码 · 四类速览</a></h3>
+<p><img alt="四类之一" src="../../../assets/images/zerog-magic-invoker/01-class-a.png" /></p>
+<p><img alt="四类之二" src="../../../assets/images/zerog-magic-invoker/02-class-b.png" /></p>
+<h3 id="flag"><a class="toclink" href="../../zerog-magic-invoker/#flag">审计：能拿到 flag 的只有两处</a></h3>
+<p>先审计四段代码，发现可以利用得到 flag 的只有两个地方：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>① Invoker 里 __destruct 中的 eval —— 命令执行
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>② FlagReader 里 __call —— 读 /flag
+</span></code></pre></div>
+<p>既然 <code>FlagReader</code> 可以直接读 flag，那先考虑这个方法。</p>
+<p><code>__call</code> 的触发方法是<strong>调用了不存在的方法</strong>，这里要 <code>$name === 'getFlag'</code>。但是查看这些代码，<strong>根本没有调用这个方法的</strong>，所以这就是个陷阱，忽略它。</p>
+<h3 id="invoker-sink"><a class="toclink" href="../../zerog-magic-invoker/#invoker-sink">Invoker 是直接的 sink</a></h3>
+<p>接着看 <code>eval</code> 竟然在 <code>__destruct</code> 里 —— 那么<strong>只要传进序列化串就会触发</strong>。</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="x">public function __destruct() {</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="x">    eval($this-&gt;code);</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p>所以只用一个 <code>Invoker</code> 对象就够了，<strong>不需要拼链</strong>。</p>
+<p>直接先查文件：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>O:7:"Invoker":1:{s:4:"code";s:14:"system('ls ');";}
+</span></code></pre></div>
+<p><img alt="ls 回显" src="../../../assets/images/zerog-magic-invoker/03-ls.png" /></p>
+<p>发现存在 <code>index.php</code> 和 <code>challenge.php</code> 两个文件。</p>
+<h3 id="_2"><a class="toclink" href="../../zerog-magic-invoker/#_2">两个文件的关系和我原先的猜测相反</a></h3>
+<p>这里 <code>index.php</code> 一般是网页入口，所以先看 <code>challenge.php</code> —— 它确实就是页面上那四个类的定义。</p>
+<p>那就接着查看 <code>index.php</code>：</p>
+<p><img alt="cat index.php" src="../../../assets/images/zerog-magic-invoker/04-cat-index.png" /></p>
+<p><strong>里面直接写了 flag 怎么拿</strong>：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="x">/*</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="x"> * Flag：由平台以环境变量 FLAG 动态注入，选手 RCE 后 env/printenv FLAG 读取。</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="x"> */</span>
+</span></code></pre></div>
+<h3 id="env-printenv-flag"><a class="toclink" href="../../zerog-magic-invoker/#env-printenv-flag">env 能列，printenv FLAG 不行</a></h3>
+<p>他这里说 <code>env</code> / <code>printenv FLAG</code> 都可以拿，我试了：</p>
+<p><strong><code>env</code> 和 <code>printenv</code>（不带参数）都能拿，加上 <code>FLAG</code> 就不行</strong> —— 因为 <code>printenv</code> 是<strong>精确匹配</strong>的，而里面 FLAG 前面还有一串东西，所以匹配不到就查询不到。</p>
+<p><img alt="printenv 全量" src="../../../assets/images/zerog-magic-invoker/05-printenv.png" /></p>
+<p>实际的变量名是：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>ZEROG_2026_FLAG=flag{...}
+</span></code></pre></div>
+<p><strong>所以 <code>printenv FLAG</code> 找的是 <code>FLAG</code> 这个不存在的名字，什么都不会打印；而 <code>env</code> 是全量列出，一眼就能看见。</strong></p>
+<p><strong>这也说明：<code>index.php</code> 注释里写的「环境变量 FLAG」和实际实现不一致 —— 注释是当时的意图，不代表现在的名字。</strong></p>
+<blockquote>
+<p><strong>注释可以过时，<code>env</code> 不会骗你。</strong></p>
+</blockquote>
+<h3 id="cat-indexphp"><a class="toclink" href="../../zerog-magic-invoker/#cat-indexphp">顺带一个坑：<code>cat /index.php</code> 为什么不行</a></h3>
+<p>我一开始想 <code>cat /index.php</code>，结果什么都没出来；换成 <code>cat index.php</code> 就有了。</p>
+<p><strong>因为这两个是完全不同的东西：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>/index.php   ← 文件系统根目录下的 index.php   → 不存在
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>index.php    ← 当前工作目录下的 index.php      → 存在
+</span></code></pre></div>
+<p><strong><code>/</code> 是 Linux 文件系统的根，</strong>不是网站的根<strong>。网站目录一般是 <code>/var/www/html</code> 之类，而 <code>cat</code> 不给路径时用的是</strong>当前工作目录<strong>（cwd）—— 从 <code>ls</code> 的结果看，cwd 就是网站目录，所以相对路径能命中。</strong></p>
+<p><strong>而且 <code>cat /index.php</code> 报的 <code>No such file or directory</code> 走的是 <strong>stderr</strong>，<code>system()</code> 只回显 stdout，所以页面看起来就是「什么都没发生」。</strong></p>
+<p><strong>用 <code>cat /index.php 2&gt;&amp;1</code> 才能看见那条错误。</strong></p>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
