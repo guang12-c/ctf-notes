@@ -50,6 +50,10 @@ plugins:
       lang:
         - zh
         - en
+      # 中文没有空格，lunr 默认只按 [\s-]+ 切，一整段中文会变成单个超长 token，
+      # 搜「文件包含」永远匹配不上。这里改成「每个汉字前切一刀」+ 原有的空格/横线切分，
+      # 索引和查询都会落到单字 token 上，lunr 再按 AND 匹配，中文才搜得出来。
+      separator: '[\s\u200b\-]+|(?=[\u4e00-\u9fff])'
   - blog:
       blog_dir: blog
       post_dir: "{blog}/posts"
