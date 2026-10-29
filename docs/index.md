@@ -1,9 +1,9 @@
-<section class="hero" data-reveal>
+﻿<section class="hero" data-reveal>
   <p class="hero__eyebrow">Web 安全 · 靶场记录</p>
   <h1 class="hero__title">把每一次卡壳，<br>变成下一次的判断</h1>
-  <p class="hero__sub">SQL 注入、文件上传、RCE、反序列化按主题整理成手册；每道靶场题记下现象、判断依据和最后的绕法，而不只是答案。</p>
+  <p class="hero__sub">SQL 注入、文件上传、RCE、SSRF、反序列化按主题整理成手册；每道靶场题记下现象、判断依据和最后的绕法，而不只是答案。</p>
   <a class="hero__cta" href="knowledge/">从知识点开始 <span aria-hidden="true">→</span></a>
-  <p class="hero__proof">16 篇知识点 · 22 篇 WP · 最近更新 2026-10-29</p>
+  <p class="hero__proof">17 篇知识点 · 25 篇 WP · 最近更新 2026-10-29</p>
 </section>
 
 <div class="index-list" data-reveal>
@@ -12,7 +12,7 @@
   <span class="index-row__no">01</span>
   <span class="index-row__body">
     <span class="index-row__title">知识点</span>
-    <span class="index-row__desc">按主题归类的手册：SQL 注入、文件上传、RCE、路径遍历、文件包含、反序列化、代码审计，外加工具命令速查。</span>
+    <span class="index-row__desc">按主题归类的手册：SQL 注入、文件上传、RCE、路径遍历、文件包含、SSRF、反序列化、代码审计，外加工具命令速查。</span>
   </span>
   <span class="index-row__arrow" aria-hidden="true">→</span>
 </a>
