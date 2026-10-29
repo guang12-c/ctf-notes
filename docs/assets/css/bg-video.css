@@ -1,4 +1,4 @@
-﻿/* ===========================================
+/* ===========================================
    背景视频样式
    由 assets/js/bg-video.js 注入 .ctf-bg 容器
 
@@ -161,15 +161,45 @@ body {
 
 /* ============ 顶部导航 ============ */
 
+/* ⚠️ 毛玻璃必须放在伪元素上，不能直接给 .md-header / .md-tabs 加 backdrop-filter。
+   原因：带 backdrop-filter 的元素会成为 position:fixed 子元素的 containing block。
+   Material 的手机搜索面板是 .md-search__inner{position:fixed;height:100%}，
+   一旦 header 有 filter，那个 100% 就按 header 的 48px 算 ——
+   面板只剩一条，.md-search__output 高度变 0，结果全被裁掉。
+   表现：手机上搜索能打字、结果数也对，但列表一片空白。（2026-10-29 查了两天才定位） */
 .md-header {
-  background: rgba(13, 18, 32, 0.55) !important;
+  background: transparent !important;
+  box-shadow: none;
+  isolation: isolate;
+}
+
+.md-header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  background: rgba(13, 18, 32, 0.55);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  box-shadow: none;
 }
 
 .md-tabs {
-  background: rgba(13, 18, 32, 0.35) !important;
+  background: transparent !important;
+  isolation: isolate;
+}
+
+.md-tabs::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  background: rgba(13, 18, 32, 0.35);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
