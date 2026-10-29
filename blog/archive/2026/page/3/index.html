@@ -1803,6 +1803,8 @@
       
         
       
+        
+      
     
     
     
@@ -2460,6 +2462,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../../category/%E8%B7%AF%E5%BE%84%E9%81%8D%E5%8E%86/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    路径遍历
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../../../../category/%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E/" class="md-nav__link">
         
   
@@ -2597,6 +2629,182 @@
       <header class="md-typeset">
         <h1 id="2026">2026<a class="headerlink" href="#2026" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-21 00:00:00+00:00">2026-10-21</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../../../category/%E5%91%BD%E4%BB%A4%E6%B3%A8%E5%85%A5/" class="md-meta__link">命令注入</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 1 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="newstarctf-so-baby-rce"><a class="toclink" href="../../../../so-baby-rce/">[NewStarCTF] So Baby RCE —— 子串黑名单 + 没有斜杠</a></h2>
+<h3 id="_1"><a class="toclink" href="../../../../so-baby-rce/#_1">源码</a></h3>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="x">if(preg_match('/et|echo|cat|tac|base|sh|more|less|tail|vi|head|nl|env|fl|\||;|\^|\'|\]|"|&lt;|&gt;|`|\/| |\\\\|\*/i', $_GET["cmd"])){</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="x">   echo "Don't Hack Me";</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="x">}else{</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="x">    system($_GET["cmd"]);</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="x">}</span>
+</span></code></pre></div>
+<h3 id="_2"><a class="toclink" href="../../../../so-baby-rce/#_2">先分类这个黑名单</a></h3>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>被封</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>命令名</td>
+<td><code>cat</code> <code>tac</code> <code>head</code> <code>tail</code> <code>more</code> <code>less</code> <code>nl</code> <code>vi</code></td>
+<td>常见读文件命令全灭</td>
+</tr>
+<tr>
+<td><strong>子串</strong></td>
+<td><code>et</code> <code>sh</code> <code>fl</code> <code>base</code> <code>env</code></td>
+<td><strong><code>get</code>/<code>set</code>/<code>bash</code>/<code>flag</code> 全被连坐</strong></td>
+</tr>
+<tr>
+<td>路径</td>
+<td><code>/</code></td>
+<td>不能用绝对路径</td>
+</tr>
+<tr>
+<td>空白</td>
+<td>空格</td>
+<td>必须 <code>$IFS</code></td>
+</tr>
+<tr>
+<td>重定向</td>
+<td><code>\|</code> <code>;</code> <code>&lt;</code> <code>&gt;</code> <code>`</code></td>
+<td>只能靠 <code>&amp;&amp;</code></td>
+</tr>
+<tr>
+<td>通配</td>
+<td><code>'</code> <code>"</code> <code>]</code> <code>\</code> <code>*</code> <code>^</code></td>
+<td>不能包字符串、不能用 <code>*</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="_3"><a class="toclink" href="../../../../so-baby-rce/#_3">过程</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>① ls                    → 当前目录是个没用文件
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>② cd$IFS..$IFS&amp;&amp;ls      → 一级一级往上爬(因为 / 被禁)
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>③ 在根目录找到 flag
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>④ sort 或 grep 读内容
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>⑤ 但 flag 里含 fl → 被拦
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>⑥ 用 ? 当通配符 → 绕过
+</span></code></pre></div>
+<h3 id="_4"><a class="toclink" href="../../../../so-baby-rce/#_4">卡点与绕法</a></h3>
+<table>
+<thead>
+<tr>
+<th>卡点</th>
+<th>绕法</th>
+<th>原理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>空格被禁</td>
+<td><code>$IFS</code></td>
+<td>IFS 默认含空格</td>
+</tr>
+<tr>
+<td><strong><code>/</code> 被禁</strong></td>
+<td><strong><code>cd ..</code> 逐级爬</strong></td>
+<td>相对路径不含 <code>/</code></td>
+</tr>
+<tr>
+<td><code>\|</code> <code>;</code> 被禁</td>
+<td><code>&amp;&amp;</code></td>
+<td>逻辑与还能串命令</td>
+</tr>
+<tr>
+<td><code>*</code> 被禁</td>
+<td><code>?</code></td>
+<td><code>?</code> 没在黑名单里</td>
+</tr>
+<tr>
+<td><code>cat/head/tail</code> 被禁</td>
+<td><code>sort</code> <code>grep</code> <code>uniq</code> <code>od</code> <code>strings</code> <code>awk</code> <code>sed</code></td>
+<td>读文件的替代品一大堆</td>
+</tr>
+<tr>
+<td><code>fl</code> 被禁</td>
+<td><code>fl?ag</code></td>
+<td>通配符替你补字符</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sort-grep"><a class="toclink" href="../../../../so-baby-rce/#sort-grep">sort 和 grep 的区别</a></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>sort</code></th>
+<th><code>grep</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用途</td>
+<td>排序</td>
+<td>搜索</td>
+</tr>
+<tr>
+<td>输出</td>
+<td><strong>所有行</strong>（排序后）</td>
+<td><strong>只输出匹配的行</strong></td>
+</tr>
+<tr>
+<td>要模式吗</td>
+<td>不用</td>
+<td><strong>要</strong>（<code>grep . 文件</code>）</td>
+</tr>
+<tr>
+<td>多行文件</td>
+<td>全出但顺序变了</td>
+<td>只出匹配的</td>
+</tr>
+</tbody>
+</table>
+<p><strong>flag 只有一行时两个都行；多行文件时 <code>sort</code> 会重排、<code>grep</code> 会过滤。</strong></p>
+<h3 id="_5"><a class="toclink" href="../../../../so-baby-rce/#_5">一个纠正</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">echo</span><span class="w"> </span>fl<span class="o">{</span>abc<span class="o">}</span>ag<span class="w">    </span>→<span class="w">  </span>fl<span class="o">{</span>abc<span class="o">}</span>ag<span class="w">     </span>←<span class="w"> </span>原样,不是<span class="w"> </span>flag
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nb">echo</span><span class="w"> </span>fl<span class="o">{</span>,<span class="o">}</span>ag<span class="w">      </span>→<span class="w">  </span>flag<span class="w">          </span>←<span class="w"> </span>空选项才有效
+</span></code></pre></div>
+<p><strong>花括号展开只在 bash 下有效。这题真正能过的是 <code>?</code>。</strong></p>
+<h3 id="_6"><a class="toclink" href="../../../../so-baby-rce/#_6">收获</a></h3>
+<blockquote>
+<p><strong>黑名单是子串匹配时，先找"哪些常用词被连坐"（<code>et</code> 封掉 <code>get</code>/<code>set</code>）。</strong></p>
+<p><strong><code>/</code> 被封不等于走不了 —— <code>cd ..</code> 相对路径一样能爬到根目录。</strong></p>
+<p><strong>读文件命令十几个，封 8 个还剩 8 个；<code>*</code> 被封还有 <code>?</code>。</strong></p>
+</blockquote>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
