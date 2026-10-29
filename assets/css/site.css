@@ -40,9 +40,16 @@
   --r1: 4px; --r2: 8px; --r3: 12px; --r4: 16px;
 
   /* ---- 动效 ---- */
+  /* --ease 用于滚动显现（从下浮上来，需要"快起慢收"） */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --t-move: 500ms;
   --t-fade: 300ms;
+  /* 悬停用这两条：进入用软出（ease-out），离开用软进出（ease-in-out）。
+     原来的 .22,1,.36,1 起手太猛，4px 的位移看着像直接弹上去。 */
+  --ease-enter: cubic-bezier(0.16, 0.84, 0.28, 1);
+  --ease-leave: cubic-bezier(0.4, 0, 0.2, 1);
+  --t-enter: 260ms;
+  --t-leave: 400ms;
 
   /* ---- 字体 ---- */
   --font-sans: "Manrope", "Noto Sans SC", -apple-system, BlinkMacSystemFont,
@@ -467,15 +474,18 @@ body .md-nav .md-nav__item--active > .md-nav__link {
   border-radius: var(--r3);
   box-shadow: none;
   padding: var(--s5);
-  transition: transform var(--t-move) var(--ease),
-    border-color var(--t-fade) var(--ease),
-    background var(--t-fade) var(--ease);
+  transition: transform var(--t-leave) var(--ease-leave),
+    border-color var(--t-leave) var(--ease-leave),
+    background-color var(--t-leave) var(--ease-leave);
 }
 
 .md-typeset .grid.cards > ul > li:hover {
   transform: translateY(-2px);
   border-color: var(--accent);
   background: var(--surface-2);
+  transition: transform var(--t-enter) var(--ease-enter),
+    border-color var(--t-enter) var(--ease-enter),
+    background-color var(--t-enter) var(--ease-enter);
 }
 
 .md-typeset .grid.cards > ul > li > hr {
@@ -570,14 +580,16 @@ body .md-nav .md-nav__item--active > .md-nav__link {
   font-weight: 600;
   border-radius: var(--r2);
   text-decoration: none;
-  transition: transform var(--t-fade) var(--ease),
-    background var(--t-fade) var(--ease);
+  transition: transform var(--t-leave) var(--ease-leave),
+    background-color var(--t-leave) var(--ease-leave);
 }
 
 .md-typeset .hero__cta:hover {
   background: var(--accent-strong);
   transform: translateY(-1px);
   color: #14120a;
+  transition: transform var(--t-enter) var(--ease-enter),
+    background-color var(--t-enter) var(--ease-enter);
 }
 
 .md-typeset .hero__cta:active {
@@ -592,6 +604,10 @@ body .md-nav .md-nav__item--active > .md-nav__link {
 }
 
 /* --- 索引卡片：一块一件事，悬停浮起并加深投影 ---
+   ⚠️ 选择器必须带 .md-typeset 前缀：卡片本身是 <a>，而 .md-typeset a 自带
+      transition(color, opacity)，权重 (0,1,1) 高于 .index-row 的 (0,1,0)。
+      不提权的话 transform / box-shadow 的过渡会被整条覆盖 ——
+      表现就是移入有动画、移出瞬间归零。（2026-10-29 排查）
    卡片只靠底色区分，静止时不投影；投影是"可点"的提示，不是装饰。
    投影颜色取自背景色（暖黑），不用纯黑，避免发灰。 */
 
@@ -601,7 +617,7 @@ body .md-nav .md-nav__item--active > .md-nav__link {
   margin: var(--s6) 0 var(--s10);
 }
 
-.index-row {
+.md-typeset .index-row {
   display: grid;
   grid-template-columns: 56px 1fr 24px;
   align-items: start;
@@ -611,27 +627,39 @@ body .md-nav .md-nav__item--active > .md-nav__link {
   border-radius: var(--r4);
   text-decoration: none;
   color: inherit;
-  box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
-  transition: transform var(--t-move) var(--ease),
-    box-shadow var(--t-move) var(--ease),
-    background var(--t-fade) var(--ease);
+  /* 阴影几何固定，静止时 alpha 为 0 —— 悬停只动透明度，
+     避免"从 0 尺寸阴影长出来"那种硬跳 */
+  box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0),
+    0 4px 12px -6px rgba(0, 0, 0, 0);
+  /* 基础态 = 移开时的过渡（渐落，400ms，软进出） */
+  transition: transform var(--t-leave) var(--ease-leave),
+    box-shadow var(--t-leave) var(--ease-leave),
+    background-color var(--t-leave) var(--ease-leave);
 }
 
-.index-row:hover {
+.md-typeset .index-row:hover {
   transform: translateY(-4px);
   background: var(--surface-2);
   box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.6),
     0 4px 12px -6px rgba(0, 0, 0, 0.45);
+  /* 悬停态 = 移入时的过渡（渐起，260ms，软出） */
+  transition: transform var(--t-enter) var(--ease-enter),
+    box-shadow var(--t-enter) var(--ease-enter),
+    background-color var(--t-enter) var(--ease-enter);
 }
 
-/* 浅色模式投影要淡得多，否则像脏点 */
-[data-md-color-scheme="default"] .index-row:hover {
+/* 浅色模式：同几何，色调换成暖黑 */
+[data-md-color-scheme="default"] .md-typeset .index-row {
+  box-shadow: 0 16px 32px -14px rgba(19, 18, 9, 0), 0 4px 12px -8px rgba(19, 18, 9, 0);
+}
+
+[data-md-color-scheme="default"] .md-typeset .index-row:hover {
   box-shadow: 0 16px 32px -14px rgba(19, 18, 9, 0.22),
     0 4px 12px -8px rgba(19, 18, 9, 0.14);
 }
 
 /* 按下时轻微下沉，给出物理反馈 */
-.index-row:active {
+.md-typeset .index-row:active {
   transform: translateY(-1px) scale(0.995);
   transition-duration: var(--t-fade);
 }
@@ -667,7 +695,7 @@ body .md-nav .md-nav__item--active > .md-nav__link {
   transition: transform var(--t-move) var(--ease), color var(--t-fade) var(--ease);
 }
 
-.index-row:hover .index-row__arrow {
+.md-typeset .index-row:hover .index-row__arrow {
   transform: translateX(4px);
   color: var(--accent);
 }
@@ -821,14 +849,14 @@ body .md-nav .md-nav__item--active > .md-nav__link {
     font-size: 1.5rem; /* 24 */
   }
 
-  .index-row {
+  .md-typeset .index-row {
     grid-template-columns: 32px 1fr 20px;
     gap: var(--s3);
     padding: var(--s4);
     border-radius: var(--r3);
   }
 
-  .index-row:hover {
+  .md-typeset .index-row:hover {
     transform: translateY(-2px);
   }
 
