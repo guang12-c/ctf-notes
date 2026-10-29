@@ -177,6 +177,7 @@ body::before {
 
 .md-typeset p {
   max-width: 68ch;
+  margin: 0 0 1em;
   text-wrap: pretty;
 }
 
@@ -229,11 +230,29 @@ body::before {
   font-weight: 600;
 }
 
+/* 引用块在 WP 里当"题元信息卡"用（题目类型 / 地址 / Flag）：
+   底色 + 左侧强调线，段间距压到最小，别让三行撑成一大块 */
 .md-typeset blockquote {
+  background: var(--surface-1);
+  border: 0;
   border-left: 2px solid var(--accent);
+  border-radius: var(--r2);
   color: var(--ink-dim);
-  padding-left: var(--s5);
-  margin-left: 0;
+  padding: var(--s4) var(--s5);
+  margin: var(--s5) 0 var(--s6);
+}
+
+.md-typeset blockquote p {
+  margin: 0.28em 0;
+  max-width: none;
+}
+
+.md-typeset blockquote p:first-child {
+  margin-top: 0;
+}
+
+.md-typeset blockquote p:last-child {
+  margin-bottom: 0;
 }
 
 .md-typeset a {
@@ -328,10 +347,16 @@ body::before {
   border-top: 1px solid var(--line);
 }
 
+/* --- 分隔线后面紧跟标题时，两边的留白会叠加成 100px+ 的空洞。
+   这里把线本身的间距收小，并让紧随其后的标题少留一点。 */
 .md-typeset hr {
   border: 0;
   border-top: 1px solid var(--line);
-  margin: var(--s8) 0;
+  margin: var(--s6) 0;
+}
+
+.md-typeset hr + h2 {
+  margin-top: var(--s5);
 }
 
 /* ==========================================================================
