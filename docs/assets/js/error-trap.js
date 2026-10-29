@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 诊断模式错误捕捉器（只在 URL 带 ?diag=1 时生效）
  *
  * 为什么需要它：手机端搜索“能打字但没结果”，而桌面两种内核都正常，
@@ -11,6 +11,9 @@
 
   var shown = 0;
   var MAX = 6;
+  var workerCount = 0;
+  var inputCount = 0;
+  var lastWorkerUrl = '';
 
   function show(title, detail) {
     if (shown >= MAX) return;
@@ -72,6 +75,8 @@
     var OrigWorker = window.Worker;
     if (typeof OrigWorker === 'function') {
       var Patched = function (url, opts) {
+        workerCount++;
+        lastWorkerUrl = String(url).split('/').pop();
         var w = opts ? new OrigWorker(url, opts) : new OrigWorker(url);
         try {
           w.addEventListener('error', function (ev) {
@@ -115,4 +120,33 @@
   ].join(';');
   badge.onclick = function () { badge.remove(); };
   document.body.appendChild(badge);
+
+  // ---- 实时状态条：看链条断在哪一环 ----
+  document.addEventListener('input', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('md-search__input')) inputCount++;
+  }, true);
+
+  var hud = document.createElement('div');
+  hud.style.cssText = [
+    'position:fixed', 'left:8px', 'bottom:8px', 'z-index:2147483646',
+    'background:rgba(13,17,23,.94)', 'color:#9fb0c3', 'border:1px solid #30475e',
+    'padding:8px 10px', 'border-radius:8px', 'max-width:calc(100% - 16px)',
+    'font:11px/1.5 ui-monospace,Consolas,monospace', 'word-break:break-all'
+  ].join(';');
+  document.body.appendChild(hud);
+
+  function refreshHud() {
+    var meta = document.querySelector('.md-search-result__meta');
+    var items = document.querySelectorAll('.md-search-result__item').length;
+    var input = document.querySelector('.md-search__input');
+    hud.textContent = [
+      '组件 meta: ' + (meta ? JSON.stringify(meta.textContent) : '不存在'),
+      '结果条数: ' + items,
+      'worker 创建: ' + workerCount + (lastWorkerUrl ? ' (' + lastWorkerUrl + ')' : ''),
+      '输入事件: ' + inputCount,
+      '输入框值: ' + (input ? JSON.stringify(input.value) : '找不到')
+    ].join('\n');
+  }
+  refreshHud();
+  setInterval(refreshHud, 400);
 })();
