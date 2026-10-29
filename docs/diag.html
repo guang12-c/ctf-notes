@@ -1,0 +1,197 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>搜索诊断 · guang's CTF Notes</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 18px 16px 60px;
+    background: #0d1117; color: #d6dde6;
+    font: 15px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { color: #7d8b9c; font-size: 13px; margin-bottom: 18px; }
+  .row {
+    padding: 10px 12px; margin-bottom: 8px; border-radius: 10px;
+    background: #161b22; border: 1px solid #232c3a;
+  }
+  .k { font-size: 12px; color: #7d8b9c; letter-spacing: .3px; }
+  .v { font-family: ui-monospace, Consolas, monospace; font-size: 14px;
+       word-break: break-all; margin-top: 2px; }
+  .ok   { color: #3fb950; }
+  .bad  { color: #f85149; }
+  .warn { color: #d29922; }
+  button {
+    margin-top: 16px; padding: 12px 18px; font-size: 15px;
+    border: 0; border-radius: 10px; background: #238636; color: #fff;
+  }
+  pre { white-space: pre-wrap; word-break: break-all; background: #0b0f14;
+        border: 1px solid #232c3a; border-radius: 10px; padding: 12px; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>搜索诊断</h1>
+<div class="sub">在手机上打开这一页，把整页截图发回来即可。全部在本机执行，不上传任何东西。</div>
+
+<div id="out"></div>
+<button id="copy">复制全部结果</button>
+<pre id="raw" hidden></pre>
+
+<script>
+(function () {
+  var out = document.getElementById('out');
+  var lines = [];
+
+  function add(key, value, cls) {
+    var d = document.createElement('div');
+    d.className = 'row';
+    d.innerHTML = '<div class="k">' + key + '</div><div class="v ' + (cls || '') + '"></div>';
+    d.querySelector('.v').textContent = value;
+    out.appendChild(d);
+    lines.push(key + ': ' + value);
+  }
+
+  function verdict(ok, text) { return { v: text, c: ok ? 'ok' : 'bad' }; }
+
+  // ---- 1. 环境 ----
+  add('User-Agent', navigator.userAgent);
+  add('屏幕 / 视口', screen.width + '×' + screen.height + ' / ' + innerWidth + '×' + innerHeight);
+  add('语言', navigator.language);
+  add('在线状态', navigator.onLine ? 'online' : 'offline');
+
+  // iOS 版本（从 UA 里抠）
+  var m = navigator.userAgent.match(/OS (\d+)[_.](\d+)/);
+  add('系统版本（UA 解析）', m ? m[1] + '.' + m[2] : '解析不到（非 iOS）');
+
+  // ---- 2. 能力检测 ----
+  var caps = [];
+  caps.push(['Worker', typeof Worker === 'function']);
+  caps.push(['fetch', typeof fetch === 'function']);
+  caps.push(['Promise', typeof Promise === 'function']);
+  caps.push(['URL / URLSearchParams', typeof URL === 'function' && typeof URLSearchParams === 'function']);
+  caps.push(['可选链 ?.', (function () { try { return eval('({})?.a === undefined'); } catch (e) { return false; } })()]);
+  caps.push(['空值合并 ??', (function () { try { return eval('(null ?? 1) === 1'); } catch (e) { return false; } })()]);
+  caps.push(['BigInt', typeof BigInt === 'function']);
+  caps.push(['Intl.Segmenter', typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function']);
+
+  var capText = caps.map(function (c) { return (c[1] ? '✓ ' : '✗ ') + c[0]; }).join('   ');
+  add('语言能力检测', capText, caps.every(function (c) { return c[1]; }) ? 'ok' : 'warn');
+
+  // ---- 3. 站点里的分词正则能不能用 ----
+  try {
+    var sep = new RegExp('[\\s\\u200b\\-]+|(?=[\\u4e00-\\u9fff])');
+    var sample = '文件包含漏洞的绕过';
+    var parts = sample.split(sep).filter(Boolean);
+    var good = parts.length > 1;
+    add('分词正则 (config.separator)', good
+      ? '可用 → ' + JSON.stringify(parts.slice(0, 6)) + '…'
+      : '不可用 → 整句没被切开', good ? 'ok' : 'bad');
+  } catch (e) {
+    add('分词正则 (config.separator)', '编译失败：' + e.message, 'bad');
+  }
+
+  // ---- 4. 能不能创建 Worker 并跑起来 ----
+  // worker 文件名带内容哈希，不能硬编码 —— 从首页的 __config 里读
+  var workerUrl = 'assets/javascripts/workers/search.2c215733.min.js';
+  try {
+    var cfgMatch = null;
+    // 同步拿不到，先用默认值，随后异步修正
+  } catch (e) {}
+  var workerBox = document.createElement('div');
+  workerBox.className = 'row';
+  workerBox.innerHTML = '<div class="k">Worker 实例化</div><div class="v">测试中…</div>';
+  out.appendChild(workerBox);
+
+  try {
+    var w = new Worker(workerUrl);
+    var settled = false;
+    w.onerror = function (evt) {
+      settled = true;
+      workerBox.querySelector('.v').className = 'v bad';
+      workerBox.querySelector('.v').textContent = '创建成功但运行报错：' + (evt.message || '未知');
+      lines.push('Worker: 运行报错 ' + (evt.message || ''));
+    };
+    // worker 正常时不会主动回消息，2 秒后认定"至少没炸"
+    setTimeout(function () {
+      if (!settled) {
+        workerBox.querySelector('.v').className = 'v ok';
+        workerBox.querySelector('.v').textContent = '创建成功，2 秒内无报错';
+        lines.push('Worker: 创建成功，无报错');
+      }
+      try { w.terminate(); } catch (e) {}
+    }, 2000);
+  } catch (e) {
+    workerBox.querySelector('.v').className = 'v bad';
+    workerBox.querySelector('.v').textContent = '创建失败：' + e.message;
+    lines.push('Worker: 创建失败 ' + e.message);
+  }
+
+  // ---- 4.5 从首页 __config 里读出真实的 worker 路径，复核它是否还在 ----
+  fetch('index.html', { cache: 'no-store' })
+    .then(function (r) { return r.text(); })
+    .then(function (html) {
+      var m = html.match(/"search"\s*:\s*"([^"]+)"/);
+      if (!m) { add('worker 真实路径', '首页 __config 里没找到 search 字段', 'bad'); return; }
+      var path = m[1];
+      return fetch(path, { method: 'GET', cache: 'no-store' }).then(function (r) {
+        add('worker 真实路径', path + ' → HTTP ' + r.status + (r.ok ? ' （存在）' : ' （404！旧 HTML 缓存就会这样）'),
+            r.ok ? 'ok' : 'bad');
+      });
+    })
+    .catch(function (e) { add('worker 真实路径', '读取失败：' + e.message, 'bad'); });
+
+  // ---- 5. 抓索引 ----
+  var idxBox = document.createElement('div');
+  idxBox.className = 'row';
+  idxBox.innerHTML = '<div class="k">搜索索引 search_index.json</div><div class="v">请求中…</div>';
+  out.appendChild(idxBox);
+
+  var t0 = Date.now();
+  fetch('search/search_index.json', { cache: 'no-store' })
+    .then(function (r) {
+      var ms1 = Date.now() - t0;
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text().then(function (txt) {
+        var t1 = Date.now();
+        var json = JSON.parse(txt);
+        var t2 = Date.now();
+        var docs = (json.docs || []).length;
+        var sepOk = json.config && json.config.separator ? '有' : '没有';
+        idxBox.querySelector('.v').className = 'v ok';
+        idxBox.querySelector('.v').textContent =
+          '下载 ' + (txt.length / 1024).toFixed(0) + ' KB 用时 ' + ms1 + ' ms · ' +
+          '解析用时 ' + (t2 - t1) + ' ms · ' + docs + ' 条文档 · config.separator ' + sepOk;
+        lines.push('索引: ' + docs + ' docs, ' + txt.length + ' bytes, parse ' + (t2 - t1) + 'ms, sep=' + sepOk);
+      });
+    })
+    .catch(function (e) {
+      idxBox.querySelector('.v').className = 'v bad';
+      idxBox.querySelector('.v').textContent = '失败：' + e.message;
+      lines.push('索引: 失败 ' + e.message);
+    });
+
+  // ---- 6. 全局错误兜底 ----
+  window.addEventListener('error', function (e) {
+    add('脚本报错', (e.message || '') + ' @ ' + (e.filename || '') + ':' + (e.lineno || ''), 'bad');
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    add('未处理的 Promise 拒绝', String(e.reason), 'bad');
+  });
+
+  // ---- 复制 ----
+  document.getElementById('copy').onclick = function () {
+    var text = lines.join('\n');
+    navigator.clipboard.writeText(text).then(function () {
+      this.textContent = '已复制';
+    }.bind(this), function () {
+      var pre = document.getElementById('raw');
+      pre.hidden = false;
+      pre.textContent = text;
+    }.bind(this));
+  };
+})();
+</script>
+</body>
+</html>
