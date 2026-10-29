@@ -1,4 +1,4 @@
-﻿site_name: "guang's CTF Notes"
+site_name: "guang's CTF Notes"
 site_description: Web 安全知识点整理 + 靶场 Writeup
 site_author: guang
 site_url: !ENV [SITE_URL, "https://guang12-c.github.io/ctf-notes/"]
@@ -129,6 +129,9 @@ nav:
       - 文件包含:
           - knowledge/inclusion/index.md
           - 文件包含专题: knowledge/inclusion/文件包含专题.md
+      - SSRF:
+          - knowledge/ssrf/index.md
+          - SSRF 专题: knowledge/ssrf/SSRF专题.md
       - 反序列化:
           - knowledge/deserialization/index.md
           - 反序列化专题: knowledge/deserialization/反序列化专题.md
