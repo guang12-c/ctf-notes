@@ -577,31 +577,49 @@ body .md-nav .md-nav__item--active > .md-nav__link {
   font-variant-numeric: tabular-nums;
 }
 
-/* --- 索引行：非对称，不用三列等宽卡片 --- */
+/* --- 索引卡片：一块一件事，悬停浮起并加深投影 ---
+   卡片只靠底色区分，静止时不投影；投影是"可点"的提示，不是装饰。
+   投影颜色取自背景色（暖黑），不用纯黑，避免发灰。 */
 
 .index-list {
   display: grid;
-  gap: 0;
-  border-top: 1px solid var(--line);
+  gap: var(--s4);
   margin: var(--s6) 0 var(--s10);
 }
 
 .index-row {
   display: grid;
   grid-template-columns: 56px 1fr 24px;
-  align-items: baseline;
+  align-items: start;
   gap: var(--s4);
-  padding: var(--s5) 0;
-  border-bottom: 1px solid var(--line);
+  padding: var(--s5);
+  background: var(--surface-1);
+  border-radius: var(--r4);
   text-decoration: none;
   color: inherit;
-  transition: background var(--t-fade) var(--ease),
-    padding-left var(--t-move) var(--ease);
+  box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  transition: transform var(--t-move) var(--ease),
+    box-shadow var(--t-move) var(--ease),
+    background var(--t-fade) var(--ease);
 }
 
 .index-row:hover {
-  background: var(--surface-1);
-  padding-left: var(--s3);
+  transform: translateY(-4px);
+  background: var(--surface-2);
+  box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.6),
+    0 4px 12px -6px rgba(0, 0, 0, 0.45);
+}
+
+/* 浅色模式投影要淡得多，否则像脏点 */
+[data-md-color-scheme="default"] .index-row:hover {
+  box-shadow: 0 16px 32px -14px rgba(19, 18, 9, 0.22),
+    0 4px 12px -8px rgba(19, 18, 9, 0.14);
+}
+
+/* 按下时轻微下沉，给出物理反馈 */
+.index-row:active {
+  transform: translateY(-1px) scale(0.995);
+  transition-duration: var(--t-fade);
 }
 
 .index-row__no {
@@ -609,6 +627,7 @@ body .md-nav .md-nav__item--active > .md-nav__link {
   font-size: 0.75rem;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
+  padding-top: 0.35em;
 }
 
 .index-row__title {
@@ -617,19 +636,20 @@ body .md-nav .md-nav__item--active > .md-nav__link {
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--ink);
-  margin-bottom: var(--s1);
+  margin-bottom: var(--s2);
 }
 
 .index-row__desc {
   display: block;
   font-size: 0.9375rem;
-  line-height: 1.6;
+  line-height: 1.7;
   color: var(--ink-dim);
   max-width: 60ch;
 }
 
 .index-row__arrow {
   color: var(--ink-faint);
+  padding-top: 0.15em;
   transition: transform var(--t-move) var(--ease), color var(--t-fade) var(--ease);
 }
 
@@ -637,7 +657,6 @@ body .md-nav .md-nav__item--active > .md-nav__link {
   transform: translateX(4px);
   color: var(--accent);
 }
-
 /* --- tagline 逐词显现 --- */
 
 .tagline {
@@ -694,6 +713,7 @@ body .md-nav .md-nav__item--active > .md-nav__link {
     color: var(--ink);
   }
   .index-row,
+  .index-row:hover,
   .index-row__arrow,
   .md-typeset .grid.cards > ul > li,
   .hero__cta {
@@ -788,7 +808,17 @@ body .md-nav .md-nav__item--active > .md-nav__link {
   }
 
   .index-row {
-    grid-template-columns: 40px 1fr 20px;
+    grid-template-columns: 32px 1fr 20px;
+    gap: var(--s3);
+    padding: var(--s4);
+    border-radius: var(--r3);
+  }
+
+  .index-row:hover {
+    transform: translateY(-2px);
+  }
+
+  .index-list {
     gap: var(--s3);
   }
 }
