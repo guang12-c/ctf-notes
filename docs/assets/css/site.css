@@ -4,7 +4,7 @@
    设计值全部集中在这里，改外观只改这一段。
    规则来源：redesign-existing-projects / landing-page-design
    · 单一强调色（琥珀 #C08A3E），其余全中性
-   · 背景必须平坦：不用渐变，用 SVG 噪点做质感
+   · 背景必须平坦：纯色面，不用渐变也不用噪点
    · 字体 Manrope（拉丁）+ Noto Sans SC（中文），代码 Geist Mono
    · 字号只用 type scale：12/14/16/18/20/24/30/36/48
    · 间距只用 4/8/12/16/24/32/40/48/64/80/96
@@ -19,17 +19,17 @@
   --accent-soft: rgba(192, 138, 62, 0.12);
   --accent-ink: #8a5f22;
 
-  /* ---- 表面（暖中性，跟着 #131209 走）---- */
-  --bg: #131209;
-  --surface-1: rgba(255, 255, 255, 0.04);
-  --surface-2: rgba(255, 255, 255, 0.07);
-  --surface-3: rgba(255, 255, 255, 0.11);
-  --line: rgba(255, 255, 255, 0.09);
+  /* ---- 表面（纯中性，无任何色偏）---- */
+  --bg: #181818;
+  --surface-1: #1f1f1f;
+  --surface-2: #272727;
+  --surface-3: #313131;
+  --line: rgba(255, 255, 255, 0.1);
 
   /* ---- 文字 ---- */
-  --ink: #ece9e2;
-  --ink-dim: #9d9a92;
-  --ink-faint: #6f6d66;
+  --ink: #ededed;
+  --ink-dim: #a6a6a6;
+  --ink-faint: #767676;
 
   /* ---- 间距 ---- */
   --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
@@ -70,7 +70,7 @@
 }
 
 /* ==========================================================================
-   1. 页面底子：平坦背景 + SVG 噪点（不用任何渐变）
+   1. 页面底子：纯色平坦背景（不用渐变、不用噪点）
    ========================================================================== */
 
 body {
@@ -80,41 +80,6 @@ body {
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-}
-
-/* 噪点质感：feTurbulence 生成的灰度噪点，靠极低透明度叠一层
-   —— 这是"平坦但有质地"的做法，不是渐变 */
-body::after {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.028;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-[data-md-color-scheme="default"] body::after {
-  opacity: 0.02;
-}
-
-/* 暗色 token 再声明一次，压过 Material 的 slate 默认值 */
-[data-md-color-scheme="slate"] {
-  --bg: #131209;
-  --surface-1: rgba(255, 255, 255, 0.04);
-  --surface-2: rgba(255, 255, 255, 0.07);
-  --surface-3: rgba(255, 255, 255, 0.11);
-  --line: rgba(255, 255, 255, 0.09);
-  --ink: #ece9e2;
-  --ink-dim: #9d9a92;
-  --ink-faint: #6f6d66;
-  --accent: #c08a3e;
-  --accent-strong: #a87330;
-  --accent-soft: rgba(192, 138, 62, 0.12);
-  --on-accent: #14120a;
 }
 
 /* Material 的配色变量对齐到设计值（两种模式共用，值取自上面的 token） */
