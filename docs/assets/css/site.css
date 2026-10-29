@@ -1,0 +1,832 @@
+﻿/* ==========================================================================
+   guang's CTF Notes — 设计系统
+   --------------------------------------------------------------------------
+   设计值全部集中在这里，改外观只改这一段。
+   规则来源：redesign-existing-projects / landing-page-design
+   · 单一强调色（琥珀 #C08A3E），其余全中性
+   · 背景必须平坦：不用渐变，用 SVG 噪点做质感
+   · 字体 Manrope（拉丁）+ Noto Sans SC（中文），代码 Geist Mono
+   · 字号只用 type scale：12/14/16/18/20/24/30/36/48
+   · 间距只用 4/8/12/16/24/32/40/48/64/80/96
+   · 圆角只用 4/8/12/16
+   · 动效只用 transform/opacity + cubic-bezier(.22,1,.36,1)
+   ========================================================================== */
+
+:root {
+  /* ---- 强调色 ---- */
+  --accent: #c08a3e;
+  --accent-strong: #a87330;
+  --accent-soft: rgba(192, 138, 62, 0.12);
+  --accent-ink: #8a5f22;
+
+  /* ---- 表面（暖中性，跟着 #131209 走）---- */
+  --bg: #131209;
+  --surface-1: rgba(255, 255, 255, 0.04);
+  --surface-2: rgba(255, 255, 255, 0.07);
+  --surface-3: rgba(255, 255, 255, 0.11);
+  --line: rgba(255, 255, 255, 0.09);
+
+  /* ---- 文字 ---- */
+  --ink: #ece9e2;
+  --ink-dim: #9d9a92;
+  --ink-faint: #6f6d66;
+
+  /* ---- 间距 ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 24px; --s6: 32px; --s7: 40px; --s8: 48px;
+  --s9: 64px; --s10: 80px; --s11: 96px;
+
+  /* ---- 圆角 ---- */
+  --r1: 4px; --r2: 8px; --r3: 12px; --r4: 16px;
+
+  /* ---- 动效 ---- */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-move: 500ms;
+  --t-fade: 300ms;
+
+  /* ---- 字体 ---- */
+  --font-sans: "Manrope", "Noto Sans SC", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "JetBrains Mono", Consolas, monospace;
+}
+
+/* 注意：Material 把 data-md-color-scheme 写在 <body> 上，不在 <html> 上，
+   所以选择器不能用 html[..] 前缀 —— 那样永远不匹配。
+   同特异性下我们后加载，能压过 palette.css 的默认值。 */
+[data-md-color-scheme="default"] {
+  --bg: #fbfaf6;
+  --on-accent: #ffffff;
+  --surface-1: #ffffff;
+  --surface-2: #f4f2ec;
+  --surface-3: #eae7de;
+  --line: rgba(19, 18, 9, 0.12);
+  --ink: #1a1a17;
+  --ink-dim: #5c5a53;
+  --ink-faint: #8a8880;
+  --accent: #a87330;
+  --accent-strong: #8a5f22;
+  --accent-soft: rgba(168, 115, 48, 0.1);
+  --accent-ink: #8a5f22;
+}
+
+/* ==========================================================================
+   1. 页面底子：平坦背景 + SVG 噪点（不用任何渐变）
+   ========================================================================== */
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 噪点质感：feTurbulence 生成的灰度噪点，靠极低透明度叠一层
+   —— 这是"平坦但有质地"的做法，不是渐变 */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+[data-md-color-scheme="default"] body::after {
+  opacity: 0.02;
+}
+
+/* 暗色 token 再声明一次，压过 Material 的 slate 默认值 */
+[data-md-color-scheme="slate"] {
+  --bg: #131209;
+  --surface-1: rgba(255, 255, 255, 0.04);
+  --surface-2: rgba(255, 255, 255, 0.07);
+  --surface-3: rgba(255, 255, 255, 0.11);
+  --line: rgba(255, 255, 255, 0.09);
+  --ink: #ece9e2;
+  --ink-dim: #9d9a92;
+  --ink-faint: #6f6d66;
+  --accent: #c08a3e;
+  --accent-strong: #a87330;
+  --accent-soft: rgba(192, 138, 62, 0.12);
+  --on-accent: #14120a;
+}
+
+/* Material 的配色变量对齐到设计值（两种模式共用，值取自上面的 token） */
+[data-md-color-scheme="slate"],
+[data-md-color-scheme="default"] {
+  --md-default-bg-color: var(--bg);
+  --md-default-fg-color: var(--ink);
+  --md-default-fg-color--light: var(--ink-dim);
+  --md-default-fg-color--lighter: var(--ink-faint);
+  --md-default-fg-color--lightest: var(--line);
+  --md-primary-fg-color: var(--accent);
+  --md-primary-fg-color--light: var(--accent);
+  --md-primary-fg-color--dark: var(--accent-strong);
+  --md-primary-bg-color: var(--ink);
+  --md-accent-fg-color: var(--accent);
+  --md-typeset-color: var(--ink);
+  --md-typeset-a-color: var(--accent);
+  --md-code-bg-color: var(--surface-2);
+  --md-code-fg-color: var(--ink);
+  --md-text-font-family: var(--font-sans);
+  --md-code-font-family: var(--font-mono);
+}
+
+.md-container,
+.md-main {
+  background: transparent;
+}
+
+/* ==========================================================================
+   2. 排版
+   ========================================================================== */
+
+.md-typeset {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+/* 中文正文放宽一点行高，读起来不挤 */
+.md-typeset p,
+.md-typeset li {
+  line-height: 1.75;
+}
+
+.md-typeset p {
+  max-width: 68ch;
+  text-wrap: pretty;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.md-typeset h1 {
+  font-size: 2.25rem; /* 36 / text-4xl */
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  margin: var(--s9) 0 var(--s5);
+  color: var(--ink);
+}
+
+.md-typeset h2 {
+  font-size: 1.5rem; /* 24 / text-2xl */
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  margin: var(--s9) 0 var(--s4);
+  padding-bottom: var(--s2);
+  border-bottom: 1px solid var(--line);
+}
+
+.md-typeset h3 {
+  font-size: 1.25rem; /* 20 / text-xl */
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: var(--s7) 0 var(--s3);
+}
+
+.md-typeset h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+/* 斜体一律去掉，用字重代替 */
+.md-typeset em,
+.md-typeset i,
+.md-typeset blockquote em {
+  font-style: normal;
+  font-weight: 600;
+}
+
+.md-typeset blockquote {
+  border-left: 2px solid var(--accent);
+  color: var(--ink-dim);
+  padding-left: var(--s5);
+  margin-left: 0;
+}
+
+.md-typeset a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color var(--t-fade) var(--ease), opacity var(--t-fade) var(--ease);
+}
+
+.md-typeset a:hover {
+  color: var(--accent-strong);
+}
+
+/* 标题里的链接（文章标题、锚点）跟着标题颜色走，不要变成强调色 ——
+   否则博客列表里每条标题都是一大片琥珀色 */
+.md-typeset h1 a,
+.md-typeset h2 a,
+.md-typeset h3 a,
+.md-typeset h4 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.md-typeset h1 a:hover,
+.md-typeset h2 a:hover,
+.md-typeset h3 a:hover,
+.md-typeset h4 a:hover {
+  color: var(--accent);
+}
+
+.md-typeset .headerlink {
+  color: var(--ink-faint);
+  opacity: 0;
+  transition: opacity var(--t-fade) var(--ease), color var(--t-fade) var(--ease);
+}
+
+.md-typeset :hover > .headerlink,
+.md-typeset .headerlink:focus {
+  opacity: 1;
+  color: var(--accent);
+}
+
+[data-md-color-scheme="slate"] .md-typeset a:hover {
+  color: #d9a75c;
+}
+
+/* 键盘焦点必须可见 */
+.md-typeset a:focus-visible,
+.md-nav__link:focus-visible,
+.md-header__button:focus-visible,
+.md-search__input:focus-visible,
+.hero__cta:focus-visible,
+.index-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--r1);
+}
+
+.md-typeset code {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  background: var(--surface-2);
+  border: 0;
+  border-radius: var(--r1);
+  padding: 0.12em 0.35em;
+  box-shadow: none;
+  color: var(--ink);
+}
+
+.md-typeset pre > code {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  border: 1px solid var(--line);
+  border-radius: var(--r3);
+  background: var(--surface-1);
+}
+
+.md-typeset table:not([class]) {
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--r2);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.md-typeset table:not([class]) th {
+  background: var(--surface-2);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.md-typeset table:not([class]) td {
+  border-top: 1px solid var(--line);
+}
+
+.md-typeset hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: var(--s8) 0;
+}
+
+/* ==========================================================================
+   3. 顶部导航
+   ── 注意：header 绝对不能有 backdrop-filter / filter，
+      否则它成为 position:fixed 子元素的 containing block，
+      Material 的手机搜索面板高度会被算成 header 高度，结果列表被裁成 0。
+      （2026-10-29 排查了两天的那个 bug）
+   ========================================================================== */
+
+.md-header {
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: none;
+  border-bottom: 1px solid var(--line);
+}
+
+.md-tabs {
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.md-tabs__link {
+  opacity: 0.72;
+  font-weight: 500;
+  transition: opacity var(--t-fade) var(--ease), color var(--t-fade) var(--ease);
+}
+
+.md-tabs__link:hover,
+.md-tabs__link--active {
+  opacity: 1;
+  color: var(--ink);
+}
+
+.md-tabs__link--active {
+  box-shadow: inset 0 -2px 0 0 var(--accent);
+}
+
+.md-header__button.md-logo svg,
+.md-header__button.md-logo img {
+  fill: var(--accent);
+  color: var(--accent);
+}
+
+.md-header__title {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* 搜索框：平坦表面 + 细边 */
+.md-search__form {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r2);
+}
+
+.md-search__form:hover {
+  background: var(--surface-2);
+}
+
+.md-search__input::placeholder {
+  color: var(--ink-faint);
+}
+
+/* 搜索结果面板：与主题一致的平坦面 */
+.md-search__scrollwrap {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r3);
+}
+
+.md-search-result__meta {
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.md-search-result__link:focus {
+  background: var(--accent-soft);
+}
+
+.md-search-result mark {
+  color: var(--accent);
+  background: transparent;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   4. 侧栏导航
+   ========================================================================== */
+
+.md-sidebar__scrollwrap {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.md-nav__title {
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: none;
+}
+
+.md-nav__link {
+  font-weight: 400;
+  color: var(--ink-dim);
+  transition: color var(--t-fade) var(--ease);
+}
+
+.md-nav__link:hover {
+  color: var(--ink);
+}
+
+/* 选择器要压过 Material 的 .md-nav--primary .md-nav__item--active > .md-nav__link
+   （特异性 0,3,0），所以补一层 .md-nav 把权重提到 0,3,1 */
+body .md-nav .md-nav__link--active,
+body .md-nav .md-nav__item--active > .md-nav__link {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   5. 内容卡片：去掉"边框+阴影+白底"的通用外观
+   ========================================================================== */
+
+.md-typeset .grid.cards > ul > li {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r3);
+  box-shadow: none;
+  padding: var(--s5);
+  transition: transform var(--t-move) var(--ease),
+    border-color var(--t-fade) var(--ease),
+    background var(--t-fade) var(--ease);
+}
+
+.md-typeset .grid.cards > ul > li:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.md-typeset .grid.cards > ul > li > hr {
+  border-top: 1px solid var(--line);
+}
+
+/* 提示框 */
+.md-typeset .admonition,
+.md-typeset details {
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--r2);
+  background: var(--surface-1);
+  box-shadow: none;
+  font-size: 0.9375rem;
+}
+
+.md-typeset .admonition-title,
+.md-typeset summary {
+  background: transparent;
+  font-weight: 600;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ==========================================================================
+   6. 首页：hero / 索引行 / tagline
+   ========================================================================== */
+
+/* 首页隐藏 Markdown 生成的默认 h1 间距问题 */
+.md-typeset .hero {
+  margin-bottom: var(--s10);
+}
+
+.hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 var(--s4);
+}
+
+.hero__eyebrow::before {
+  content: "";
+  width: 24px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.hero__title {
+  font-size: 3rem; /* 48 / text-5xl */
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  max-width: 680px;
+  margin: 0 0 var(--s5);
+  /* 唯一允许的渐变：hero 标题文字 */
+  background: linear-gradient(90deg, #ffffff 0%, #9b9b9b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-wrap: balance;
+}
+
+[data-md-color-scheme="default"] .hero__title {
+  background: linear-gradient(90deg, #000000 0%, #666666 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.hero__sub {
+  font-size: 1.125rem; /* 18 / text-lg */
+  line-height: 1.7;
+  color: var(--ink-dim);
+  max-width: 680px;
+  margin: 0 0 var(--s6);
+  text-wrap: pretty;
+}
+
+.md-typeset .hero__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3); /* 8 / 12 */
+  background: var(--accent);
+  color: #14120a;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--r2);
+  text-decoration: none;
+  transition: transform var(--t-fade) var(--ease),
+    background var(--t-fade) var(--ease);
+}
+
+.md-typeset .hero__cta:hover {
+  background: var(--accent-strong);
+  transform: translateY(-1px);
+  color: #14120a;
+}
+
+.md-typeset .hero__cta:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.hero__proof {
+  margin: var(--s5) 0 0;
+  font-size: 0.875rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- 索引行：非对称，不用三列等宽卡片 --- */
+
+.index-list {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--line);
+  margin: var(--s6) 0 var(--s10);
+}
+
+.index-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 24px;
+  align-items: baseline;
+  gap: var(--s4);
+  padding: var(--s5) 0;
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--t-fade) var(--ease),
+    padding-left var(--t-move) var(--ease);
+}
+
+.index-row:hover {
+  background: var(--surface-1);
+  padding-left: var(--s3);
+}
+
+.index-row__no {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.index-row__title {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-bottom: var(--s1);
+}
+
+.index-row__desc {
+  display: block;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--ink-dim);
+  max-width: 60ch;
+}
+
+.index-row__arrow {
+  color: var(--ink-faint);
+  transition: transform var(--t-move) var(--ease), color var(--t-fade) var(--ease);
+}
+
+.index-row:hover .index-row__arrow {
+  transform: translateX(4px);
+  color: var(--accent);
+}
+
+/* --- tagline 逐词显现 --- */
+
+.tagline {
+  margin: var(--s10) 0;
+  padding: var(--s9) 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.tagline p {
+  font-size: 2.25rem; /* 36 / text-4xl */
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  max-width: 680px;
+  margin: 0;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.tagline .tw {
+  color: var(--ink-faint);
+  transition: color 600ms var(--ease);
+}
+
+.tagline .tw.on {
+  color: var(--ink);
+}
+
+/* ==========================================================================
+   7. 滚动显现（IntersectionObserver 驱动，只做一次）
+   ========================================================================== */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 700ms var(--ease), transform 700ms var(--ease);
+  will-change: opacity, transform;
+}
+
+.reveal.on {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .tagline .tw {
+    transition: none;
+    color: var(--ink);
+  }
+  .index-row,
+  .index-row__arrow,
+  .md-typeset .grid.cards > ul > li,
+  .hero__cta {
+    transition: none;
+  }
+  .index-row:hover,
+  .md-typeset .grid.cards > ul > li:hover,
+  .hero__cta:hover {
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   8. 博客列表与页脚
+   ========================================================================== */
+
+.md-typeset .md-post--excerpt .md-post__header,
+.md-typeset .md-post__meta {
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.md-typeset .md-post__meta a {
+  color: var(--ink-dim);
+}
+
+.md-footer {
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+
+.md-footer-meta {
+  background: transparent;
+}
+
+.md-copyright {
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+}
+
+.md-top {
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--r2);
+  box-shadow: none;
+  transition: background var(--t-fade) var(--ease), transform var(--t-fade) var(--ease);
+}
+
+.md-top:hover {
+  background: var(--surface-3);
+  transform: translateY(-2px);
+}
+
+.md-top svg {
+  fill: var(--accent);
+}
+
+/* ==========================================================================
+   9. 小屏
+   ========================================================================== */
+
+/* 抽屉模式（< 1220px）下不能让 .md-container 形成层叠上下文。
+   侧栏抽屉是它的后代，容器一旦有 z-index，抽屉的 z-index:5 就被困在内部，
+   掉到 .md-overlay 之下 —— 表现为"侧栏看得见、点不到"。
+   把层级挂到内容块上，背景层依然在最下面。 */
+@media (max-width: 76.1875em) {
+  .md-container {
+    z-index: auto;
+  }
+
+  .md-content,
+  .md-footer,
+  .md-sidebar--secondary {
+    position: relative;
+    z-index: 1;
+  }
+
+  .md-typeset table:not([class]) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .hero__title {
+    font-size: 2.25rem; /* 36 */
+  }
+
+  .tagline p {
+    font-size: 1.5rem; /* 24 */
+  }
+
+  .index-row {
+    grid-template-columns: 40px 1fr 20px;
+    gap: var(--s3);
+  }
+}
+
+@media (max-width: 48em) {
+  .md-typeset h1 {
+    font-size: 1.75rem;
+  }
+
+  .hero__title {
+    font-size: 1.875rem; /* 30 */
+  }
+
+  .hero__sub {
+    font-size: 1rem;
+  }
+}
+
+/* ==========================================================================
+   10. 跳转链接（键盘用户）
+   ========================================================================== */
+
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: var(--s4);
+  z-index: 999;
+  padding: var(--s2) var(--s3);
+  background: var(--accent);
+  color: #14120a;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: var(--r2);
+  text-decoration: none;
+  transition: top var(--t-fade) var(--ease);
+}
+
+.skip-link:focus {
+  top: var(--s3);
+  color: #14120a;
+}
