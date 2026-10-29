@@ -140,5 +140,7 @@ extra_css:
   - assets/css/blog-hover.css
 
 extra_javascript:
+  # 诊断用：只在 URL 带 ?diag=1 时生效，正常访问什么都不做
+  - assets/js/error-trap.js
   - assets/js/bg-video.js
   - assets/js/blog-hover.js
