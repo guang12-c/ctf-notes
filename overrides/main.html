@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{#
+  字体：Material 的 font 配置只能指定一个字体族，而中文必须再挂 Noto Sans SC，
+  所以关掉自动加载（theme.font: false），在这里手工引一次。
+#}
+{% block extrahead %}
+  {{ super() }}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ config.site_name }}">
+  <meta property="og:title" content="{{ page.title | default(config.site_name, true) if page else config.site_name }}">
+  <meta property="og:description" content="{{ page.meta.description | default(config.site_description, true) if page and page.meta else config.site_description }}">
+  <meta property="og:image" content="{{ config.site_url }}assets/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#131209">
+{% endblock %}
+
+{# 键盘用户先跳到正文 #}
+{% block container %}
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  {{ super() }}
+{% endblock %}
+
+{% block content %}
+  <span id="main-content" tabindex="-1"></span>
+  {{ super() }}
+{% endblock %}

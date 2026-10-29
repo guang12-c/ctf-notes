@@ -1,4 +1,4 @@
-site_name: "guang's CTF Notes"
+﻿site_name: "guang's CTF Notes"
 site_description: Web 安全知识点整理 + 靶场 Writeup
 site_author: guang
 site_url: !ENV [SITE_URL, "https://guang12-c.github.io/ctf-notes/"]
@@ -9,21 +9,24 @@ edit_uri: "edit/main/docs/"
 
 theme:
   name: material
+  # 自定义图标集（Phosphor）放在 overrides/.icons/phosphor/
+  custom_dir: overrides
   language: zh
+  favicon: assets/favicon.svg
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
-      accent: indigo
+      primary: amber
+      accent: amber
       toggle:
-        icon: material/weather-night
+        icon: phosphor/moon
         name: 切换到深色模式
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: amber
+      accent: amber
       toggle:
-        icon: material/weather-sunny
+        icon: phosphor/sun
         name: 切换到浅色模式
   features:
     - navigation.tabs
@@ -38,12 +41,20 @@ theme:
     - content.code.annotate
     - content.tabs.link
     - toc.follow
-  font:
-    text: Noto Sans SC
-    code: JetBrains Mono
+  # 字体在 site.css 里用 @import 自己加载：Material 的 font 只能指定一个族，
+  # 而中文必须再挂 Noto Sans SC，所以关掉自动加载，手工控制
+  font: false
   icon:
-    logo: material/shield-search
-    repo: fontawesome/brands/github
+    logo: phosphor/shield-check
+    repo: phosphor/github-logo
+    edit: phosphor/pencil-simple
+    menu: phosphor/list
+    search: phosphor/magnifying-glass
+    close: phosphor/x
+    share: phosphor/share-network
+    top: phosphor/arrow-up
+    navigate_before: phosphor/caret-left
+    navigate_next: phosphor/caret-right
 
 plugins:
   - search:
@@ -135,12 +146,16 @@ nav:
 
 copyright: 仅用于个人学习与授权测试记录
 
+# 404 由主题自动使用，不放进导航，避免构建时的未列入 nav 警告
+not_in_nav: |
+  /404.md
+
 extra_css:
-  - assets/css/bg-video.css
+  - assets/css/site.css
   - assets/css/blog-hover.css
 
 extra_javascript:
   # 诊断用：只在 URL 带 ?diag=1 时生效，正常访问什么都不做
   - assets/js/error-trap.js
-  - assets/js/bg-video.js
+  - assets/js/site.js
   - assets/js/blog-hover.js
