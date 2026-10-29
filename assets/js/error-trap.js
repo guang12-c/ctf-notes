@@ -14,6 +14,7 @@
   var workerCount = 0;
   var inputCount = 0;
   var lastWorkerUrl = '';
+  var netLog = [];
 
   function show(title, detail) {
     if (shown >= MAX) return;
@@ -112,6 +113,7 @@
 
   // ---- 一个可见的标记，确认脚本确实加载了 ----
   var badge = document.createElement('div');
+  badge.id = 'diag-badge';
   badge.textContent = '诊断模式已启用';
   badge.style.cssText = [
     'position:fixed', 'right:8px', 'bottom:8px', 'z-index:2147483646',
@@ -121,12 +123,45 @@
   badge.onclick = function () { badge.remove(); };
   document.body.appendChild(badge);
 
+  // ---- 拦截网络请求，记录"索引到底有没有被请求" ----
+  (function () {
+    var of = window.fetch;
+    if (typeof of === 'function') {
+      window.fetch = function (input) {
+        var url = (typeof input === 'string') ? input : (input && input.url) || '';
+        var short = url.split('/').slice(-2).join('/');
+        return of.apply(this, arguments).then(function (r) {
+          netLog.push(r.status + ' ' + short);
+          return r;
+        }, function (err) {
+          netLog.push('ERR ' + short + ' :: ' + ((err && err.message) || err));
+          throw err;
+        });
+      };
+    }
+    var OX = window.XMLHttpRequest;
+    if (OX) {
+      var oOpen = OX.prototype.open, oSend = OX.prototype.send;
+      OX.prototype.open = function (m, u) {
+        this.__u = String(u);
+        return oOpen.apply(this, arguments);
+      };
+      OX.prototype.send = function () {
+        var x = this;
+        x.addEventListener('loadend', function () {
+          netLog.push((x.status || 'ERR') + ' XHR ' + String(x.__u).split('/').slice(-2).join('/'));
+        });
+        return oSend.apply(this, arguments);
+      };
+    }
+  })();
   // ---- 实时状态条：看链条断在哪一环 ----
   document.addEventListener('input', function (e) {
     if (e.target && e.target.classList && e.target.classList.contains('md-search__input')) inputCount++;
   }, true);
 
   var hud = document.createElement('div');
+  hud.id = 'diag-hud';
   hud.style.cssText = [
     'position:fixed', 'left:8px', 'bottom:8px', 'z-index:2147483646',
     'background:rgba(13,17,23,.94)', 'color:#9fb0c3', 'border:1px solid #30475e',
@@ -144,7 +179,8 @@
       '结果条数: ' + items,
       'worker 创建: ' + workerCount + (lastWorkerUrl ? ' (' + lastWorkerUrl + ')' : ''),
       '输入事件: ' + inputCount,
-      '输入框值: ' + (input ? JSON.stringify(input.value) : '找不到')
+      '输入框值: ' + (input ? JSON.stringify(input.value) : '找不到'),
+      '请求数: ' + netLog.length + '  最近: ' + (netLog.slice(-3).join('  |  ') || '无')
     ].join('\n');
   }
   refreshHud();
