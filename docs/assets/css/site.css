@@ -82,6 +82,45 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* 背景层：40px 细网格 + 顶部琥珀柔光
+   —— 用 position:fixed 的伪元素而不是 background-attachment:fixed，
+      后者在 iOS Safari 上有重绘问题。内容靠 .md-container 的 z-index 抬起来。 */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--bg);
+  background-image:
+    /* 顶部柔光（在最上层，压住网格，避免线条抢眼） */
+    radial-gradient(
+      120% 55% at 50% 0%,
+      rgba(192, 138, 62, 0.16) 0%,
+      rgba(192, 138, 62, 0) 62%
+    ),
+    /* 网格：横线 + 竖线 */
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: auto, 40px 40px, 40px 40px;
+  background-repeat: no-repeat, repeat, repeat;
+}
+
+/* 浅色模式：光晕更淡、网格用深色线 */
+[data-md-color-scheme="default"] body::before {
+  background-image:
+    radial-gradient(
+      120% 50% at 50% 0%,
+      rgba(168, 115, 48, 0.1) 0%,
+      rgba(168, 115, 48, 0) 60%
+    ),
+    linear-gradient(rgba(19, 18, 9, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(19, 18, 9, 0.05) 1px, transparent 1px);
+}
+
 /* Material 的配色变量对齐到设计值（两种模式共用，值取自上面的 token） */
 [data-md-color-scheme="slate"],
 [data-md-color-scheme="default"] {
@@ -103,7 +142,12 @@ body {
   --md-code-font-family: var(--font-mono);
 }
 
-.md-container,
+.md-container {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
 .md-main {
   background: transparent;
 }
@@ -292,15 +336,20 @@ body {
    ========================================================================== */
 
 .md-header {
-  background: var(--bg);
+  background: rgba(24, 24, 24, 0.94);
   color: var(--ink);
   box-shadow: none;
   border-bottom: 1px solid var(--line);
 }
 
 .md-tabs {
-  background: var(--bg);
+  background: rgba(24, 24, 24, 0.94);
   border-bottom: 1px solid var(--line);
+}
+
+[data-md-color-scheme="default"] .md-header,
+[data-md-color-scheme="default"] .md-tabs {
+  background: rgba(251, 250, 246, 0.94);
 }
 
 .md-tabs__link {
@@ -824,4 +873,22 @@ body .md-nav .md-nav__item--active > .md-nav__link {
 .skip-link:focus {
   top: var(--s3);
   color: #14120a;
+}
+
+/* Material 的 lifted 导航会给当前项铺一层 --md-default-bg-color 的实心底色
+   加一圈 box-shadow，在网格背景上就是一条突兀的黑条，这里全部去掉 */
+.md-nav--lifted > .md-nav__list > .md-nav__item--active > .md-nav__link,
+.md-nav__title {
+  background: transparent;
+  box-shadow: none;
+}
+/* 右侧目录（TOC）的标题是 <label class="md-nav__title">，
+   Material 给它铺了实心底色 + 一圈同色阴影，用来做"吸顶"遮挡 ——
+   在网格背景上就变成一条突兀的黑条。这里清掉，改用下方发丝线分隔。 */
+.md-nav--secondary .md-nav__title,
+.md-nav--primary .md-nav__title {
+  background: transparent;
+  box-shadow: none;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--s2);
 }
