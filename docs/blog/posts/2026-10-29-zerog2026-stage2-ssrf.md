@@ -18,7 +18,7 @@ categories:
 
 ## 题目概述
 
-> **和 [ZeroG_2026（Stage 2）](zerog2026-stage2.md) 不是同一题** —— 那篇是 PHP 弱类型与参数名变形，这篇是 SSRF。
+> **和 [ZeroG_2026（Stage 2）](../zerog2026-stage2/) 不是同一题** —— 那篇是 PHP 弱类型与参数名变形，这篇是 SSRF。
 
 站点叫 Internal Shop，是一个"多平台价格比价系统"。输入商品页 URL，服务端去抓取并比价。
 
