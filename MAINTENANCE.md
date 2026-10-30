@@ -283,6 +283,35 @@ extra_javascript:
 
 **教训：负 `z-index` + 跨浏览器 = 不确定性。能用正数分层就别用负数。**
 
+**第二反直觉的一条（手机搜索「有结果数但列表空白」）：**
+
+```text
+现象 桌面正常；iPhone 上搜索能打字、结果数也对，列表一片空白
+     控制台没有报错，Worker 也能创建
+原因 .md-header 上有 backdrop-filter: blur(10px)
+     带 filter/backdrop-filter 的元素会成为 position:fixed 子元素的
+     containing block。Material 的手机搜索面板是
+     .md-search__inner{position:fixed;height:100%}，
+     于是 100% 按 header 的 48px 算，.md-search__output 高度变 0，
+     结果全被裁掉
+做法 把毛玻璃挪到 .md-header::before 伪元素上，header 自己不带 filter
+     —— 视觉不变，fixed 重新以视口为参照
+```
+
+**怎么定位的（值得复用）：**
+
+```text
+① 用 Playwright 按设备尺寸打开，量 .md-search__inner 的高度
+   → 48px（应该等于视口 874px）
+② 查它的 position: fixed 与 height: 100%
+③ 沿祖先链找 backdrop-filter / filter / transform
+   → 命中 .md-header
+```
+
+**教训：桌面正常、手机异常时，先量自己的窄屏样式，再怀疑宿主环境。**
+**我一开始怀疑过分词、缓存、Worker、iOS 版本 —— 全错，根因在自己写的 CSS 里。**
+
+
 ## 9. 命令速查
 
 ```powershell
