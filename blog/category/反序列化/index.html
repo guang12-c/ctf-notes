@@ -1910,6 +1910,8 @@
       
         
       
+        
+      
     
     
     
@@ -2699,6 +2701,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../%E6%BA%90%E7%A0%81%E6%B3%84%E9%9C%B2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    源码泄露
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../%E8%B7%AF%E5%BE%84%E9%81%8D%E5%8E%86/" class="md-nav__link">
         
   
@@ -2866,6 +2898,292 @@
       <header class="md-typeset">
         <h1 id="_1">反序列化<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-31 00:00:00+00:00">2026-10-31</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../php/" class="md-meta__link">PHP</a>, 
+              <a href="./" class="md-meta__link">反序列化</a>, 
+              <a href="../%E6%BA%90%E7%A0%81%E6%B3%84%E9%9C%B2/" class="md-meta__link">源码泄露</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 5 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="0ctf-2016-piapiapia-where-hacker"><a class="toclink" href="../../0ctf2016-piapiapia/">[0CTF 2016] piapiapia — 序列化长度逃逸（<code>where</code> → <code>hacker</code>）</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Web — 源码泄露 + PHP 反序列化长度逃逸</p>
+<p><strong>题目地址</strong>：0CTF 2016 piapiapia（原题环境已关闭）</p>
+<p><strong>Flag</strong>：<code>CTF2{53ec6fc8-d499-4f76-bed2-6c4c2a076b43}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../0ctf2016-piapiapia/#_1">题目概述</a></h3>
+<p>进入靶场是一个登录页面，没什么有用信息，也没找到注册页面。</p>
+<p><strong>但这题的入口不是页面，是</strong>源码<strong>。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../0ctf2016-piapiapia/#_2">解题过程</a></h3>
+<h4 id="step-1dirsearch-wwwzip"><a class="toclink" href="../../0ctf2016-piapiapia/#step-1dirsearch-wwwzip">Step 1：dirsearch 扫出 www.zip</a></h4>
+<p><strong>先试着用 dirsearch 扫一下，结果发现了 <code>www.zip</code> —— 里面放着各个界面的源码。</strong></p>
+<p><strong>把这几个文件读一遍：<code>config.php</code>、<code>profile.php</code>、<code>update.php</code>、<code>class.php</code>、<code>register.php</code>。</strong></p>
+<h4 id="step-2configphp-flag"><a class="toclink" href="../../0ctf2016-piapiapia/#step-2configphp-flag">Step 2：<code>config.php</code> 里有 flag</a></h4>
+<p><strong>所以问题变成：从哪里能读到 <code>config.php</code>。</strong></p>
+<h4 id="step-3profilephp"><a class="toclink" href="../../0ctf2016-piapiapia/#step-3profilephp">Step 3：<code>profile.php</code> 里有个任意文件读取</a></h4>
+<p><img alt="profile.php" src="../../../assets/images/0ctf2016-piapiapia/01-profile-unserialize.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="x">$profile = unserialize($profile);</span>
+</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a><span class="x">$phone   = $profile['phone'];</span>
+</span><span id="__span-48-3"><a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a><span class="x">$email   = $profile['email'];</span>
+</span><span id="__span-48-4"><a id="__codelineno-48-4" name="__codelineno-48-4" href="#__codelineno-48-4"></a><span class="x">$nickname = $profile['nickname'];</span>
+</span><span id="__span-48-5"><a id="__codelineno-48-5" name="__codelineno-48-5" href="#__codelineno-48-5"></a><span class="x">$photo   = base64_encode(file_get_contents($profile['photo']));</span>
+</span></code></pre></div>
+<p><strong>看到 <code>file_get_contents($profile['photo'])</code> 这一串，就想到：把 <code>photo</code> 换成 <code>config.php</code>，flag 不就出来了吗？</strong></p>
+<p><strong>但 <code>$profile</code> 是 <code>unserialize()</code> 出来的 —— 也就是说，<code>photo</code> 的值来自</strong>我们存在数据库里的那个序列化串<strong>，不是我们能直接改的。所以问题变成：怎么让数据库里那个串里的 <code>photo</code> 变成 <code>config.php</code>。</strong></p>
+<h4 id="step-4updatephp"><a class="toclink" href="../../0ctf2016-piapiapia/#step-4updatephp">Step 4：<code>update.php</code> 的三道校验</a></h4>
+<p><img alt="update.php 的校验" src="../../../assets/images/0ctf2016-piapiapia/02-update-validations.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="x">if(!preg_match('/^\d{11}$/', $_POST['phone']))</span>
+</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a><span class="x">    die('Invalid phone');</span>
+</span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>
+</span><span id="__span-49-4"><a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a><span class="x">if(!preg_match('/^[a-zA-Z0-9]{1,10}@[a-zA-Z0-9]{1,10}\.[a-zA-Z0-9]{1,10}$/', $_POST['email']))</span>
+</span><span id="__span-49-5"><a id="__codelineno-49-5" name="__codelineno-49-5" href="#__codelineno-49-5"></a><span class="x">    die('Invalid email');</span>
+</span><span id="__span-49-6"><a id="__codelineno-49-6" name="__codelineno-49-6" href="#__codelineno-49-6"></a>
+</span><span id="__span-49-7"><a id="__codelineno-49-7" name="__codelineno-49-7" href="#__codelineno-49-7"></a><span class="x">if(preg_match('/^[^a-zA-Z0-9_]/', $_POST['nickname']) || strlen($_POST['nickname']) &gt; 10)</span>
+</span><span id="__span-49-8"><a id="__codelineno-49-8" name="__codelineno-49-8" href="#__codelineno-49-8"></a><span class="x">    die('Invalid nickname');</span>
+</span><span id="__span-49-9"><a id="__codelineno-49-9" name="__codelineno-49-9" href="#__codelineno-49-9"></a>
+</span><span id="__span-49-10"><a id="__codelineno-49-10" name="__codelineno-49-10" href="#__codelineno-49-10"></a><span class="x">$file = $_FILES['photo'];</span>
+</span><span id="__span-49-11"><a id="__codelineno-49-11" name="__codelineno-49-11" href="#__codelineno-49-11"></a><span class="x">if($file['size'] &lt; 5 or $file['size'] &gt; 1000000)</span>
+</span><span id="__span-49-12"><a id="__codelineno-49-12" name="__codelineno-49-12" href="#__codelineno-49-12"></a><span class="x">    die('Photo size error');</span>
+</span></code></pre></div>
+<p><strong>三个字段各有各的规矩：</strong></p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>限制</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>phone</td>
+<td>11 位纯数字</td>
+</tr>
+<tr>
+<td>email</td>
+<td><code>xxx@xxx.xxx</code>，每段 ≤10 的字母数字</td>
+</tr>
+<tr>
+<td>nickname</td>
+<td>首字符必须是字母数字下划线，<strong>且长度 ≤10</strong></td>
+</tr>
+<tr>
+<td>photo</td>
+<td>文件大小 5 ~ 1000000 字节</td>
+</tr>
+</tbody>
+</table>
+<p><strong>这里还没想到哪里能字符逃逸</strong>，先往下看它怎么存。</p>
+<h4 id="step-5"><a class="toclink" href="../../0ctf2016-piapiapia/#step-5">Step 5：存的时候做了序列化，而且会过滤</a></h4>
+<p><img alt="序列化" src="../../../assets/images/0ctf2016-piapiapia/05-serialize.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="x">$user-&gt;update_profile($username, serialize($profile));</span>
+</span></code></pre></div>
+<p><strong>接着去看 <code>class.php</code> 里的 <code>update_profile</code>：</strong></p>
+<p><img alt="show_profile / update_profile" src="../../../assets/images/0ctf2016-piapiapia/04-show-update-profile.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="x">public function update_profile($username, $new_profile) {</span>
+</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a><span class="x">    $username = parent::filter($username);</span>
+</span><span id="__span-51-3"><a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a><span class="x">    $new_profile = parent::filter($new_profile);</span>
+</span><span id="__span-51-4"><a id="__codelineno-51-4" name="__codelineno-51-4" href="#__codelineno-51-4"></a><span class="x">    ...</span>
+</span><span id="__span-51-5"><a id="__codelineno-51-5" name="__codelineno-51-5" href="#__codelineno-51-5"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>注意：</strong>过滤发生在序列化之后** —— 它拿到的是<strong>序列化后的字符串</strong>。**</p>
+<h4 id="step-6filter"><a class="toclink" href="../../0ctf2016-piapiapia/#step-6filter">Step 6：<code>filter()</code> 里的长度差</a></h4>
+<p><img alt="filter" src="../../../assets/images/0ctf2016-piapiapia/03-filter.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="x">public function filter($string) {</span>
+</span><span id="__span-52-2"><a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a><span class="x">    $escape = array('\'', '\\\\');</span>
+</span><span id="__span-52-3"><a id="__codelineno-52-3" name="__codelineno-52-3" href="#__codelineno-52-3"></a><span class="x">    $escape = '/' . implode('|', $escape) . '/';</span>
+</span><span id="__span-52-4"><a id="__codelineno-52-4" name="__codelineno-52-4" href="#__codelineno-52-4"></a><span class="x">    $string = preg_replace($escape, '_', $string);</span>
+</span><span id="__span-52-5"><a id="__codelineno-52-5" name="__codelineno-52-5" href="#__codelineno-52-5"></a>
+</span><span id="__span-52-6"><a id="__codelineno-52-6" name="__codelineno-52-6" href="#__codelineno-52-6"></a><span class="x">    $safe = array('select', 'insert', 'update', 'delete', 'where');</span>
+</span><span id="__span-52-7"><a id="__codelineno-52-7" name="__codelineno-52-7" href="#__codelineno-52-7"></a><span class="x">    $safe = '/' . implode('|', $safe) . '/i';</span>
+</span><span id="__span-52-8"><a id="__codelineno-52-8" name="__codelineno-52-8" href="#__codelineno-52-8"></a><span class="x">    return preg_replace($safe, 'hacker', $string);</span>
+</span><span id="__span-52-9"><a id="__codelineno-52-9" name="__codelineno-52-9" href="#__codelineno-52-9"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>关键在最后一行：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>select → hacker   6 → 6   不变
+</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>insert → hacker   6 → 6   不变
+</span><span id="__span-53-3"><a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a>update → hacker   6 → 6   不变
+</span><span id="__span-53-4"><a id="__codelineno-53-4" name="__codelineno-53-4" href="#__codelineno-53-4"></a>delete → hacker   6 → 6   不变
+</span><span id="__span-53-5"><a id="__codelineno-53-5" name="__codelineno-53-5" href="#__codelineno-53-5"></a>where  → hacker   5 → 6   多出 1 个字节   ⭐
+</span></code></pre></div>
+<p>**<code>where</code> 只有 5 个字符，却被换成了 6 个字符的 <code>hacker</code> —— <strong>每出现一次，字符串就长 1 个字节，而前面 <code>s:N:</code> 里的 N 不变。</strong></p>
+<p><strong>这就是字符逃逸：</strong>声明长度不变，实际内容变长<strong>。</strong></p>
+<h4 id="step-7nickname"><a class="toclink" href="../../0ctf2016-piapiapia/#step-7nickname">Step 7：<code>nickname[]</code> 同时绕过两个检查</a></h4>
+<p><strong>nickname 有两条限制：字符集和长度。</strong></p>
+<p><strong>发 <code>nickname[]=xxx</code> 时，<code>$_POST['nickname']</code> 是一个</strong>数组<strong>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>strlen(array)      →  NULL（PHP 7 报 warning，返回 null）
+</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>                      NULL &gt; 10 为 false → 长度检查放过
+</span><span id="__span-54-3"><a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a>
+</span><span id="__span-54-4"><a id="__codelineno-54-4" name="__codelineno-54-4" href="#__codelineno-54-4"></a>preg_match(..., array) →  false（PHP 7 报 warning）
+</span><span id="__span-54-5"><a id="__codelineno-54-5" name="__codelineno-54-5" href="#__codelineno-54-5"></a>                      false || false = false → 不 die
+</span></code></pre></div>
+<p><strong>所以两条检查</strong>都<strong>被跳过了 —— 这意味着元素内容里可以出现 <code>"</code>、<code>;</code>、<code>{</code>、<code>}</code> 这些字符，这是后面构造注入串的前提。</strong></p>
+<p><strong>⚠️ 这是 PHP 7 的行为。PHP 8 里 <code>strlen(array)</code> 会抛 <code>TypeError</code>（致命错误），这条路直接 500。</strong></p>
+<h4 id="step-8-payload"><a class="toclink" href="../../0ctf2016-piapiapia/#step-8-payload">Step 8：构造 payload</a></h4>
+<p><strong>目标是让反序列化后的 <code>photo</code> 变成 <code>config.php</code>。</strong></p>
+<p><strong>先说对齐的规则：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>设：片段长度 F，where 的个数 k
+</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>
+</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>nickname 元素的声明长度 = 5k + F      （过滤前算的）
+</span><span id="__span-55-4"><a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a>过滤后的实际字节       = 6k + F
+</span><span id="__span-55-5"><a id="__codelineno-55-5" name="__codelineno-55-5" href="#__codelineno-55-5"></a>
+</span><span id="__span-55-6"><a id="__codelineno-55-6" name="__codelineno-55-6" href="#__codelineno-55-6"></a>要让解析器读完声明长度后，正好停在片段开头的引号上：
+</span><span id="__span-55-7"><a id="__codelineno-55-7" name="__codelineno-55-7" href="#__codelineno-55-7"></a>
+</span><span id="__span-55-8"><a id="__codelineno-55-8" name="__codelineno-55-8" href="#__codelineno-55-8"></a>        6k = 5k + F   →   k = F
+</span></code></pre></div>
+<p><strong>我们的片段：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>";}s:5:"photo";s:10:"config.php";}
+</span></code></pre></div>
+<p><strong>长度用 <code>strlen</code> 数是 <strong>34</strong>（别手数）→ 所以要 <strong>34 个 <code>where</code></strong>。</strong></p>
+<p><strong>然后看这个片段在干什么：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>s:204:"hacker×34         ← 声明 204，实际 238；解析器只读 204
+</span><span id="__span-57-2"><a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a>       ";                ← 读完 204 正好停在这里 → 字符串正常结束
+</span><span id="__span-57-3"><a id="__codelineno-57-3" name="__codelineno-57-3" href="#__codelineno-57-3"></a>         }               ← 关闭内层数组 a:1:{i:0;...}
+</span><span id="__span-57-4"><a id="__codelineno-57-4" name="__codelineno-57-4" href="#__codelineno-57-4"></a>          s:5:"photo";s:10:"config.php";}   ← 注入 photo，并关闭外层数组
+</span></code></pre></div>
+<p><strong>外层数组一关，后面原来那句 <code>s:5:"photo";s:5:"x.jpg";}</code> 就被 <code>unserialize</code> 忽略了 —— <strong>所以 nickname 必须排在 photo 前面</strong>，否则注入的结构关不掉外层，解析照样失败。</strong></p>
+<p><strong>用 PHP 7.4 模拟验证（<code>k=34</code> 且 nickname 在第三位）：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>nickname 第三  k=34  N=204  过滤后=238  photo=config.php  ✅
+</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>nickname 最后  k=34                       失败
+</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>k=33 / k=35                               失败
+</span></code></pre></div>
+<h4 id="step-9-flag"><a class="toclink" href="../../0ctf2016-piapiapia/#step-9-flag">Step 9：发包、解码、拿 flag</a></h4>
+<p><img alt="payload" src="../../../assets/images/0ctf2016-piapiapia/06-payload.png" /></p>
+<p><strong>注册登录 → 进 update 页面 → 文件随便传一个 5~1000000 字节的 → 抓包，把 <code>nickname</code> 改成：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>name="nickname[]"
+</span><span id="__span-59-2"><a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a>
+</span><span id="__span-59-3"><a id="__codelineno-59-3" name="__codelineno-59-3" href="#__codelineno-59-3"></a>wherewhere……（34 个）……";}s:5:"photo";s:10:"config.php";}
+</span></code></pre></div>
+<p><strong>发包后访问 <code>profile.php</code>：</strong></p>
+<p><img alt="flag（base64）" src="../../../assets/images/0ctf2016-piapiapia/07-flag-base64.png" /></p>
+<p><strong><code>photo</code> 已经被读成 <code>config.php</code>，内容是 base64 的图片 <code>data:image/gif;base64,...</code>，解码 ——</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>CTF2{53ec6fc8-d499-4f76-bed2-6c4c2a076b43}
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../0ctf2016-piapiapia/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>页面没线索 → dirsearch 扫出 www.zip
+</span><span id="__span-61-2"><a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a>  → 源码里：config.php 有 flag，profile.php 有 file_get_contents($profile['photo'])
+</span><span id="__span-61-3"><a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a>    → photo 来自 unserialize → 需要一个「photo=config.php」的序列化串
+</span><span id="__span-61-4"><a id="__codelineno-61-4" name="__codelineno-61-4" href="#__codelineno-61-4"></a>      → update.php 存的时候是 serialize() 之后再 filter()
+</span><span id="__span-61-5"><a id="__codelineno-61-5" name="__codelineno-61-5" href="#__codelineno-61-5"></a>        → filter 里 where(5) → hacker(6)，每处多 1 字节
+</span><span id="__span-61-6"><a id="__codelineno-61-6" name="__codelineno-61-6" href="#__codelineno-61-6"></a>          → 长度逃逸：N 不变、内容变长 → 多出来的字节被当成结构
+</span><span id="__span-61-7"><a id="__codelineno-61-7" name="__codelineno-61-7" href="#__codelineno-61-7"></a>            → nickname[] 绕过字符集和长度检查（PHP 7 的 strlen/preg_match 行为）
+</span><span id="__span-61-8"><a id="__codelineno-61-8" name="__codelineno-61-8" href="#__codelineno-61-8"></a>              → 34 个 where + 34 字节片段 → photo 被改写成 config.php
+</span><span id="__span-61-9"><a id="__codelineno-61-9" name="__codelineno-61-9" href="#__codelineno-61-9"></a>                → profile.php 读出来 → base64 解码 → flag
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="../../0ctf2016-piapiapia/#_4">漏洞原理</a></h4>
+<p><strong>① 过滤发生在序列化之后</strong></p>
+<p><strong>序列化时把每个值的长度写死在 <code>s:N:</code> 里；过滤时又把内容改长了。</strong>写死的长度和实际内容对不上，解析器就会按旧的偏移去读 —— 多出来的那部分被当成新的结构。**</p>
+<p><strong>② 长度差的方向决定利用方式</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>变长（where→hacker，+1）：声明短于实际 → 读完 N 字节后，多出的部分被重新解析
+</span><span id="__span-62-2"><a id="__codelineno-62-2" name="__codelineno-62-2" href="#__codelineno-62-2"></a>变短（若存在）：          声明长于实际 → 值会吞掉后面的结构
+</span></code></pre></div>
+<p><strong>这题是前者。</strong></p>
+<p><strong>③ 类型混淆绕过检查</strong></p>
+<p><strong>校验函数假设 <code>$_POST['nickname']</code> 是字符串，但传数组进去：<code>strlen()</code> 返回 null、<code>preg_match()</code> 返回 false —— 两个检查都不成立。</strong></p>
+<p><strong>这类"</strong>检查的是 A 类型，用的是 B 类型<strong>"的洞，在 PHP 里很常见（<code>str_replace</code> 收数组、<code>in_array</code> 弱比较都是同一类）。</strong></p>
+<h4 id="_5"><a class="toclink" href="../../0ctf2016-piapiapia/#_5">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>s:N:"..."</code></td>
+<td>序列化时写死的长度；改动内容而不改 N 就会错位</td>
+</tr>
+<tr>
+<td>长度逃逸</td>
+<td>过滤前后长度差，被用来"挤出"结构</td>
+</tr>
+<tr>
+<td><code>where</code> → <code>hacker</code></td>
+<td>唯一"变长"的替换：5 → 6，每处 +1 字节</td>
+</tr>
+<tr>
+<td>对齐条件</td>
+<td><code>k = 片段长度</code>（因为 6k = 5k + F）</td>
+</tr>
+<tr>
+<td>片段的 <code>}</code></td>
+<td>前一个 <code>}</code> 关内层数组，后一个 <code>}</code> 关外层数组，让后面的原始内容被忽略</td>
+</tr>
+<tr>
+<td>字段顺序</td>
+<td>注入的结构必须落在目标字段之前</td>
+</tr>
+<tr>
+<td><code>nickname[]</code></td>
+<td>数组绕过：<code>strlen(array)=NULL</code>、<code>preg_match(array)=false</code>（PHP 7）</td>
+</tr>
+<tr>
+<td>PHP 8 差异</td>
+<td>同样两行在 PHP 8 会抛 <code>TypeError</code>，数组绕过失效</td>
+</tr>
+<tr>
+<td><code>www.zip</code></td>
+<td>CTF 里最常见的源码泄露入口之一</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>class.php 的 filter() 与相关方法（按截图整理）</summary>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a><span class="x">public function filter($string) {</span>
+</span><span id="__span-63-2"><a id="__codelineno-63-2" name="__codelineno-63-2" href="#__codelineno-63-2"></a><span class="x">    $escape = array('\'', '\\\\');</span>
+</span><span id="__span-63-3"><a id="__codelineno-63-3" name="__codelineno-63-3" href="#__codelineno-63-3"></a><span class="x">    $escape = '/' . implode('|', $escape) . '/';</span>
+</span><span id="__span-63-4"><a id="__codelineno-63-4" name="__codelineno-63-4" href="#__codelineno-63-4"></a><span class="x">    $string = preg_replace($escape, '_', $string);</span>
+</span><span id="__span-63-5"><a id="__codelineno-63-5" name="__codelineno-63-5" href="#__codelineno-63-5"></a>
+</span><span id="__span-63-6"><a id="__codelineno-63-6" name="__codelineno-63-6" href="#__codelineno-63-6"></a><span class="x">    $safe = array('select', 'insert', 'update', 'delete', 'where');</span>
+</span><span id="__span-63-7"><a id="__codelineno-63-7" name="__codelineno-63-7" href="#__codelineno-63-7"></a><span class="x">    $safe = '/' . implode('|', $safe) . '/i';</span>
+</span><span id="__span-63-8"><a id="__codelineno-63-8" name="__codelineno-63-8" href="#__codelineno-63-8"></a><span class="x">    return preg_replace($safe, 'hacker', $string);</span>
+</span><span id="__span-63-9"><a id="__codelineno-63-9" name="__codelineno-63-9" href="#__codelineno-63-9"></a><span class="x">}</span>
+</span><span id="__span-63-10"><a id="__codelineno-63-10" name="__codelineno-63-10" href="#__codelineno-63-10"></a>
+</span><span id="__span-63-11"><a id="__codelineno-63-11" name="__codelineno-63-11" href="#__codelineno-63-11"></a><span class="x">public function show_profile($username) {</span>
+</span><span id="__span-63-12"><a id="__codelineno-63-12" name="__codelineno-63-12" href="#__codelineno-63-12"></a><span class="x">    $username = parent::filter($username);</span>
+</span><span id="__span-63-13"><a id="__codelineno-63-13" name="__codelineno-63-13" href="#__codelineno-63-13"></a><span class="x">    $where = "username = '$username'";</span>
+</span><span id="__span-63-14"><a id="__codelineno-63-14" name="__codelineno-63-14" href="#__codelineno-63-14"></a><span class="x">    $object = parent::select($this-&gt;table, $where);</span>
+</span><span id="__span-63-15"><a id="__codelineno-63-15" name="__codelineno-63-15" href="#__codelineno-63-15"></a><span class="x">    return $object-&gt;profile;</span>
+</span><span id="__span-63-16"><a id="__codelineno-63-16" name="__codelineno-63-16" href="#__codelineno-63-16"></a><span class="x">}</span>
+</span><span id="__span-63-17"><a id="__codelineno-63-17" name="__codelineno-63-17" href="#__codelineno-63-17"></a>
+</span><span id="__span-63-18"><a id="__codelineno-63-18" name="__codelineno-63-18" href="#__codelineno-63-18"></a><span class="x">public function update_profile($username, $new_profile) {</span>
+</span><span id="__span-63-19"><a id="__codelineno-63-19" name="__codelineno-63-19" href="#__codelineno-63-19"></a><span class="x">    $username = parent::filter($username);</span>
+</span><span id="__span-63-20"><a id="__codelineno-63-20" name="__codelineno-63-20" href="#__codelineno-63-20"></a><span class="x">    $new_profile = parent::filter($new_profile);</span>
+</span><span id="__span-63-21"><a id="__codelineno-63-21" name="__codelineno-63-21" href="#__codelineno-63-21"></a><span class="x">    ...</span>
+</span><span id="__span-63-22"><a id="__codelineno-63-22" name="__codelineno-63-22" href="#__codelineno-63-22"></a><span class="x">}</span>
+</span></code></pre></div>
+</details>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
