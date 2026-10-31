@@ -3,7 +3,7 @@
   <h1 class="hero__title">把每一次卡壳，<br>变成下一次的判断</h1>
   <p class="hero__sub">SQL 注入、文件上传、RCE、SSRF、反序列化按主题整理成手册；每道靶场题记下现象、判断依据和最后的绕法，而不只是答案。</p>
   <a class="hero__cta" href="knowledge/">从知识点开始 <span aria-hidden="true">→</span></a>
-  <p class="hero__proof">17 篇知识点 · 28 篇 WP · 最近更新 2026-10-30</p>
+  <p class="hero__proof">17 篇知识点 · 29 篇 WP · 最近更新 2026-10-31</p>
 </section>
 
 <div class="index-list" data-reveal>
