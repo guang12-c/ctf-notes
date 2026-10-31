@@ -2896,6 +2896,92 @@
           <li class="md-meta__item">
             分类于
             
+              <a href="../../category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a>, 
+              <a href="../../category/pop-%E9%93%BE/" class="md-meta__link">POP 链</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="magic-invoker2026zerogctf"><a class="toclink" href="../../zerog-magic-invoker/">Magic Invoker（2026ZeroGCTF）</a></h2>
+<h3 id="_1"><a class="toclink" href="../../zerog-magic-invoker/#_1">源码 · 四类速览</a></h3>
+<p><img alt="四类之一" src="../../../assets/images/zerog-magic-invoker/01-class-a.png" /></p>
+<p><img alt="四类之二" src="../../../assets/images/zerog-magic-invoker/02-class-b.png" /></p>
+<h3 id="flag"><a class="toclink" href="../../zerog-magic-invoker/#flag">审计：能拿到 flag 的只有两处</a></h3>
+<p>先审计四段代码，发现可以利用得到 flag 的只有两个地方：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>① Invoker 里 __destruct 中的 eval —— 命令执行
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>② FlagReader 里 __call —— 读 /flag
+</span></code></pre></div>
+<p>既然 <code>FlagReader</code> 可以直接读 flag，那先考虑这个方法。</p>
+<p><code>__call</code> 的触发方法是<strong>调用了不存在的方法</strong>，这里要 <code>$name === 'getFlag'</code>。但是查看这些代码，<strong>根本没有调用这个方法的</strong>，所以这就是个陷阱，忽略它。</p>
+<h3 id="invoker-sink"><a class="toclink" href="../../zerog-magic-invoker/#invoker-sink">Invoker 是直接的 sink</a></h3>
+<p>接着看 <code>eval</code> 竟然在 <code>__destruct</code> 里 —— 那么<strong>只要传进序列化串就会触发</strong>。</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="x">public function __destruct() {</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="x">    eval($this-&gt;code);</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p>所以只用一个 <code>Invoker</code> 对象就够了，<strong>不需要拼链</strong>。</p>
+<p>直接先查文件：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>O:7:"Invoker":1:{s:4:"code";s:14:"system('ls ');";}
+</span></code></pre></div>
+<p><img alt="ls 回显" src="../../../assets/images/zerog-magic-invoker/03-ls.png" /></p>
+<p>发现存在 <code>index.php</code> 和 <code>challenge.php</code> 两个文件。</p>
+<h3 id="_2"><a class="toclink" href="../../zerog-magic-invoker/#_2">两个文件的关系和我原先的猜测相反</a></h3>
+<p>这里 <code>index.php</code> 一般是网页入口，所以先看 <code>challenge.php</code> —— 它确实就是页面上那四个类的定义。</p>
+<p>那就接着查看 <code>index.php</code>：</p>
+<p><img alt="cat index.php" src="../../../assets/images/zerog-magic-invoker/04-cat-index.png" /></p>
+<p><strong>里面直接写了 flag 怎么拿</strong>：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="x">/*</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="x"> * Flag：由平台以环境变量 FLAG 动态注入，选手 RCE 后 env/printenv FLAG 读取。</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="x"> */</span>
+</span></code></pre></div>
+<h3 id="env-printenv-flag"><a class="toclink" href="../../zerog-magic-invoker/#env-printenv-flag">env 能列，printenv FLAG 不行</a></h3>
+<p>他这里说 <code>env</code> / <code>printenv FLAG</code> 都可以拿，我试了：</p>
+<p><strong><code>env</code> 和 <code>printenv</code>（不带参数）都能拿，加上 <code>FLAG</code> 就不行</strong> —— 因为 <code>printenv</code> 是<strong>精确匹配</strong>的，而里面 FLAG 前面还有一串东西，所以匹配不到就查询不到。</p>
+<p><img alt="printenv 全量" src="../../../assets/images/zerog-magic-invoker/05-printenv.png" /></p>
+<p>实际的变量名是：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>ZEROG_2026_FLAG=flag{...}
+</span></code></pre></div>
+<p><strong>所以 <code>printenv FLAG</code> 找的是 <code>FLAG</code> 这个不存在的名字，什么都不会打印；而 <code>env</code> 是全量列出，一眼就能看见。</strong></p>
+<p><strong>这也说明：<code>index.php</code> 注释里写的「环境变量 FLAG」和实际实现不一致 —— 注释是当时的意图，不代表现在的名字。</strong></p>
+<blockquote>
+<p><strong>注释可以过时，<code>env</code> 不会骗你。</strong></p>
+</blockquote>
+<h3 id="cat-indexphp"><a class="toclink" href="../../zerog-magic-invoker/#cat-indexphp">顺带一个坑：<code>cat /index.php</code> 为什么不行</a></h3>
+<p>我一开始想 <code>cat /index.php</code>，结果什么都没出来；换成 <code>cat index.php</code> 就有了。</p>
+<p><strong>因为这两个是完全不同的东西：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>/index.php   ← 文件系统根目录下的 index.php   → 不存在
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>index.php    ← 当前工作目录下的 index.php      → 存在
+</span></code></pre></div>
+<p><strong><code>/</code> 是 Linux 文件系统的根，</strong>不是网站的根<strong>。网站目录一般是 <code>/var/www/html</code> 之类，而 <code>cat</code> 不给路径时用的是</strong>当前工作目录<strong>（cwd）—— 从 <code>ls</code> 的结果看，cwd 就是网站目录，所以相对路径能命中。</strong></p>
+<p><strong>而且 <code>cat /index.php</code> 报的 <code>No such file or directory</code> 走的是 <strong>stderr</strong>，<code>system()</code> 只回显 stdout，所以页面看起来就是「什么都没发生」。</strong></p>
+<p><strong>用 <code>cat /index.php 2&gt;&amp;1</code> 才能看见那条错误。</strong></p>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-28 00:00:00+00:00">2026-10-28</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
               <a href="../../category/rce/" class="md-meta__link">RCE</a>, 
               <a href="../../category/%E5%BC%B1%E7%B1%BB%E5%9E%8B/" class="md-meta__link">弱类型</a>, 
               <a href="../../category/php-%E6%BA%90%E7%A0%81/" class="md-meta__link">PHP 源码</a></li>
@@ -4109,102 +4195,6 @@ Firefox：存储 → Cookie</p>
 </span></code></pre></div>
 <p><strong><code>protected</code> 则是 <code>\0*\0属性名</code>。</strong></p>
 <p><strong>长度一律按真实字节数算，<code>\0</code> 算 1 个字节 —— 这也是手写 payload 最容易错的地方。</strong></p>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-24 00:00:00+00:00">2026-10-24</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../category/%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/" class="md-meta__link">代码执行</a>, 
-              <a href="../../category/git%E6%B3%84%E9%9C%B2/" class="md-meta__link">git泄露</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="gxyctf2019"><a class="toclink" href="../../gxyctf2019-taowa/">[GXYCTF2019] 禁止套娃</a></h2>
-<p>启动靶场后页面上只有一句话，查看页面源码也什么都没有，所以试试 dirsearch 扫一下：</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>dirsearch<span class="w"> </span>-u<span class="w"> </span><span class="s2">"https://6d6e483f4f929559a47891f1.http-ctf2.dasctf.com/"</span>
-</span></code></pre></div>
-<p><img alt="dirsearch 扫描结果" src="../../../assets/images/gxyctf-taowa/01-dirsearch.png" /></p>
-<p>扫出来发现了好多 <code>.git</code>。</p>
-<h3 id="git"><a class="toclink" href="../../gxyctf2019-taowa/#git">git 泄露是什么</a></h3>
-<p>去稍微了解了一下 git leakage 的本质：在运行 <code>git init</code> 初始化代码库时，会在当前目录下面产生一个 <code>.git</code> 的隐藏文件，这个文件包含了所有的 git 存储和操作的对象记录。</p>
-<p>而开发或运维人员把这个 <code>.git</code> 文件一并上传到了线上环境的 web 根目录，就导致了 git leakage。</p>
-<h3 id="git-dumper"><a class="toclink" href="../../gxyctf2019-taowa/#git-dumper">用 git-dumper 拉下来</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>git-dumper<span class="w"> </span><span class="s2">"https://6d6e483f4f929559a47891f1.http-ctf2.dasctf.com/.git/"</span><span class="w"> </span><span class="s2">"E:\ctf-work\gitleak"</span>
-</span></code></pre></div>
-<div class="admonition warning">
-<p class="admonition-title">别漏了 <code>/.git/</code></p>
-<p>是 <code>/.git/</code> —— 带点、带末尾斜杠。dirsearch 扫出来的路径就是 <code>/.git/HEAD</code> 这种形式。</p>
-</div>
-<p>拉下来后查看 <code>index.php</code> 进行代码审计。</p>
-<p><img alt="index.php 源码" src="../../../assets/images/gxyctf-taowa/02-index.png" /></p>
-<h3 id="_1"><a class="toclink" href="../../gxyctf2019-taowa/#_1">三层过滤</a></h3>
-<p>看到是对 <code>exp</code> 的三层过滤。</p>
-<p><strong>第一层</strong>很简单，只过滤了伪协议（<code>data://</code> <code>filter://</code> <code>php://</code> <code>phar://</code>）。</p>
-<p><strong>第二层</strong>是：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="x">if(';' === preg_replace('/[a-z,_]+\((?R)?\)/', NULL, $_GET['exp']))</span>
-</span></code></pre></div>
-<p>这里正则把「<strong>函数名(...) 这种整体结构</strong>」全部替换成 null，最后要求只剩下 <code>;</code>。</p>
-<p>所以能用的只有「无参数函数调用」这一种形态 —— <code>.</code>、<code>/</code> 这些字符不在这个语法里，替换不掉，因此不能用。</p>
-<details class="note">
-<summary>实测：这条正则到底删什么</summary>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>abc          →  abc          裸字母不删
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>foo();       →  ;            整体删掉
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>a.b();       →  a.;          括号结构删了,. 留下
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>system(ls);  →  system(ls);  有参数,一个都不删
-</span></code></pre></div>
-</details>
-<p><strong>第三层</strong>再过滤关键词 <code>et|na|info|dec|bin|hex|oct|pi|log</code>。</p>
-<h3 id="r"><a class="toclink" href="../../gxyctf2019-taowa/#r">关于 <code>(?R)?</code></a></h3>
-<p>这里的 <code>(?R)?</code> 刚开始我不太明白它的作用，看了点资料了解了下：</p>
-<p>单个 <code>(?R)</code> 是<strong>无限递归</strong>地去匹配括号 —— 比如 <code>(())</code>，在没有递归的情况下，替换掉最里面一个 <code>()</code> 就停止了；加了 <code>(?R)</code> 之后才能把整块嵌套都吃掉。</p>
-<p>但光有 <code>(?R)</code> 会无限递归（每一层都强制要求再来一层，任何有限字符串都匹配不了），所以后面再加一个 <code>?</code>。</p>
-<p>外面这个 <code>?</code> 只作用于紧挨着它的 <code>(?R)</code>，意思是「0 次或 1 次」—— 当最内层的 <code>()</code> 为空时，递归就停下来，而不是无限循环。</p>
-<p>到这里就清晰了：<strong>这是无参数 RCE</strong>。</p>
-<h3 id="_2"><a class="toclink" href="../../gxyctf2019-taowa/#_2">第一步：列目录</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>?exp=print_r(scandir(pos(localeconv())));
-</span></code></pre></div>
-<div class="admonition tip">
-<p class="admonition-title">最后的 <code>;</code> 别漏了</p>
-<p>校验条件是「删完只剩 <code>;</code>」，所以 payload 末尾必须有一个分号。</p>
-</div>
-<p>本意是构造 <code>print_r(scandir('.'))</code>，但 <code>.</code> 不能用，所以用了 <code>localeconv()</code> —— 它用于获取本地化（locale）设置的数字及货币格式信息，如小数点、千位分隔符、货币符号等，帮助程序适配不同地域的显示规则；因为它第一个返回的就是 <code>.</code>。</p>
-<p><code>pos()</code> 和 <code>current()</code> 等价，获取当前元素的值；空数组或指针无效时返回 <code>false</code>。</p>
-<p>结果：</p>
-<p><img alt="目录列表" src="../../../assets/images/gxyctf-taowa/03-array.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>Array ( [0] =&gt; . [1] =&gt; .. [2] =&gt; .git [3] =&gt; flag.php [4] =&gt; index.php )
-</span></code></pre></div>
-<h3 id="flag"><a class="toclink" href="../../gxyctf2019-taowa/#flag">第二步：读 flag</a></h3>
-<p>读取到后发现 <code>flag.php</code> 在倒数第二个，所以选择先逆转数组，再用 <code>next</code>：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>?exp=highlight_file(next(array_reverse(scandir(pos(localeconv())))));
-</span></code></pre></div>
-<p>成功得到 flag：</p>
-<p><img alt="拿到 flag" src="../../../assets/images/gxyctf-taowa/04-flag.png" /></p>
-<h3 id="_3"><a class="toclink" href="../../gxyctf2019-taowa/#_3">踩的坑</a></h3>
-<p><strong><code>git-dumper</code> 的路径</strong></p>
-<p>写成 <code>/git</code> 拉不下来，必须是 <code>/.git/</code>。dirsearch 扫出来的 <code>.git/HEAD</code> 就是答案 —— 别自己"简化"。</p>
     
     
   </div>

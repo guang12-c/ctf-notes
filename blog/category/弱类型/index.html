@@ -2905,6 +2905,209 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-10-31 00:00:00+00:00">2026-10-31</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../php/" class="md-meta__link">PHP</a>, 
+              <a href="./" class="md-meta__link">弱类型</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 3 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="2019-buyflag"><a class="toclink" href="../../geek2019-buyflag/">[极客大挑战 2019] BuyFlag — 三个小关卡，三种绕过</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Web — PHP 弱类型 / Cookie 伪造 / 科学计数法</p>
+<p><strong>题目地址</strong>：极客大挑战 2019 BuyFlag（ctf2 复刻环境）</p>
+<p><strong>Flag</strong>：<code>CTF2{439654d3-720c-4ee9-b0f8-9dd67c5b8ab9}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../geek2019-buyflag/#_1">题目概述</a></h3>
+<p>一个「买 flag」的页面。要拿到 flag，得同时满足三个条件：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>① 密码要对
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>② 必须是 CUIT 的学生
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>③ 钱要够
+</span></code></pre></div>
+<p><strong>三个条件分别对应三种不同的绕过方式 —— 这题的价值就在这儿。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../geek2019-buyflag/#_2">解题过程</a></h3>
+<h4 id="step-1-payphp"><a class="toclink" href="../../geek2019-buyflag/#step-1-payphp">Step 1：查看源码，发现 pay.php</a></h4>
+<p><strong>查看页面源码，发现存在 <code>pay.php</code>。进去之后继续看源码：</strong></p>
+<p><img alt="pay.php 源码" src="../../../assets/images/geek2019-buyflag/01-pay-source.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="x">&lt;!--</span>
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="x">~~~post money and password~~~</span>
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="x">--&gt;</span>
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="x">if (isset($_POST['password'])) {</span>
+</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a><span class="x">    $password = $_POST['password'];</span>
+</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a><span class="x">    if (is_numeric($password)) {</span>
+</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a><span class="x">        echo "password can't be number&lt;/br&gt;";</span>
+</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a><span class="x">    } elseif ($password == 404) {</span>
+</span><span id="__span-34-9"><a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a><span class="x">        echo "Password Right!&lt;/br&gt;";</span>
+</span><span id="__span-34-10"><a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a><span class="x">    }</span>
+</span><span id="__span-34-11"><a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>第一个条件：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>· 不能是纯数字              → is_numeric 挡住 "404"
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>· 但要松散等于 404          → $password == 404
+</span></code></pre></div>
+<p><strong>看起来矛盾，其实不矛盾 —— 因为 <code>is_numeric</code> 看的是“整个字符串是不是数字”，<code>==</code> 看的是“转换成数字后等不等”。</strong></p>
+<p><strong>payload：<code>404a</code></strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>is_numeric("404a")  →  false     ✅ 过第一关
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>"404a" == 404       →  PHP 7 把开头的数字部分转成 404 → true   ✅ 过第二关
+</span></code></pre></div>
+<p><strong>⚠️ 这条只在 PHP 7 成立。PHP 8 改了比较规则（数字与非数字字符串比较时按字符串比），<code>"404a" == 404</code> 会变成 false。</strong></p>
+<h4 id="step-2-cuit"><a class="toclink" href="../../geek2019-buyflag/#step-2-cuit">Step 2：提示「必须是 CUIT 的学生」</a></h4>
+<p><strong>发包后页面说：</strong></p>
+<p><img alt="only CUIT" src="../../../assets/images/geek2019-buyflag/02-cuit-only.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>Only Cuit's students can buy the FLAG
+</span></code></pre></div>
+<p><strong>先想一个问题：服务端凭什么知道我是谁？</strong></p>
+<p><strong>看请求头 —— 里面有个 <code>Cookie: user=0</code>。</strong></p>
+<p><strong>身份就是它判的，而它是</strong>我们自己的<strong>。改成 <code>user=1</code> 就行。</strong></p>
+<p><strong>这类「把身份放在客户端」的题，判断依据永远是那句：</strong>服务端相信了客户端送来的、可以随便改的东西<strong>。</strong></p>
+<h4 id="step-3-money"><a class="toclink" href="../../geek2019-buyflag/#step-3-money">Step 3：还有 money</a></h4>
+<p><strong>再往后看，还差钱：</strong></p>
+<p><img alt="flag need money" src="../../../assets/images/geek2019-buyflag/03-money-hint.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>Flag need your 100000000 money
+</span></code></pre></div>
+<p><strong>于是请求体里补一个 <code>money</code> 参数。</strong></p>
+<p><strong>但直接写 <code>money=100000000</code> 会被挡 —— 提示「数字太长了」（源码里有长度限制）。</strong></p>
+<p><strong>解法是</strong>科学计数法<strong>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>money=10e8
+</span></code></pre></div>
+<p><strong><code>10e8</code> 只有 4 个字符，但它的值是 <code>10 × 10^8 = 10^9</code>，足够达到 100000000 的门槛。</strong></p>
+<p><strong>这就是「</strong>字符串长度<strong>和</strong>数值大小<strong>是两回事」的利用点 —— 和第一关的 <code>404a</code> 是同一个套路：</strong>检查看的是一种东西，使用时是另一种东西<strong>。</strong></p>
+<h4 id="step-4"><a class="toclink" href="../../geek2019-buyflag/#step-4">Step 4：三个条件一起满足</a></h4>
+<p><img alt="请求" src="../../../assets/images/geek2019-buyflag/04-request-404a.png" /></p>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="nf">POST</span> <span class="nn">/pay.php</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="na">Cookie</span><span class="o">:</span> <span class="l">user=1</span>
+</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/x-www-form-urlencoded</span>
+</span><span id="__span-40-4"><a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a>
+</span><span id="__span-40-5"><a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a><span class="nt">password</span><span class="o">=</span><span class="s">404a</span><span class="p">&amp;</span><span class="nt">money</span><span class="o">=</span><span class="s">10e8</span>
+</span></code></pre></div>
+<p><strong>响应里就出 flag 了：</strong></p>
+<p><img alt="flag" src="../../../assets/images/geek2019-buyflag/05-flag.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>you are Cuiter
+</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>Password Right!
+</span><span id="__span-41-3"><a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a>CTF2{439654d3-720c-4ee9-b0f8-9dd67c5b8ab9}
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../geek2019-buyflag/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>查看源码 → 发现 pay.php → 读它的判断逻辑
+</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>  → ① 密码：不能是数字，又要 == 404
+</span><span id="__span-42-3"><a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a>        → is_numeric 与 == 看到的不是同一个东西 → 404a
+</span><span id="__span-42-4"><a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a>    ② 身份：Cookie: user=0 → 改成 1（客户端说了算）
+</span><span id="__span-42-5"><a id="__codelineno-42-5" name="__codelineno-42-5" href="#__codelineno-42-5"></a>    ③ 钱：要 100000000 但长度受限 → 科学计数法 10e8
+</span><span id="__span-42-6"><a id="__codelineno-42-6" name="__codelineno-42-6" href="#__codelineno-42-6"></a>      三个条件一起发 → flag
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="../../geek2019-buyflag/#_4">漏洞原理</a></h4>
+<p><strong>这题三个关卡，本质是</strong>同一件事的三次重复<strong>：</strong></p>
+<table>
+<thead>
+<tr>
+<th>关卡</th>
+<th>检查看的是</th>
+<th>实际用的是</th>
+<th>差异点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>密码</td>
+<td><code>is_numeric</code> 判断“整体是否数字”</td>
+<td><code>==</code> 做数值转换</td>
+<td><code>404a</code> 整体不是数字，但转换后是 404</td>
+</tr>
+<tr>
+<td>身份</td>
+<td>服务端相信 Cookie</td>
+<td>请求里的 <code>user</code></td>
+<td>客户端可控</td>
+</tr>
+<tr>
+<td>钱</td>
+<td><code>strlen</code> 判断字符串长度</td>
+<td>数值比较</td>
+<td><code>10e8</code> 短但大</td>
+</tr>
+</tbody>
+</table>
+<p><strong>三条合起来就是一句：</strong>校验函数和使用点读的不是同一个东西，而你能控制中间那个“东西”。**</p>
+<h4 id="_5"><a class="toclink" href="../../geek2019-buyflag/#_5">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>is_numeric('404a')</code></td>
+<td>false —— 只认完整数字</td>
+</tr>
+<tr>
+<td><code>'404a' == 404</code></td>
+<td><strong>PHP 7</strong> 为 true（取前导数字）；<strong>PHP 8 为 false</strong></td>
+</tr>
+<tr>
+<td>PHP 8 比较规则变化</td>
+<td>数字 vs 非数字字符串 → 按字符串比较，弱类型绕过大量失效</td>
+</tr>
+<tr>
+<td>Cookie 伪造</td>
+<td>身份标识存在客户端 → 直接改</td>
+</tr>
+<tr>
+<td>科学计数法</td>
+<td><code>10e8</code> = 1e9，字符短、数值大</td>
+</tr>
+<tr>
+<td><code>strlen</code> vs 数值</td>
+<td>长度检查挡不住科学计数法</td>
+</tr>
+<tr>
+<td>通用模型</td>
+<td>检查点看到的类型/值与使用点看到的不同</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>pay.php 关键判断（按截图整理）</summary>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="x">if (isset($_POST['password'])) {</span>
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="x">    $password = $_POST['password'];</span>
+</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a><span class="x">    if (is_numeric($password)) {</span>
+</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="x">        echo "password can't be number&lt;/br&gt;";</span>
+</span><span id="__span-43-5"><a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a><span class="x">    } elseif ($password == 404) {</span>
+</span><span id="__span-43-6"><a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a><span class="x">        echo "Password Right!&lt;/br&gt;";</span>
+</span><span id="__span-43-7"><a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a><span class="x">    }</span>
+</span><span id="__span-43-8"><a id="__codelineno-43-8" name="__codelineno-43-8" href="#__codelineno-43-8"></a><span class="x">}</span>
+</span></code></pre></div>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-10-29 00:00:00+00:00">2026-10-29</time></li>
         
           <li class="md-meta__item">
