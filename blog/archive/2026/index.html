@@ -1924,6 +1924,8 @@
       
         
       
+        
+      
     
     
     
@@ -2169,6 +2171,36 @@
     
   
     RCE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../category/sql/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL
   
 
     
@@ -3178,6 +3210,247 @@
 </span><span id="__span-31-20"><a id="__codelineno-31-20" name="__codelineno-31-20" href="#__codelineno-31-20"></a><span class="x">    $new_profile = parent::filter($new_profile);</span>
 </span><span id="__span-31-21"><a id="__codelineno-31-21" name="__codelineno-31-21" href="#__codelineno-31-21"></a><span class="x">    ...</span>
 </span><span id="__span-31-22"><a id="__codelineno-31-22" name="__codelineno-31-22" href="#__codelineno-31-22"></a><span class="x">}</span>
+</span></code></pre></div>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-31 00:00:00+00:00">2026-10-31</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../category/php/" class="md-meta__link">PHP</a>, 
+              <a href="../../category/%E5%BC%B1%E7%B1%BB%E5%9E%8B/" class="md-meta__link">弱类型</a>, 
+              <a href="../../category/sql/" class="md-meta__link">SQL</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 3 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="easymd5"><a class="toclink" href="../../easy-md5/">EasyMD5 — 三种比较，三条绕过</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Web — MD5 特性 / 弱类型 / SQL 注入</p>
+<p><strong>题目地址</strong>：BUUCTF EasyMD5（ctf2 复刻环境）</p>
+<p><strong>Flag</strong>：<code>CTF2{028c2bd1-33f7-401b-b299-1525fd86cf41}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../easy-md5/#_1">题目概述</a></h3>
+<p>刚进来就是一个查询页面，一个输入框加一个「提交查询」按钮，源码里什么也没有。</p>
+<p><img alt="查询页" src="../../../assets/images/easy-md5/01-index.png" /></p>
+<p><strong>后面还有两关，一共三层，每层考一种不同的绕过。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../easy-md5/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../easy-md5/#step-1">Step 1：先是完全没头绪</a></h4>
+<p><strong>看着像查询框，先试各种 SQL 注入 —— 页面一点动静都没有。</strong></p>
+<p><strong>又用 dirsearch 扫了一下，还是没东西。</strong></p>
+<p><strong>最后抓包发出去，看</strong>响应头<strong>，发现了 hint。</strong></p>
+<h4 id="step-2hint"><a class="toclink" href="../../easy-md5/#step-2hint">Step 2：Hint 在响应头里</a></h4>
+<p><img alt="响应头里的 Hint" src="../../../assets/images/easy-md5/02-hint-header.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>Hint: select * from 'admin' where password=md5($pass, true)
+</span></code></pre></div>
+<p><strong>注意 <code>md5($pass, **true**)</code> 这个第二个参数。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>md5($s, false)  →  32 位十六进制字符串（平时用的那种）
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>md5($s, true)   →  16 字节的原始二进制
+</span></code></pre></div>
+<p><strong>平时我们见到的 <code>md5</code> 结果都是 32 个字符，那是因为默认把它编码成十六进制了。<code>true</code> 返回的是</strong>原始字节** —— 而这些字节里可以出现引号、反斜杠等特殊字符。**</p>
+<p><strong>也就是说：</strong>MD5 的结果可能污染 SQL 语句。**</p>
+<h4 id="step-3"><a class="toclink" href="../../easy-md5/#step-3">Step 3：构造一个永真式</a></h4>
+<p><strong>SQL 拼出来是：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="s1">'admin'</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">password</span><span class="o">=</span><span class="s1">'&lt;md5 的原始字节&gt;'</span>
+</span></code></pre></div>
+<p><strong>如果 md5 的原始字节以 <code>'or'</code> 开头，就变成了：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">where</span><span class="w"> </span><span class="n">password</span><span class="o">=</span><span class="s1">''</span><span class="k">or</span><span class="s1">'6...'</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">                </span><span class="err">└──┘</span><span class="w"> </span><span class="err">└────</span><span class="w"> </span><span class="err">非空字符串</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">真</span>
+</span></code></pre></div>
+<p><strong><code>'' or '任意非空字符串'</code> 恒为真 → 直接登录进去。</strong></p>
+<p><strong>本机验证：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="x">md5('ffifdyop', true)</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="x">= 276f722736c95d99e921722cf9ed621c</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="x">可打印形式： 'or'6.]..!r,..b.</span>
+</span></code></pre></div>
+<p><strong>所以第一关的答案就是 <code>ffifdyop</code>。</strong></p>
+<h4 id="step-4"><a class="toclink" href="../../easy-md5/#step-4">Step 4：第二关 —— 松散不等 + 弱相等</a></h4>
+<p><img alt="第二关源码" src="../../../assets/images/easy-md5/03-level2-source.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="x">$a = $_GET['a'];</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="x">$b = $_GET['b'];</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="x">if ($a != $b &amp;&amp; md5($a) == md5($b)) {</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="x">    // wow, glzjin wants a girl friend.</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>两个条件：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>$a != $b          松散不等（数组、'1' 和 1 都算相等）
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>md5($a) == md5($b) 松散相等
+</span></code></pre></div>
+<p><strong>两条路都能过：</strong></p>
+<p><strong>① 0e 碰撞</strong></p>
+<p><strong>两个不同的字符串，MD5 后都以 <code>0e</code> 开头且后面全是数字 → 被当成科学计数法比较 → 都等于 0。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>QNKCDZO      → 0e830400451993494058024219903391
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>240610708    → 0e462097431906509019562988736854
+</span></code></pre></div>
+<p><strong>② 数组</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>?a[]=1&amp;b[]=2
+</span></code></pre></div>
+<p><strong><code>md5(array)</code> 在 PHP 7 里报个 warning 然后返回 NULL —— 两边都是 NULL，<code>NULL == NULL</code> 成立。</strong></p>
+<h4 id="step-5"><a class="toclink" href="../../easy-md5/#step-5">Step 5：第三关 —— 严格不等 + 强相等</a></h4>
+<p><img alt="第三关源码" src="../../../assets/images/easy-md5/04-level3-source.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="x">if ($_POST['param1'] !== $_POST['param2'] &amp;&amp; md5($_POST['param1']) === md5($_POST['param2'])) {</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="x">    echo $flag;</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong><code>!==</code> 和 <code>===</code> 都不做类型转换 —— 这才是关键。</strong></p>
+<p><strong>0e 那条路断了：字符串 <code>===</code> 比较要求完全相同。</strong></p>
+<p><strong>但数组还能用：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>param1[]=1&amp;param2[]=2
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>表达式</th>
+<th>结果</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>param1 !== param2</code></td>
+<td><strong>true</strong></td>
+<td>两个数组元素不同</td>
+</tr>
+<tr>
+<td><code>md5(param1) === md5(param2)</code></td>
+<td><strong>true</strong></td>
+<td>两边都是 NULL，<code>NULL === NULL</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>注意：<code>md5(array)</code> 在 <strong>PHP 8</strong> 会直接抛 <code>TypeError</code>（致命错误）—— 这招只在 PHP 7 上成立。</strong></p>
+<h4 id="step-6-flag"><a class="toclink" href="../../easy-md5/#step-6-flag">Step 6：拿 flag</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>CTF2{028c2bd1-33f7-401b-b299-1525fd86cf41}
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../easy-md5/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>页面只有一个查询框 → 试 SQL 注入没反应 → 抓包看响应头
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>  → Hint: password=md5($pass, true)
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>    → md5 第二参数 true 返回 16 字节原始二进制
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>      → 原始字节可含引号 → SQL 注入
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>        → ffifdyop 的原始 md5 以 'or'6 开头 → 永真 → 第一关过
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>          → 第二关：!= 和 == → 0e 碰撞 或 数组
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a>            → 第三关：!== 和 === → 只能数组
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>              → flag
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="../../easy-md5/#_4">漏洞原理</a></h4>
+<p><strong>三关考的都是"比较时发生了什么"，但三种比较的严格程度不同：</strong></p>
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>含义</th>
+<th>能被什么打败</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>!=</code> / <code>==</code></td>
+<td>松散比较，<strong>先转类型再比</strong></td>
+<td>类型转换（<code>0e</code> 科学计数法、<code>'1' == 1</code>）</td>
+</tr>
+<tr>
+<td><code>!==</code> / <code>===</code></td>
+<td>严格比较，<strong>类型和值都要一样</strong></td>
+<td>类型本身被改变（数组 → <code>md5</code> 返回 NULL）</td>
+</tr>
+<tr>
+<td><code>md5($x, true)</code></td>
+<td>返回<strong>原始字节</strong>而非十六进制</td>
+<td>原始字节里可以长成 SQL 语法的一部分</td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话：</strong><code>==</code> 骗的是"值"，<code>===</code> 骗不了值 —— 但可以骗"类型"。**</p>
+<h4 id="_5"><a class="toclink" href="../../easy-md5/#_5">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>md5($s, true)</code></td>
+<td>返回 16 字节原始二进制（可含 <code>'</code> <code>\</code> 等字符）</td>
+</tr>
+<tr>
+<td><code>ffifdyop</code></td>
+<td>它的原始 MD5 以 <code>'or'6</code> 开头，是万能密码的经典 payload</td>
+</tr>
+<tr>
+<td>0e 碰撞</td>
+<td><code>QNKCDZO</code> / <code>240610708</code> / <code>aabg7XSs</code> 等，MD5 都是 <code>0e</code> 开头纯数字</td>
+</tr>
+<tr>
+<td><code>md5(array)</code></td>
+<td><strong>PHP 7</strong>：warning + 返回 NULL；<strong>PHP 8</strong>：<code>TypeError</code></td>
+</tr>
+<tr>
+<td>NULL 比较</td>
+<td><code>NULL == NULL</code> 真，<code>NULL === NULL</code> 也真</td>
+</tr>
+<tr>
+<td>Hint 藏响应头</td>
+<td>页面没反应不代表没线索，<strong>抓包看头</strong></td>
+</tr>
+<tr>
+<td>松散 vs 严格</td>
+<td><code>==</code> 转类型；<code>===</code> 不转（但类型可以被函数返回值改变）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>三关源码（按截图整理）</summary>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="x">&lt;!-- 第一关：在响应头里给 Hint --&gt;</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="x">&lt;!--</span>
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="x">Hint: select * from 'admin' where password=md5($pass, true)</span>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="x">--&gt;</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a><span class="x">&lt;!-- 第二关 --&gt;</span>
+</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-27-8"><a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a><span class="nv">$a</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'a'</span><span class="p">];</span>
+</span><span id="__span-27-9"><a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a><span class="nv">$b</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'b'</span><span class="p">];</span>
+</span><span id="__span-27-10"><a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$a</span> <span class="o">!=</span> <span class="nv">$b</span> <span class="o">&amp;&amp;</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$a</span><span class="p">)</span> <span class="o">==</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$b</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-27-11"><a id="__codelineno-27-11" name="__codelineno-27-11" href="#__codelineno-27-11"></a>    <span class="c1">// wow, glzjin wants a girl friend.</span>
+</span><span id="__span-27-12"><a id="__codelineno-27-12" name="__codelineno-27-12" href="#__codelineno-27-12"></a><span class="p">}</span>
+</span><span id="__span-27-13"><a id="__codelineno-27-13" name="__codelineno-27-13" href="#__codelineno-27-13"></a><span class="cp">?&gt;</span>
+</span><span id="__span-27-14"><a id="__codelineno-27-14" name="__codelineno-27-14" href="#__codelineno-27-14"></a>
+</span><span id="__span-27-15"><a id="__codelineno-27-15" name="__codelineno-27-15" href="#__codelineno-27-15"></a><span class="x">&lt;!-- 第三关 --&gt;</span>
+</span><span id="__span-27-16"><a id="__codelineno-27-16" name="__codelineno-27-16" href="#__codelineno-27-16"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-27-17"><a id="__codelineno-27-17" name="__codelineno-27-17" href="#__codelineno-27-17"></a><span class="nb">error_reporting</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span><span id="__span-27-18"><a id="__codelineno-27-18" name="__codelineno-27-18" href="#__codelineno-27-18"></a><span class="k">include</span> <span class="s2">"flag.php"</span><span class="p">;</span>
+</span><span id="__span-27-19"><a id="__codelineno-27-19" name="__codelineno-27-19" href="#__codelineno-27-19"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-27-20"><a id="__codelineno-27-20" name="__codelineno-27-20" href="#__codelineno-27-20"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param1'</span><span class="p">]</span> <span class="o">!==</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param2'</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param1'</span><span class="p">])</span> <span class="o">===</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param2'</span><span class="p">]))</span> <span class="p">{</span>
+</span><span id="__span-27-21"><a id="__codelineno-27-21" name="__codelineno-27-21" href="#__codelineno-27-21"></a>    <span class="k">echo</span> <span class="nv">$flag</span><span class="p">;</span>
+</span><span id="__span-27-22"><a id="__codelineno-27-22" name="__codelineno-27-22" href="#__codelineno-27-22"></a><span class="p">}</span>
+</span><span id="__span-27-23"><a id="__codelineno-27-23" name="__codelineno-27-23" href="#__codelineno-27-23"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 </details>
     
@@ -5296,88 +5569,6 @@
   </div>
 </article>
       
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-28 00:00:00+00:00">2026-10-28</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../category/%E5%BC%B1%E7%B1%BB%E5%9E%8B/" class="md-meta__link">弱类型</a>, 
-              <a href="../../category/unicode/" class="md-meta__link">Unicode</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 1 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="unicorn-shop"><a class="toclink" href="../../unicorn-shop/">Unicorn Shop</a></h2>
-<p><img alt="独角兽商店" src="../../../assets/images/unicorn-shop/01-shop.png" /></p>
-<p>因为是独角兽商店，所以题目的意思应该就是让我们<strong>买下来</strong>（第 4 个 ultra unicorn，价格 1337.0）。</p>
-<p>填上去后提示只能输入一个字符，而不是说数字：</p>
-<p><img alt="只能一个字符" src="../../../assets/images/unicorn-shop/02-onechar.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Only one char(?) allowed!
-</span></code></pre></div>
-<p><strong>注意括号里那个 <code>?</code></strong> —— 它说的是「一个<strong>字符</strong>」，不是「一位数字」。</p>
-<p>这里想到 Unicode：<strong>用非数字字符去表示一个数字</strong>，找一个大于 1337 的即可。</p>
-<p>在 <a href="https://www.compart.com/en/unicode/">https://www.compart.com/en/unicode/</a> 这个网址中直接输入 <code>number</code> 关键字然后搜索，找到对应的数字即可。</p>
-<p>我这里用的是这个 <code>፼</code>：</p>
-<p><img alt="拿到 flag" src="../../../assets/images/unicorn-shop/03-flag.png" /></p>
-<p>得到 flag。</p>
-<h3 id="1337"><a class="toclink" href="../../unicorn-shop/#1337">为什么一个字符能过 1337</a></h3>
-<p><strong><code>፼</code> 不是一个「奇怪的符号」，它是 Unicode 里的一个数字：</strong></p>
-<table>
-<thead>
-<tr>
-<th>项</th>
-<th>值</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>码点</td>
-<td><code>U+137C</code></td>
-</tr>
-<tr>
-<td>官方名字</td>
-<td><code>ETHIOPIC NUMBER TEN THOUSAND</code>（埃塞俄比亚数字「一万」）</td>
-</tr>
-<tr>
-<td>字符长度</td>
-<td><strong>1</strong></td>
-</tr>
-<tr>
-<td>代表的数值</td>
-<td><strong>10000</strong></td>
-</tr>
-</tbody>
-</table>
-<p><strong>关键点：后端比的是</strong>数值<strong>，不是</strong>字符长度<strong>。</strong>它应该是用 Python 的 <code>unicodedata.numeric()</code> 把字符转成数字再比较：</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span><span class="w"> </span><span class="nn">unicodedata</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">unicodedata</span><span class="o">.</span><span class="n">numeric</span><span class="p">(</span><span class="s1">'፼'</span><span class="p">)</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="mf">10000.0</span>
-</span></code></pre></div>
-<p><strong>所以「只能一个字符」这条限制，和「不能超过 1337」这条限制，是</strong>两个维度<strong>的事 —— 一个字符完全可以代表一个很大的数。</strong></p>
-<p><strong>这一层是推断（没看到源码），但它能完整解释现象。</strong></p>
-<p><strong>通用思路：以后看到限制「几个字符」的地方，就想想有没有</strong>一个字符顶很多数值<strong>的东西 —— Unicode 数字、罗马数字、上下标数字都算。</strong></p>
-    
-    
-  </div>
-</article>
-      
       
         
           
@@ -5385,7 +5576,7 @@
 
 
 <nav class="md-pagination">
-  <span class="md-pagination__current">1</span> <a class="md-pagination__link" href="page/2/">2</a> <a class="md-pagination__link" href="page/3/">3</a>
+  <span class="md-pagination__current">1</span> <a class="md-pagination__link" href="page/2/">2</a> <a class="md-pagination__link" href="page/3/">3</a> <a class="md-pagination__link" href="page/4/">4</a>
 </nav>
         
       

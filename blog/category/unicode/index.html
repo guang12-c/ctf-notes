@@ -1912,6 +1912,8 @@
       
         
       
+        
+      
     
     
     
@@ -2157,6 +2159,36 @@
     
   
     RCE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../sql/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL
   
 
     
@@ -2932,7 +2964,7 @@
 <p>因为是独角兽商店，所以题目的意思应该就是让我们<strong>买下来</strong>（第 4 个 ultra unicorn，价格 1337.0）。</p>
 <p>填上去后提示只能输入一个字符，而不是说数字：</p>
 <p><img alt="只能一个字符" src="../../../assets/images/unicorn-shop/02-onechar.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Only one char(?) allowed!
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Only one char(?) allowed!
 </span></code></pre></div>
 <p><strong>注意括号里那个 <code>?</code></strong> —— 它说的是「一个<strong>字符</strong>」，不是「一位数字」。</p>
 <p>这里想到 Unicode：<strong>用非数字字符去表示一个数字</strong>，找一个大于 1337 的即可。</p>
@@ -2969,9 +3001,9 @@
 </tbody>
 </table>
 <p><strong>关键点：后端比的是</strong>数值<strong>，不是</strong>字符长度<strong>。</strong>它应该是用 Python 的 <code>unicodedata.numeric()</code> 把字符转成数字再比较：</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span><span class="w"> </span><span class="nn">unicodedata</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">unicodedata</span><span class="o">.</span><span class="n">numeric</span><span class="p">(</span><span class="s1">'፼'</span><span class="p">)</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="mf">10000.0</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span><span class="w"> </span><span class="nn">unicodedata</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">unicodedata</span><span class="o">.</span><span class="n">numeric</span><span class="p">(</span><span class="s1">'፼'</span><span class="p">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="mf">10000.0</span>
 </span></code></pre></div>
 <p><strong>所以「只能一个字符」这条限制，和「不能超过 1337」这条限制，是</strong>两个维度<strong>的事 —— 一个字符完全可以代表一个很大的数。</strong></p>
 <p><strong>这一层是推断（没看到源码），但它能完整解释现象。</strong></p>
