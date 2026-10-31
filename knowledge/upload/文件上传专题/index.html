@@ -1737,6 +1737,89 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#ez_uploadweek2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十五、卡点存档：ez_upload（WEEK2，未解）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十五、卡点存档：ez_upload（WEEK2，未解）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        题目长什么样
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        防御模型（实测出来的）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        已经拿到手的能力
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        排除清单（每条都实测）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        卡住的那句话
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        下次回来的方向
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -4532,6 +4615,89 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#ez_uploadweek2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十五、卡点存档：ez_upload（WEEK2，未解）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="十五、卡点存档：ez_upload（WEEK2，未解）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        题目长什么样
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        防御模型（实测出来的）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        已经拿到手的能力
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        排除清单（每条都实测）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        卡住的那句话
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        下次回来的方向
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -5844,6 +6010,146 @@
 <strong>判断执行看响应头(有没有 <code>Last-Modified</code>/<code>Accept-Ranges</code>)和响应体(是源码还是输出)。</strong>
 <strong><code>filename</code> 里的 <code>../</code> 是搬运工,<code>%2f</code> 是它的绕过。</strong></p>
 </blockquote>
+<hr />
+<h2 id="ez_uploadweek2">十五、卡点存档：ez_upload（WEEK2，未解）<a class="headerlink" href="#ez_uploadweek2" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>2026-10-31。这题没做出来，但把防御模型摸清了 —— 存档，下次少走一遍。</strong></p>
+</blockquote>
+<h3 id="_18">题目长什么样<a class="headerlink" href="#_18" title="Permanent link">&para;</a></h3>
+<p><strong>只有一个上传表单（<code>POST /</code>，字段 <code>file</code>），Apache 2.4.54，文件存到 <code>/uploads/</code>，目录列表开着。</strong></p>
+<h3 id="_19">防御模型（实测出来的）<a class="headerlink" href="#_19" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>① 内容里出现 &lt;                → 拒绝（全量扫描）
+</span><span id="__span-57-2"><a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a>② 内容里出现 php_value        → 拒绝（大小写都拦）
+</span><span id="__span-57-3"><a id="__codelineno-57-3" name="__codelineno-57-3" href="#__codelineno-57-3"></a>③ 内容里出现 auto_prepend_file → 拒绝（.user.ini 也拦）
+</span><span id="__span-57-4"><a id="__codelineno-57-4" name="__codelineno-57-4" href="#__codelineno-57-4"></a>④ 文件 &gt; 约 900 字节           → 拒绝
+</span><span id="__span-57-5"><a id="__codelineno-57-5" name="__codelineno-57-5" href="#__codelineno-57-5"></a>⑤ 文件名里的 &lt;                → 截断（a&lt;b.txt 存成 a）
+</span></code></pre></div>
+<h3 id="_20">已经拿到手的能力<a class="headerlink" href="#_20" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>证据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>传 <code>.htaccess</code> 且生效</td>
+<td><code>AddType application/x-httpd-php .txt</code> 后，<code>.abc</code> 也变 <code>Content-Type: text/html</code></td>
+</tr>
+<tr>
+<td><code>AddHandler</code></td>
+<td>同上</td>
+</tr>
+<tr>
+<td><strong><code>RewriteEngine</code> / <code>RewriteRule</code></strong></td>
+<td><code>RewriteRule ^rewrite_probe$ /uploads/a.txt [L]</code> 生效</td>
+</tr>
+<tr>
+<td>同名覆盖</td>
+<td><code>a.txt</code> 内容从 <code>hello</code> 变 <code>WORLD_V2</code></td>
+</tr>
+<tr>
+<td><code>php_flag</code> 能传</td>
+<td><code>php_flag display_errors on</code> 未被拦</td>
+</tr>
+<tr>
+<td><code>Options +ExecCGI</code> 能传</td>
+<td>但 CGI 不执行（mod_cgi 大概没开）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_21">排除清单（每条都实测）<a class="headerlink" href="#_21" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>手法</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>双写 <code>&lt;</code>（<code>&lt;&lt;??php</code>）</td>
+<td>❌ 是检测拒绝，不是删除</td>
+</tr>
+<tr>
+<td>代码放 200/400/500/600/800 偏移</td>
+<td>❌ 全量扫描</td>
+</tr>
+<tr>
+<td>前垫 3000 字节字段</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>两个 <code>file</code> 字段（干净+恶意）</td>
+<td>❌ WAF 和 PHP 读的是同一个 <code>$_FILES['file']</code>（都取最后一个）</td>
+</tr>
+<tr>
+<td>额外字段（<code>file2</code>/<code>pad</code>）+ 恶意在前</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>Content-Type: image/gif</code> + GIF89a 头</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>0xFF / UTF-16 BOM / 空字节 / 非法 UTF-8</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>无后缀 / <code>.abc</code> / <code>.phtml</code> / <code>.php</code></td>
+<td>❌ 一样拦</td>
+</tr>
+<tr>
+<td><code>php_value</code> 放第 &#8532; 行、大小写变形</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>php_admin_value</code>、<code>.user.ini</code></td>
+<td>❌</td>
+</tr>
+<tr>
+<td>路径穿越（<code>../</code>、<code>%2f</code>、<code>....//</code>）</td>
+<td>❌ basename 化</td>
+</tr>
+<tr>
+<td><code>ErrorDocument file:///etc/passwd</code></td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>RewriteRule</code> 越界到 <code>/etc/passwd</code></td>
+<td>❌</td>
+</tr>
+<tr>
+<td>被拒后文件残留</td>
+<td>❌ 404，没写盘</td>
+</tr>
+<tr>
+<td>TOCTOU 竞争（60 次上传 + 400 次 GET 并发）</td>
+<td>❌ 没抢到</td>
+</tr>
+<tr>
+<td>第二入口（<code>?file=</code> 等 14 组参数）</td>
+<td>❌ 响应完全一致</td>
+</tr>
+<tr>
+<td>常见文件/目录 fuzz（40 个）</td>
+<td>❌ 除首页外无 200</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_22">卡住的那句话<a class="headerlink" href="#_22" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>我能决定「什么被当 PHP 执行」（.htaccess 可用），
+</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>但写不进「可执行的代码」（&lt; 进不了文件、文件名、配置）。
+</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>而 PHP 的所有开标签都要 &lt;。
+</span></code></pre></div>
+<h3 id="_23">下次回来的方向<a class="headerlink" href="#_23" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>① 拿到源码（重点看 WAF 那三行：检查什么、什么时候检查、保存用 move_uploaded_file 还是 file_put_contents）
+</span><span id="__span-59-2"><a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a>② 确认是 mod_php 还是 PHP-FPM（FPM 的话 .user.ini 才有意义）
+</span><span id="__span-59-3"><a id="__codelineno-59-3" name="__codelineno-59-3" href="#__codelineno-59-3"></a>③ 试试 zend.multibyte / 编码类指令（php_flag 是允许的）
+</span><span id="__span-59-4"><a id="__codelineno-59-4" name="__codelineno-59-4" href="#__codelineno-59-4"></a>④ 换一个思路：也许 flag 不在 /flag，而在 webroot 某个 .php 里，
+</span><span id="__span-59-5"><a id="__codelineno-59-5" name="__codelineno-59-5" href="#__codelineno-59-5"></a>   那就要能把 uploads 的 .htaccess 写进 webroot —— 但 basename 挡着
+</span></code></pre></div>
 
 
 
