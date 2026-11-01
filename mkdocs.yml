@@ -135,6 +135,9 @@ nav:
       - 反序列化:
           - knowledge/deserialization/index.md
           - 反序列化专题: knowledge/deserialization/反序列化专题.md
+      - SSTI:
+          - knowledge/ssti/index.md
+          - SSTI 专题: knowledge/ssti/SSTI专题.md
       - Web 通用:
           - knowledge/web/index.md
           - CTF-Web 学习笔记: knowledge/web/CTF-Web学习笔记.md
