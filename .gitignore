@@ -12,3 +12,6 @@ _edgeprof*/
 _shot/
 _frames/
 *.log
+
+# 私人维护手册，不进仓库
+MAINTENANCE.md

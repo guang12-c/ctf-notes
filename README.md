@@ -4,7 +4,7 @@ Web 安全知识点 + 靶场 WP 的个人站点，基于 **MkDocs Material**。
 
 > **线上地址：** https://guang12-c.github.io/ctf-notes/
 >
-> **维护 / 交接文档：** [MAINTENANCE.md](MAINTENANCE.md) —— 结构、发布流程、样式参数、所有踩过的坑都在里面。**新会话接手先读它。**
+> **维护文档：** 本地 `MAINTENANCE.md`（含个人记录，**不进仓库**）—— 结构、发布流程、样式参数、踩过的坑都在里面。
 
 ## 本地预览
 
