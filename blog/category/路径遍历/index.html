@@ -2027,6 +2027,8 @@
       
         
       
+        
+      
     
     
     
@@ -2774,6 +2776,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../%E5%BC%B1%E9%9A%8F%E6%9C%BA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    弱随机
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0/" class="md-nav__link">
         
   
@@ -3174,39 +3206,39 @@
 <h3 id="_2"><a class="toclink" href="../../stitch-file-previewer/#_2">解题过程</a></h3>
 <h4 id="step-1"><a class="toclink" href="../../stitch-file-previewer/#step-1">Step 1：查看默认文件</a></h4>
 <p>先访问默认的 <code>hello.txt</code>，内容如下：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>Hello, ZeroG!
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>Welcome to PwnStars Cybersecurity Lab.
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Hello, ZeroG!
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Welcome to PwnStars Cybersecurity Lab.
 </span></code></pre></div>
 <p>没有有用信息，只是普通的欢迎语。</p>
 <h4 id="step-2"><a class="toclink" href="../../stitch-file-previewer/#step-2">Step 2：查看源码，发现线索</a></h4>
 <p>右键查看页面源代码，在 HTML 底部发现一行注释：</p>
-<div class="language-html highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="cm">&lt;!-- TODO: README.txt 后续需要整理 --&gt;</span>
+<div class="language-html highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="cm">&lt;!-- TODO: README.txt 后续需要整理 --&gt;</span>
 </span></code></pre></div>
 <p><img alt="源码中的注释" src="../../../assets/images/stitch-file-previewer/02-source-comment.png" /></p>
 <p>这说明服务器上存在一个 <code>README.txt</code> 文件，但页面上没有直接暴露。</p>
 <h4 id="step-3-readmetxt"><a class="toclink" href="../../stitch-file-previewer/#step-3-readmetxt">Step 3：直接读取 README.txt — 失败</a></h4>
 <p>在文件名输入框中输入 <code>README.txt</code>，返回：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>File not found.
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>File not found.
 </span></code></pre></div>
 <p>说明 README.txt 不在当前可读目录中。</p>
 <h4 id="step-4"><a class="toclink" href="../../stitch-file-previewer/#step-4">Step 4：尝试目录穿越</a></h4>
 <p>既然文件不在当前目录，尝试使用 <code>../</code> 进行目录穿越：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>../README.txt
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>../README.txt
 </span></code></pre></div>
 <p>仍然返回 <code>File not found.</code>，说明服务器对 <code>../</code> 进行了过滤（替换为空）。</p>
 <h4 id="step-5-readmetxt"><a class="toclink" href="../../stitch-file-previewer/#step-5-readmetxt">Step 5：绕过过滤 — 成功读取 README.txt</a></h4>
 <p>服务器只做了一次 <code>../</code> → 空的替换，可以利用双写绕过。输入：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>....//README.txt
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>....//README.txt
 </span></code></pre></div>
 <p>服务器将中间的 <code>../</code> 删除后，剩余字符重新拼成 <code>../README.txt</code>，成功读到文件内容：</p>
 <p><img alt="读取到 README.txt" src="../../../assets/images/stitch-file-previewer/03-readme.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>Stitch File Preview System
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>Public files are stored in /files/.
-</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>
-</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>For administrators:
-</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>
-</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a>Sensitive files are stored in /secret/.
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Stitch File Preview System
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>Public files are stored in /files/.
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>For administrators:
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>Sensitive files are stored in /secret/.
 </span></code></pre></div>
 <p>README.txt 揭示了目录结构：</p>
 <ul>
@@ -3215,26 +3247,26 @@
 </ul>
 <h4 id="step-6-secret-flag"><a class="toclink" href="../../stitch-file-previewer/#step-6-secret-flag">Step 6：读取 /secret/ 下的 flag</a></h4>
 <p>既然知道敏感文件在 <code>/secret/</code> 目录下，CTF 中常见的 flag 文件名就是 <code>flag.txt</code>。使用同样的绕过方式构造路径：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>....//secret/flag.txt
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>....//secret/flag.txt
 </span></code></pre></div>
 <p>成功拿到 flag：</p>
 <p><img alt="拿到 flag" src="../../../assets/images/stitch-file-previewer/04-flag.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>flag{1f0be3ba-b8f6-4a5a-9b05-c8d69e8769fd}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>flag{1f0be3ba-b8f6-4a5a-9b05-c8d69e8769fd}
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../stitch-file-previewer/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>访问 hello.txt（无有用信息）
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>  → 查看源码，发现 HTML 注释提到 README.txt
-</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>    → 直接读 README.txt 失败（文件不在当前目录）
-</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>      → 尝试 ../ 目录穿越，失败（被过滤）
-</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>        → 用 ....// 双写绕过过滤，成功读取 README.txt
-</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>          → 发现敏感文件在 /secret/ 目录
-</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>            → ....//secret/flag.txt 读到 flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>访问 hello.txt（无有用信息）
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>  → 查看源码，发现 HTML 注释提到 README.txt
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    → 直接读 README.txt 失败（文件不在当前目录）
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>      → 尝试 ../ 目录穿越，失败（被过滤）
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>        → 用 ....// 双写绕过过滤，成功读取 README.txt
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>          → 发现敏感文件在 /secret/ 目录
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>            → ....//secret/flag.txt 读到 flag
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../stitch-file-previewer/#_4">漏洞原理</a></h4>
 <p>服务器对用户输入的 <code>file</code> 参数进行了简单的过滤 —— 将 <code>../</code> 替换为空字符串。但这个过滤<strong>只执行一次</strong>，攻击者可以通过双写 <code>....//</code> 来绕过：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>输入:      ....//README.txt
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>过滤后:    ../README.txt    （中间的 ../ 被删除，两侧的 . 和 / 重新拼合）
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>输入:      ....//README.txt
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>过滤后:    ../README.txt    （中间的 ../ 被删除，两侧的 . 和 / 重新拼合）
 </span></code></pre></div>
 <h4 id="_5"><a class="toclink" href="../../stitch-file-previewer/#_5">关键知识点</a></h4>
 <table>
