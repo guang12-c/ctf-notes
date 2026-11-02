@@ -1,5 +1,5 @@
----
-date: 2026-11-01
+﻿---
+date: 2026-11-01 11:00:00
 slug: bjdctf2-fake-google-ssti
 categories:
   - Python

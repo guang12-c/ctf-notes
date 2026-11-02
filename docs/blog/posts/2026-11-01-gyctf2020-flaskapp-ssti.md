@@ -1,5 +1,5 @@
----
-date: 2026-11-01
+﻿---
+date: 2026-11-01 18:40:00
 slug: gyctf2020-flaskapp-ssti
 categories:
   - Python

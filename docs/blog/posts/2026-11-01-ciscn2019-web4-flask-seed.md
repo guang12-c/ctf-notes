@@ -1,5 +1,5 @@
----
-date: 2026-11-01
+﻿---
+date: 2026-11-01 15:20:00
 slug: ciscn2019-web4-flask-seed
 categories:
   - Python

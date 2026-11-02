@@ -1,5 +1,5 @@
----
-date: 2026-11-01
+﻿---
+date: 2026-11-01 17:10:00
 slug: bjdctf2020-mystery-of-ip-smarty
 categories:
   - PHP
