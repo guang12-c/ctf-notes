@@ -63,16 +63,19 @@ attr join batch first last list items get open dict config lipsum self
 
 **但 `(` `)` `~` `{}` 还在，所以还有得打。**
 
-### Step 3：空格没了，用 VT
+### Step 3：空格没了，用垂直制表符
 
-**`{%set %}` 这种语句必须有空白分隔。空格和 Tab 都被拦了，那就找**别的空白字符**。**
+> **本文里用 `␋` 代表**那个字节**（0x0B，垂直制表符）。**
+> **它只是排版用的占位符，不是能打出来的字符**——发送时要换成真字节，urlencoded body 里写 `%0B`。
+
+**`{%set␋%}` 这种语句必须有空白分隔。空格和 Tab 都被拦了，那就找**别的空白字符**。**
 
 ```
-VT  0x0B   ✓ 能用
-FF  0x0C   ✓ 能用
-LF  0x0A   ✓ 能用
-Tab 0x09   ✗ 拦
-空格 0x20  ✗ 拦
+0x0B  垂直制表符  ✓ 能用
+0x0C  换页符      ✓ 能用
+0x0A  换行        ✓ 能用
+0x09  Tab         ✗ 拦
+0x20  空格        ✗ 拦
 ```
 
 **于是 `{%set␋x=7*7%}{{x}}` → 49，语句标签全套复活。**
@@ -218,7 +221,7 @@ lipsum.__globals__['os'].listdir('/')
 登录页 → 弱口令进来 → Hello admin → username 被渲染
   → {{7*7}} = 49 → 注入点确认
     → 摸 WAF：空格 Tab ' " _ . [ ] 全封，一批词也封
-      → 空白用 VT(0x0B)：{%set␋x=7*7%} 复活
+      → 空白用 0x0B（垂直制表符）：{%set␋x=7*7%} 复活
         → _ 从 config 的键里切（batch 取位）
           → / 从 config.items() 的第 10 对里切
             → . 从 1/2 的 0.5 里切
@@ -256,7 +259,7 @@ _   从 config 的键名里切（MAX_COOKIE_SIZE 第 4 个）
 
 | 知识点 | 说明 |
 |---|---|
-| `{%set␋x=1%}` | `set` 是赋值；空白用 VT/FF/LF，空格和 Tab 都被拦 |
+| `{%set␋x=1%}` | `set` 是赋值；空白用 0x0B / 0x0C / 0x0A，空格和 Tab 都被拦 |
 | `0x0B` / `\x0b` / `\s` | **都不是那个字节**：数字写法、字符串转义、正则空白类 |
 | `%0B` | urlencoded body 里写这个，服务端解码成真字节 |
 | `\|batch(n)\|first\|last` | **取第 n 个字符**，替代 `[n]` |
@@ -285,9 +288,9 @@ _   从 config 的键名里切（MAX_COOKIE_SIZE 第 4 个）
 
     **连成一行 390 字符，POST `username` 参数，读 `/flag`。**
 
-??? note "怎么把 VT 发出去"
+??? note "怎么把 0x0B 发出去"
 
-    **VT 是控制字符，键盘上打不出来，编辑器里也看不见。**
+    **0x0B 是控制字符，键盘上打不出来，编辑器里也看不见。**
 
     ```text
     ✗ 直接打 \x0b 四个字符   → TemplateSyntaxError: unexpected char '\'
@@ -307,7 +310,7 @@ _   从 config 的键名里切（MAX_COOKIE_SIZE 第 4 个）
 
     **② 以为 Tab 能用**
 
-    空格被封时第一反应是用 Tab，**但这题 Tab 也在黑名单里**。可用的只有 VT/FF/LF。
+    空格被封时第一反应是用 Tab，**但这题 Tab 也在黑名单里**。可用的只有 0x0B / 0x0C / 0x0A。
 
     **③ 拼词拼错**
 
