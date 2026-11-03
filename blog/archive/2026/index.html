@@ -2043,6 +2043,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2550,6 +2554,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../../category/web/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../../category/git%E6%B3%84%E9%9C%B2/" class="md-nav__link">
         
   
@@ -2588,6 +2622,36 @@
     
   
     phar
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../category/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码审计
   
 
     
@@ -3197,6 +3261,174 @@
       <header class="md-typeset">
         <h1 id="2026">2026<a class="headerlink" href="#2026" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-11-03 18:30:00+00:00">2026-11-03</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../category/php/" class="md-meta__link">PHP</a>, 
+              <a href="../../category/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="md-meta__link">代码审计</a>, 
+              <a href="../../category/web/" class="md-meta__link">Web</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="ctf2-ezphp"><a class="toclink" href="../../ctf2-ezphp-error-handler/">[CTF2] EZPHP — 条件永远为假，但错误处理器会说话</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Web — PHP 代码审计，利用 <code>set_error_handler</code> 触发信息泄露</p>
+<p><strong>Flag</strong>：<code>CTF2{558d08e2-3e2c-43bc-be5b-6058c095641b}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_1">题目概述</a></h3>
+<p>页面给了一段 PHP 源码（<code>highlight_file(__FILE__)</code> 把自身打印出来），底下永远显示 <code>Try harder!</code>。</p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../ctf2-ezphp-error-handler/#step-1">Step 1：先读代码</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="p">}</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="nb">set_error_handler</span><span class="p">(</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>    <span class="p">}</span>
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="p">);</span>
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="cp">?&gt;</span>
+</span></code></pre></div>
+<h4 id="step-2-if"><a class="toclink" href="../../ctf2-ezphp-error-handler/#step-2-if">Step 2：第一个想法——绕开那个 if</a></h4>
+<p><strong><code>include</code> 已经把 <code>fl4g.php</code> 引进来了，那直接让 <code>if</code> 成立不就能输出 <code>$fl4g</code> 了吗？</strong></p>
+<p><strong>看三个判断：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>date("H")   小时   00–23     永远不可能 &gt; 24
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>date("d")   日期   01–31     永远不可能 &gt; 31
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>date("i")   分钟   00–59     永远不可能 &gt; 60
+</span></code></pre></div>
+<p><strong>三个都是“边界值本身等于上限”的情况，所以整条 <code>or</code> 永远是假。这条路封死。</strong></p>
+<h4 id="step-3"><a class="toclink" href="../../ctf2-ezphp-error-handler/#step-3">Step 3：真正的入口在下面</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">set_error_handler(function() use(&amp;$fl4g){ print $fl4g; });</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="x">$fl4g .= $dest0g3;</span>
+</span></code></pre></div>
+<p><strong><code>set_error_handler</code> 注册了一个自定义处理器——</strong>只要发生能被它捕获的错误，就会执行里面的 <code>print $fl4g</code><strong>。</strong></p>
+<p><strong>而下一行就是触发器：<code>$fl4g .= $dest0g3</code>。</strong></p>
+<h4 id="step-4"><a class="toclink" href="../../ctf2-ezphp-error-handler/#step-4">Step 4：让拼接出错</a></h4>
+<p><strong><code>$dest0g3</code> 来自 <code>$_POST['ctf']</code>，类型完全由我们决定。</strong></p>
+<p><strong>如果传一个</strong>字符串<strong>，拼接正常，什么都不会发生。</strong></p>
+<p><strong>如果传一个</strong>数组<strong>，PHP 试图把数组转成字符串来拼接，转不了——抛出 <code>Warning: Array to string conversion</code>。</strong></p>
+<p><strong>这个 warning 被刚刚注册的处理器捕获，于是 <code>print $fl4g</code> 执行，flag 就出来了。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>POST ctf[]=1
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>→ Array to string conversion
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>→ error handler
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>→ 打印 $fl4g
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>读源码 → include 了 fl4g.php，但 if 永远为假（小时≤23、日≤31、分≤59）
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>       → 往下看，set_error_handler 注册了 print $fl4g
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>         → 找触发器：$fl4g .= $_POST['ctf']
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>           → 传数组 → 拼接失败 → warning → 处理器执行 → 拿到 flag
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_4">漏洞原理</a></h4>
+<p><strong>① 错误处理器会把“错误”变成“输出”</strong></p>
+<p><strong><code>set_error_handler</code> 本来是用来记日志、兜异常的，但它注册的回调里做了什么，就是另一回事。</strong>这题的回调里是 <code>print $fl4g</code>——<strong>等于把“出错”这个事件接了一根线到“泄露变量”上。</strong></p>
+<p><strong>② 数组与字符串拼接会抛 warning</strong></p>
+<p><strong>PHP 允许很多隐式类型转换，但</strong>数组转字符串不在其中<strong>。<code>$str .= $array</code> 不会静默失败，它会抛 <code>Array to string conversion</code>。</strong></p>
+<p><strong>这个 warning 默认是</strong>不致命<strong>的，页面照常返回——但 <code>set_error_handler</code> 能接住它。</strong></p>
+<p><strong>③ 参数类型可控，是最容易被忽略的输入面</strong></p>
+<p><strong><code>$_POST['ctf']</code> 不一定是字符串。</strong>在表单里写成 <code>ctf[]=1</code>，PHP 就会把它解析成数组。<strong>很多开发者的防御只考虑了“值”，没考虑“类型”。</strong></p>
+<h4 id="_5"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_5">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>date("H")</code> / <code>"d"</code> / <code>"i"</code></td>
+<td>小时 00–23、日 01–31、分 00–59，与判断边界相同，永远不可能大于</td>
+</tr>
+<tr>
+<td><code>set_error_handler</code></td>
+<td>注册自定义错误处理函数，可捕获 warning/notice</td>
+</tr>
+<tr>
+<td><code>Array to string conversion</code></td>
+<td>数组与字符串拼接时抛出的 warning，被处理器接住</td>
+</tr>
+<tr>
+<td><code>ctf[]=1</code></td>
+<td>表单里这样写，后端 <code>$_POST['ctf']</code> 就是数组</td>
+</tr>
+<tr>
+<td><code>use (&amp;$fl4g)</code></td>
+<td>引用捕获，让闭包能读到外部变量</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整源码</summary>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="p">}</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="nb">set_error_handler</span><span class="p">(</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>    <span class="p">}</span>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="p">);</span>
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="cp">?&gt;</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 一开始死磕那个 if</strong></p>
+<p><strong>三个条件都卡在边界上（≤23、≤31、≤59），不是“运气不好没凑上”，是</strong>设计上就不可能<strong>。看到这种精度边界，就该立刻换路。</strong></p>
+<p><strong>② 把 warning 当成“不影响”</strong></p>
+<p><strong>warning 确实不中断脚本，但这题的整个入口就在“warning 会被谁接住”上。</strong><strong>错误级别不重要，谁在处理它才重要。</strong></p>
+</details>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -5482,209 +5714,6 @@
 </span><span id="__span-27-21"><a id="__codelineno-27-21" name="__codelineno-27-21" href="#__codelineno-27-21"></a>    <span class="k">echo</span> <span class="nv">$flag</span><span class="p">;</span>
 </span><span id="__span-27-22"><a id="__codelineno-27-22" name="__codelineno-27-22" href="#__codelineno-27-22"></a><span class="p">}</span>
 </span><span id="__span-27-23"><a id="__codelineno-27-23" name="__codelineno-27-23" href="#__codelineno-27-23"></a><span class="cp">?&gt;</span>
-</span></code></pre></div>
-</details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-31 00:00:00+00:00">2026-10-31</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../category/php/" class="md-meta__link">PHP</a>, 
-              <a href="../../category/%E5%BC%B1%E7%B1%BB%E5%9E%8B/" class="md-meta__link">弱类型</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 3 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="2019-buyflag"><a class="toclink" href="../../geek2019-buyflag/">[极客大挑战 2019] BuyFlag — 三个小关卡，三种绕过</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：Web — PHP 弱类型 / Cookie 伪造 / 科学计数法</p>
-<p><strong>题目地址</strong>：极客大挑战 2019 BuyFlag（ctf2 复刻环境）</p>
-<p><strong>Flag</strong>：<code>CTF2{439654d3-720c-4ee9-b0f8-9dd67c5b8ab9}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="../../geek2019-buyflag/#_1">题目概述</a></h3>
-<p>一个「买 flag」的页面。要拿到 flag，得同时满足三个条件：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>① 密码要对
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>② 必须是 CUIT 的学生
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>③ 钱要够
-</span></code></pre></div>
-<p><strong>三个条件分别对应三种不同的绕过方式 —— 这题的价值就在这儿。</strong></p>
-<hr />
-<h3 id="_2"><a class="toclink" href="../../geek2019-buyflag/#_2">解题过程</a></h3>
-<h4 id="step-1-payphp"><a class="toclink" href="../../geek2019-buyflag/#step-1-payphp">Step 1：查看源码，发现 pay.php</a></h4>
-<p><strong>查看页面源码，发现存在 <code>pay.php</code>。进去之后继续看源码：</strong></p>
-<p><img alt="pay.php 源码" src="../../../assets/images/geek2019-buyflag/01-pay-source.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="x">&lt;!--</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="x">~~~post money and password~~~</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="x">--&gt;</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="x">if (isset($_POST['password'])) {</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="x">    $password = $_POST['password'];</span>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="x">    if (is_numeric($password)) {</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="x">        echo "password can't be number&lt;/br&gt;";</span>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="x">    } elseif ($password == 404) {</span>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="x">        echo "Password Right!&lt;/br&gt;";</span>
-</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="x">    }</span>
-</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="x">}</span>
-</span></code></pre></div>
-<p><strong>第一个条件：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>· 不能是纯数字              → is_numeric 挡住 "404"
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>· 但要松散等于 404          → $password == 404
-</span></code></pre></div>
-<p><strong>看起来矛盾，其实不矛盾 —— 因为 <code>is_numeric</code> 看的是“整个字符串是不是数字”，<code>==</code> 看的是“转换成数字后等不等”。</strong></p>
-<p><strong>payload：<code>404a</code></strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>is_numeric("404a")  →  false     ✅ 过第一关
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>"404a" == 404       →  PHP 7 把开头的数字部分转成 404 → true   ✅ 过第二关
-</span></code></pre></div>
-<p><strong>⚠️ 这条只在 PHP 7 成立。PHP 8 改了比较规则（数字与非数字字符串比较时按字符串比），<code>"404a" == 404</code> 会变成 false。</strong></p>
-<h4 id="step-2-cuit"><a class="toclink" href="../../geek2019-buyflag/#step-2-cuit">Step 2：提示「必须是 CUIT 的学生」</a></h4>
-<p><strong>发包后页面说：</strong></p>
-<p><img alt="only CUIT" src="../../../assets/images/geek2019-buyflag/02-cuit-only.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>Only Cuit's students can buy the FLAG
-</span></code></pre></div>
-<p><strong>先想一个问题：服务端凭什么知道我是谁？</strong></p>
-<p><strong>看请求头 —— 里面有个 <code>Cookie: user=0</code>。</strong></p>
-<p><strong>身份就是它判的，而它是</strong>我们自己的<strong>。改成 <code>user=1</code> 就行。</strong></p>
-<p><strong>这类「把身份放在客户端」的题，判断依据永远是那句：</strong>服务端相信了客户端送来的、可以随便改的东西<strong>。</strong></p>
-<h4 id="step-3-money"><a class="toclink" href="../../geek2019-buyflag/#step-3-money">Step 3：还有 money</a></h4>
-<p><strong>再往后看，还差钱：</strong></p>
-<p><img alt="flag need money" src="../../../assets/images/geek2019-buyflag/03-money-hint.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>Flag need your 100000000 money
-</span></code></pre></div>
-<p><strong>于是请求体里补一个 <code>money</code> 参数。</strong></p>
-<p><strong>但直接写 <code>money=100000000</code> 会被挡 —— 提示「数字太长了」（源码里有长度限制）。</strong></p>
-<p><strong>解法是</strong>科学计数法<strong>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>money=10e8
-</span></code></pre></div>
-<p><strong><code>10e8</code> 只有 4 个字符，但它的值是 <code>10 × 10^8 = 10^9</code>，足够达到 100000000 的门槛。</strong></p>
-<p><strong>这就是「</strong>字符串长度<strong>和</strong>数值大小<strong>是两回事」的利用点 —— 和第一关的 <code>404a</code> 是同一个套路：</strong>检查看的是一种东西，使用时是另一种东西<strong>。</strong></p>
-<h4 id="step-4"><a class="toclink" href="../../geek2019-buyflag/#step-4">Step 4：三个条件一起满足</a></h4>
-<p><img alt="请求" src="../../../assets/images/geek2019-buyflag/04-request-404a.png" /></p>
-<div class="language-http highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nf">POST</span> <span class="nn">/pay.php</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="na">Cookie</span><span class="o">:</span> <span class="l">user=1</span>
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/x-www-form-urlencoded</span>
-</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>
-</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="nt">password</span><span class="o">=</span><span class="s">404a</span><span class="p">&amp;</span><span class="nt">money</span><span class="o">=</span><span class="s">10e8</span>
-</span></code></pre></div>
-<p><strong>响应里就出 flag 了：</strong></p>
-<p><img alt="flag" src="../../../assets/images/geek2019-buyflag/05-flag.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>you are Cuiter
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>Password Right!
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>CTF2{439654d3-720c-4ee9-b0f8-9dd67c5b8ab9}
-</span></code></pre></div>
-<hr />
-<h3 id="_3"><a class="toclink" href="../../geek2019-buyflag/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>查看源码 → 发现 pay.php → 读它的判断逻辑
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>  → ① 密码：不能是数字，又要 == 404
-</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>        → is_numeric 与 == 看到的不是同一个东西 → 404a
-</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>    ② 身份：Cookie: user=0 → 改成 1（客户端说了算）
-</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>    ③ 钱：要 100000000 但长度受限 → 科学计数法 10e8
-</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>      三个条件一起发 → flag
-</span></code></pre></div>
-<h4 id="_4"><a class="toclink" href="../../geek2019-buyflag/#_4">漏洞原理</a></h4>
-<p><strong>这题三个关卡，本质是</strong>同一件事的三次重复<strong>：</strong></p>
-<table>
-<thead>
-<tr>
-<th>关卡</th>
-<th>检查看的是</th>
-<th>实际用的是</th>
-<th>差异点</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>密码</td>
-<td><code>is_numeric</code> 判断“整体是否数字”</td>
-<td><code>==</code> 做数值转换</td>
-<td><code>404a</code> 整体不是数字，但转换后是 404</td>
-</tr>
-<tr>
-<td>身份</td>
-<td>服务端相信 Cookie</td>
-<td>请求里的 <code>user</code></td>
-<td>客户端可控</td>
-</tr>
-<tr>
-<td>钱</td>
-<td><code>strlen</code> 判断字符串长度</td>
-<td>数值比较</td>
-<td><code>10e8</code> 短但大</td>
-</tr>
-</tbody>
-</table>
-<p><strong>三条合起来就是一句：</strong>校验函数和使用点读的不是同一个东西，而你能控制中间那个“东西”。**</p>
-<h4 id="_5"><a class="toclink" href="../../geek2019-buyflag/#_5">关键知识点</a></h4>
-<table>
-<thead>
-<tr>
-<th>知识点</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>is_numeric('404a')</code></td>
-<td>false —— 只认完整数字</td>
-</tr>
-<tr>
-<td><code>'404a' == 404</code></td>
-<td><strong>PHP 7</strong> 为 true（取前导数字）；<strong>PHP 8 为 false</strong></td>
-</tr>
-<tr>
-<td>PHP 8 比较规则变化</td>
-<td>数字 vs 非数字字符串 → 按字符串比较，弱类型绕过大量失效</td>
-</tr>
-<tr>
-<td>Cookie 伪造</td>
-<td>身份标识存在客户端 → 直接改</td>
-</tr>
-<tr>
-<td>科学计数法</td>
-<td><code>10e8</code> = 1e9，字符短、数值大</td>
-</tr>
-<tr>
-<td><code>strlen</code> vs 数值</td>
-<td>长度检查挡不住科学计数法</td>
-</tr>
-<tr>
-<td>通用模型</td>
-<td>检查点看到的类型/值与使用点看到的不同</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<details class="note">
-<summary>pay.php 关键判断（按截图整理）</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="x">if (isset($_POST['password'])) {</span>
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="x">    $password = $_POST['password'];</span>
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="x">    if (is_numeric($password)) {</span>
-</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="x">        echo "password can't be number&lt;/br&gt;";</span>
-</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="x">    } elseif ($password == 404) {</span>
-</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="x">        echo "Password Right!&lt;/br&gt;";</span>
-</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="x">    }</span>
-</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a><span class="x">}</span>
 </span></code></pre></div>
 </details>
     
