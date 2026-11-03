@@ -3553,61 +3553,61 @@
 <p><strong>最后抓包发出去，看</strong>响应头<strong>，发现了 hint。</strong></p>
 <h4 id="step-2hint"><a class="toclink" href="../../easy-md5/#step-2hint">Step 2：Hint 在响应头里</a></h4>
 <p><img alt="响应头里的 Hint" src="../../../assets/images/easy-md5/02-hint-header.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>Hint: select * from 'admin' where password=md5($pass, true)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>Hint: select * from 'admin' where password=md5($pass, true)
 </span></code></pre></div>
 <p><strong>注意 <code>md5($pass, **true**)</code> 这个第二个参数。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>md5($s, false)  →  32 位十六进制字符串（平时用的那种）
-</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>md5($s, true)   →  16 字节的原始二进制
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>md5($s, false)  →  32 位十六进制字符串（平时用的那种）
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>md5($s, true)   →  16 字节的原始二进制
 </span></code></pre></div>
 <p><strong>平时我们见到的 <code>md5</code> 结果都是 32 个字符，那是因为默认把它编码成十六进制了。<code>true</code> 返回的是</strong>原始字节** —— 而这些字节里可以出现引号、反斜杠等特殊字符。**</p>
 <p><strong>也就是说：</strong>MD5 的结果可能污染 SQL 语句。**</p>
 <h4 id="step-3"><a class="toclink" href="../../easy-md5/#step-3">Step 3：构造一个永真式</a></h4>
 <p><strong>SQL 拼出来是：</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="s1">'admin'</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">password</span><span class="o">=</span><span class="s1">'&lt;md5 的原始字节&gt;'</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="s1">'admin'</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">password</span><span class="o">=</span><span class="s1">'&lt;md5 的原始字节&gt;'</span>
 </span></code></pre></div>
 <p><strong>如果 md5 的原始字节以 <code>'or'</code> 开头，就变成了：</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="k">where</span><span class="w"> </span><span class="n">password</span><span class="o">=</span><span class="s1">''</span><span class="k">or</span><span class="s1">'6...'</span>
-</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="w">                </span><span class="err">└──┘</span><span class="w"> </span><span class="err">└────</span><span class="w"> </span><span class="err">非空字符串</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">真</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">where</span><span class="w"> </span><span class="n">password</span><span class="o">=</span><span class="s1">''</span><span class="k">or</span><span class="s1">'6...'</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">                </span><span class="err">└──┘</span><span class="w"> </span><span class="err">└────</span><span class="w"> </span><span class="err">非空字符串</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">真</span>
 </span></code></pre></div>
 <p><strong><code>'' or '任意非空字符串'</code> 恒为真 → 直接登录进去。</strong></p>
 <p><strong>本机验证：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="x">md5('ffifdyop', true)</span>
-</span><span id="__span-46-2"><a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a><span class="x">= 276f722736c95d99e921722cf9ed621c</span>
-</span><span id="__span-46-3"><a id="__codelineno-46-3" name="__codelineno-46-3" href="#__codelineno-46-3"></a><span class="x">可打印形式： 'or'6.]..!r,..b.</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="x">md5('ffifdyop', true)</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="x">= 276f722736c95d99e921722cf9ed621c</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="x">可打印形式： 'or'6.]..!r,..b.</span>
 </span></code></pre></div>
 <p><strong>所以第一关的答案就是 <code>ffifdyop</code>。</strong></p>
 <h4 id="step-4"><a class="toclink" href="../../easy-md5/#step-4">Step 4：第二关 —— 松散不等 + 弱相等</a></h4>
 <p><img alt="第二关源码" src="../../../assets/images/easy-md5/03-level2-source.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="x">$a = $_GET['a'];</span>
-</span><span id="__span-47-2"><a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a><span class="x">$b = $_GET['b'];</span>
-</span><span id="__span-47-3"><a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a><span class="x">if ($a != $b &amp;&amp; md5($a) == md5($b)) {</span>
-</span><span id="__span-47-4"><a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a><span class="x">    // wow, glzjin wants a girl friend.</span>
-</span><span id="__span-47-5"><a id="__codelineno-47-5" name="__codelineno-47-5" href="#__codelineno-47-5"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="x">$a = $_GET['a'];</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="x">$b = $_GET['b'];</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="x">if ($a != $b &amp;&amp; md5($a) == md5($b)) {</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="x">    // wow, glzjin wants a girl friend.</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>两个条件：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>$a != $b          松散不等（数组、'1' 和 1 都算相等）
-</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a>md5($a) == md5($b) 松散相等
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>$a != $b          松散不等（数组、'1' 和 1 都算相等）
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>md5($a) == md5($b) 松散相等
 </span></code></pre></div>
 <p><strong>两条路都能过：</strong></p>
 <p><strong>① 0e 碰撞</strong></p>
 <p><strong>两个不同的字符串，MD5 后都以 <code>0e</code> 开头且后面全是数字 → 被当成科学计数法比较 → 都等于 0。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>QNKCDZO      → 0e830400451993494058024219903391
-</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>240610708    → 0e462097431906509019562988736854
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>QNKCDZO      → 0e830400451993494058024219903391
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>240610708    → 0e462097431906509019562988736854
 </span></code></pre></div>
 <p><strong>② 数组</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>?a[]=1&amp;b[]=2
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>?a[]=1&amp;b[]=2
 </span></code></pre></div>
 <p><strong><code>md5(array)</code> 在 PHP 7 里报个 warning 然后返回 NULL —— 两边都是 NULL，<code>NULL == NULL</code> 成立。</strong></p>
 <h4 id="step-5"><a class="toclink" href="../../easy-md5/#step-5">Step 5：第三关 —— 严格不等 + 强相等</a></h4>
 <p><img alt="第三关源码" src="../../../assets/images/easy-md5/04-level3-source.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="x">if ($_POST['param1'] !== $_POST['param2'] &amp;&amp; md5($_POST['param1']) === md5($_POST['param2'])) {</span>
-</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a><span class="x">    echo $flag;</span>
-</span><span id="__span-51-3"><a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="x">if ($_POST['param1'] !== $_POST['param2'] &amp;&amp; md5($_POST['param1']) === md5($_POST['param2'])) {</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="x">    echo $flag;</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>!==</code> 和 <code>===</code> 都不做类型转换 —— 这才是关键。</strong></p>
 <p><strong>0e 那条路断了：字符串 <code>===</code> 比较要求完全相同。</strong></p>
 <p><strong>但数组还能用：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>param1[]=1&amp;param2[]=2
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>param1[]=1&amp;param2[]=2
 </span></code></pre></div>
 <table>
 <thead>
@@ -3632,18 +3632,18 @@
 </table>
 <p><strong>注意：<code>md5(array)</code> 在 <strong>PHP 8</strong> 会直接抛 <code>TypeError</code>（致命错误）—— 这招只在 PHP 7 上成立。</strong></p>
 <h4 id="step-6-flag"><a class="toclink" href="../../easy-md5/#step-6-flag">Step 6：拿 flag</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>CTF2{028c2bd1-33f7-401b-b299-1525fd86cf41}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>CTF2{028c2bd1-33f7-401b-b299-1525fd86cf41}
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../easy-md5/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>页面只有一个查询框 → 试 SQL 注入没反应 → 抓包看响应头
-</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>  → Hint: password=md5($pass, true)
-</span><span id="__span-54-3"><a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a>    → md5 第二参数 true 返回 16 字节原始二进制
-</span><span id="__span-54-4"><a id="__codelineno-54-4" name="__codelineno-54-4" href="#__codelineno-54-4"></a>      → 原始字节可含引号 → SQL 注入
-</span><span id="__span-54-5"><a id="__codelineno-54-5" name="__codelineno-54-5" href="#__codelineno-54-5"></a>        → ffifdyop 的原始 md5 以 'or'6 开头 → 永真 → 第一关过
-</span><span id="__span-54-6"><a id="__codelineno-54-6" name="__codelineno-54-6" href="#__codelineno-54-6"></a>          → 第二关：!= 和 == → 0e 碰撞 或 数组
-</span><span id="__span-54-7"><a id="__codelineno-54-7" name="__codelineno-54-7" href="#__codelineno-54-7"></a>            → 第三关：!== 和 === → 只能数组
-</span><span id="__span-54-8"><a id="__codelineno-54-8" name="__codelineno-54-8" href="#__codelineno-54-8"></a>              → flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>页面只有一个查询框 → 试 SQL 注入没反应 → 抓包看响应头
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>  → Hint: password=md5($pass, true)
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>    → md5 第二参数 true 返回 16 字节原始二进制
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>      → 原始字节可含引号 → SQL 注入
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>        → ffifdyop 的原始 md5 以 'or'6 开头 → 永真 → 第一关过
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>          → 第二关：!= 和 == → 0e 碰撞 或 数组
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a>            → 第三关：!== 和 === → 只能数组
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>              → flag
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../easy-md5/#_4">漏洞原理</a></h4>
 <p><strong>三关考的都是"比较时发生了什么"，但三种比较的严格程度不同：</strong></p>
@@ -3716,29 +3716,29 @@
 <hr />
 <details class="note">
 <summary>三关源码（按截图整理）</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="x">&lt;!-- 第一关：在响应头里给 Hint --&gt;</span>
-</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a><span class="x">&lt;!--</span>
-</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a><span class="x">Hint: select * from 'admin' where password=md5($pass, true)</span>
-</span><span id="__span-55-4"><a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a><span class="x">--&gt;</span>
-</span><span id="__span-55-5"><a id="__codelineno-55-5" name="__codelineno-55-5" href="#__codelineno-55-5"></a>
-</span><span id="__span-55-6"><a id="__codelineno-55-6" name="__codelineno-55-6" href="#__codelineno-55-6"></a><span class="x">&lt;!-- 第二关 --&gt;</span>
-</span><span id="__span-55-7"><a id="__codelineno-55-7" name="__codelineno-55-7" href="#__codelineno-55-7"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-55-8"><a id="__codelineno-55-8" name="__codelineno-55-8" href="#__codelineno-55-8"></a><span class="nv">$a</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'a'</span><span class="p">];</span>
-</span><span id="__span-55-9"><a id="__codelineno-55-9" name="__codelineno-55-9" href="#__codelineno-55-9"></a><span class="nv">$b</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'b'</span><span class="p">];</span>
-</span><span id="__span-55-10"><a id="__codelineno-55-10" name="__codelineno-55-10" href="#__codelineno-55-10"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$a</span> <span class="o">!=</span> <span class="nv">$b</span> <span class="o">&amp;&amp;</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$a</span><span class="p">)</span> <span class="o">==</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$b</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-55-11"><a id="__codelineno-55-11" name="__codelineno-55-11" href="#__codelineno-55-11"></a>    <span class="c1">// wow, glzjin wants a girl friend.</span>
-</span><span id="__span-55-12"><a id="__codelineno-55-12" name="__codelineno-55-12" href="#__codelineno-55-12"></a><span class="p">}</span>
-</span><span id="__span-55-13"><a id="__codelineno-55-13" name="__codelineno-55-13" href="#__codelineno-55-13"></a><span class="cp">?&gt;</span>
-</span><span id="__span-55-14"><a id="__codelineno-55-14" name="__codelineno-55-14" href="#__codelineno-55-14"></a>
-</span><span id="__span-55-15"><a id="__codelineno-55-15" name="__codelineno-55-15" href="#__codelineno-55-15"></a><span class="x">&lt;!-- 第三关 --&gt;</span>
-</span><span id="__span-55-16"><a id="__codelineno-55-16" name="__codelineno-55-16" href="#__codelineno-55-16"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-55-17"><a id="__codelineno-55-17" name="__codelineno-55-17" href="#__codelineno-55-17"></a><span class="nb">error_reporting</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-</span><span id="__span-55-18"><a id="__codelineno-55-18" name="__codelineno-55-18" href="#__codelineno-55-18"></a><span class="k">include</span> <span class="s2">"flag.php"</span><span class="p">;</span>
-</span><span id="__span-55-19"><a id="__codelineno-55-19" name="__codelineno-55-19" href="#__codelineno-55-19"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-55-20"><a id="__codelineno-55-20" name="__codelineno-55-20" href="#__codelineno-55-20"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param1'</span><span class="p">]</span> <span class="o">!==</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param2'</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param1'</span><span class="p">])</span> <span class="o">===</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param2'</span><span class="p">]))</span> <span class="p">{</span>
-</span><span id="__span-55-21"><a id="__codelineno-55-21" name="__codelineno-55-21" href="#__codelineno-55-21"></a>    <span class="k">echo</span> <span class="nv">$flag</span><span class="p">;</span>
-</span><span id="__span-55-22"><a id="__codelineno-55-22" name="__codelineno-55-22" href="#__codelineno-55-22"></a><span class="p">}</span>
-</span><span id="__span-55-23"><a id="__codelineno-55-23" name="__codelineno-55-23" href="#__codelineno-55-23"></a><span class="cp">?&gt;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="x">&lt;!-- 第一关：在响应头里给 Hint --&gt;</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="x">&lt;!--</span>
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="x">Hint: select * from 'admin' where password=md5($pass, true)</span>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="x">--&gt;</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a><span class="x">&lt;!-- 第二关 --&gt;</span>
+</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-27-8"><a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a><span class="nv">$a</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'a'</span><span class="p">];</span>
+</span><span id="__span-27-9"><a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a><span class="nv">$b</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'b'</span><span class="p">];</span>
+</span><span id="__span-27-10"><a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$a</span> <span class="o">!=</span> <span class="nv">$b</span> <span class="o">&amp;&amp;</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$a</span><span class="p">)</span> <span class="o">==</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$b</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-27-11"><a id="__codelineno-27-11" name="__codelineno-27-11" href="#__codelineno-27-11"></a>    <span class="c1">// wow, glzjin wants a girl friend.</span>
+</span><span id="__span-27-12"><a id="__codelineno-27-12" name="__codelineno-27-12" href="#__codelineno-27-12"></a><span class="p">}</span>
+</span><span id="__span-27-13"><a id="__codelineno-27-13" name="__codelineno-27-13" href="#__codelineno-27-13"></a><span class="cp">?&gt;</span>
+</span><span id="__span-27-14"><a id="__codelineno-27-14" name="__codelineno-27-14" href="#__codelineno-27-14"></a>
+</span><span id="__span-27-15"><a id="__codelineno-27-15" name="__codelineno-27-15" href="#__codelineno-27-15"></a><span class="x">&lt;!-- 第三关 --&gt;</span>
+</span><span id="__span-27-16"><a id="__codelineno-27-16" name="__codelineno-27-16" href="#__codelineno-27-16"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-27-17"><a id="__codelineno-27-17" name="__codelineno-27-17" href="#__codelineno-27-17"></a><span class="nb">error_reporting</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span><span id="__span-27-18"><a id="__codelineno-27-18" name="__codelineno-27-18" href="#__codelineno-27-18"></a><span class="k">include</span> <span class="s2">"flag.php"</span><span class="p">;</span>
+</span><span id="__span-27-19"><a id="__codelineno-27-19" name="__codelineno-27-19" href="#__codelineno-27-19"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-27-20"><a id="__codelineno-27-20" name="__codelineno-27-20" href="#__codelineno-27-20"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param1'</span><span class="p">]</span> <span class="o">!==</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param2'</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param1'</span><span class="p">])</span> <span class="o">===</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param2'</span><span class="p">]))</span> <span class="p">{</span>
+</span><span id="__span-27-21"><a id="__codelineno-27-21" name="__codelineno-27-21" href="#__codelineno-27-21"></a>    <span class="k">echo</span> <span class="nv">$flag</span><span class="p">;</span>
+</span><span id="__span-27-22"><a id="__codelineno-27-22" name="__codelineno-27-22" href="#__codelineno-27-22"></a><span class="p">}</span>
+</span><span id="__span-27-23"><a id="__codelineno-27-23" name="__codelineno-27-23" href="#__codelineno-27-23"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 </details>
     

