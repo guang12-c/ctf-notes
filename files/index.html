@@ -428,6 +428,8 @@
       
         
       
+        
+      
     
     
     
@@ -1547,6 +1549,111 @@
       
         
       
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_10" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../knowledge/xss/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XSS
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_10" id="__nav_2_10_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    XSS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../knowledge/xss/XSS%E4%B8%93%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XSS 专题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
         
       
     
@@ -1562,7 +1669,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_10" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1584,14 +1691,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_10" id="__nav_2_10_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_10_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_10">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_11">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1695,7 +1802,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_12" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1717,14 +1824,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_12" id="__nav_2_12_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3287,6 +3394,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        演示页
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3371,6 +3489,39 @@
 <p class="admonition-title">别开 URL-encode</p>
 <p>字典里的 payload 已经用 <code>$IFS</code> 避开了空格，
 开编码会把 <code>$</code> 变成 <code>%24</code>，整条失效。</p>
+</div>
+<h2 id="_4">演示页<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>页面</th>
+<th>演示什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="xss/">XSS 复现页说明</a></td>
+<td>三页的用法与边界（先看这个）</td>
+</tr>
+<tr>
+<td><a href="xss/level4_repro.html">XSS level4 复现</a></td>
+<td><code>location.href</code> 汇点 + <code>javascript:</code> 伪协议（含 <code>escape()</code> 对比）</td>
+</tr>
+<tr>
+<td><a href="xss/level5_repro.html">XSS level5 复现</a></td>
+<td><code>form.action</code> + 自动 <code>submit()</code>，带自检判断到底有没有执行</td>
+</tr>
+<tr>
+<td><a href="xss/level6_repro.html">XSS level6 复现</a></td>
+<td>AngularJS 1.4.6 模板注入，<code>{{7*7}}</code> → 49，可换 payload 重试</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition tip">
+<p class="admonition-title">为什么要单独做复现页</p>
+<p>原题把漏洞点埋在倒计时、表单自动提交、模板编译里，
+一眼看不出是哪一句在起作用。复现页把干扰逻辑拆掉，只留那一句赋值，
+<strong>先看清"哪一行是洞"，再回原题。</strong></p>
 </div>
 
 

