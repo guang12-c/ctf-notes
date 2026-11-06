@@ -138,6 +138,9 @@ nav:
       - SSTI:
           - knowledge/ssti/index.md
           - SSTI 专题: knowledge/ssti/SSTI专题.md
+      - XSS:
+          - knowledge/xss/index.md
+          - XSS 专题: knowledge/xss/XSS专题.md
       - Web 通用:
           - knowledge/web/index.md
           - CTF-Web 学习笔记: knowledge/web/CTF-Web学习笔记.md
@@ -155,6 +158,7 @@ copyright: 仅用于个人学习与授权测试记录
 # 404 由主题自动使用，不放进导航，避免构建时的未列入 nav 警告
 not_in_nav: |
   /404.md
+  /files/xss/README.md
 
 extra_css:
   - assets/css/site.css

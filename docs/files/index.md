@@ -33,3 +33,18 @@
 
     字典里的 payload 已经用 `$IFS` 避开了空格，
     开编码会把 `$` 变成 `%24`，整条失效。
+
+## 演示页
+
+| 页面 | 演示什么 |
+|---|---|
+| [XSS 复现页说明](xss/) | 三页的用法与边界（先看这个） |
+| [XSS level4 复现](xss/level4_repro.html) | `location.href` 汇点 + `javascript:` 伪协议（含 `escape()` 对比） |
+| [XSS level5 复现](xss/level5_repro.html) | `form.action` + 自动 `submit()`，带自检判断到底有没有执行 |
+| [XSS level6 复现](xss/level6_repro.html) | AngularJS 1.4.6 模板注入，`{{7*7}}` → 49，可换 payload 重试 |
+
+!!! tip "为什么要单独做复现页"
+
+    原题把漏洞点埋在倒计时、表单自动提交、模板编译里，
+    一眼看不出是哪一句在起作用。复现页把干扰逻辑拆掉，只留那一句赋值，
+    **先看清"哪一行是洞"，再回原题。**
