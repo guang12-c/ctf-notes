@@ -304,11 +304,104 @@ NoSQL 的探针：{"$ne":"x"} 看状态码变不变
 
 ---
 
-## 九、待打
+## 九、变体：正则注入（同一个根，换个载体）
 
-| 项 | 状态 |
-|---|---|
-| `$regex` 盲注逐字符拖数据 | ⬜ |
-| `$where` 执行 JS / 延时 | ⬜ |
-| `$or` 顶层逻辑注入（要求注入点在查询顶层） | ⬜ |
-| Redis / Elasticsearch 场景 | ⬜ |
+> 打完 [BCACTF 2024] NoSQL 补的。那题挂着 NoSQL 的名，源码里一行数据库都没有 —— 但病根和前面完全一样。
+
+### 病灶
+
+```js
+text.forEach(line => {
+    if (line.match('^' + req.query.name + '$')) {     // ← 字符串拼进 RegExp
+        goodLines.push(line);
+    }
+});
+```
+
+`String.prototype.match` 收到字符串时，内部就是 `new RegExp(str)`。**所以 `req.query.name` 是被当作正则源码编译的，不是当字面量。**
+
+三种载体，一个根：
+
+| 载体 | 输入进到哪 | 源码里的信号 |
+|---|---|---|
+| SQL | 拼进语句 | `"... WHERE id = " + id` |
+| Mongo | 进查询文档 | `find_one({"username": u, "password": p})` |
+| 正则 | 拼进 RegExp | `match('^' + x + '$')`、`new RegExp(x)` |
+
+判断动作也完全一样：**找到那个位置，问一句「这里会不会被当语法解释」。**
+
+### 拖全表：`?name=.*`
+
+`^` 和 `$` 都是代码写死的，所以只要让中间那段「匹配一切」：
+
+```text
+name=.*      →  ^.*$      →  全部行
+```
+
+### 两个必须记住的坑
+
+**① `$` 也写死了，所以「包含」不等于「等于」**
+
+| 传 | 实际正则 | 命中 |
+|---|---|---|
+| `.` | `^.$` | **0 行** —— 要求整行恰好一个字符 |
+| `Ricardo` | `^Ricardo$` | **0 行** —— 行尾还有 ` Olsen` |
+| `R.*` | `^R.*$` | 7 行 —— R 开头 |
+| `.*Ricardo.*` | `^.*Ricardo.*$` | 含 `Ricardo` 的行 |
+
+我第一次拿 `.` 当「正则生效了吗」的探针，说它「会返回一堆」，就是漏看了 `$` —— 两端锚死之后，`^.$` 只剩「一个字符」这一个意思。**在 `^...$` 的语境下，想搜包含必须自己补 `.*`**，这和 SQL 里 `=` 和 `LIKE '%x%'` 的区别是同一件事。
+
+**② 路由里的 `:id` 是占位符，不是 URL 的一部分**
+
+```js
+app.get('/:id/:firstName/:lastName', ...)
+```
+
+照着文档把 `/:id/Flag/Holder` 打进浏览器，`id` 就变成字面量 `:id`，怎么都匹配不上。**冒号只是「这一段取个名」，实际请求直接换成值：**
+
+```text
+❌ /:51/Flag/Holder
+✅ /51/Flag/Holder
+```
+
+### 这题完整的链
+
+```text
+源码一行拼接（正则注入）
+  → ?name=.* 拖出 51 行表
+  → 第 51 行是 Flag Holder
+  → 路由要 id + firstName + lastName
+  → id 是 1 起行号（/0/… 和 /a/… 都返回 Not Valid Query）
+  → /51/Flag/Holder → flag
+```
+
+flag：`bcactf{R3gex_WH1z_54dfa9cdba13}`（2024 年的题，不涉及现行赛程）
+
+### 防御
+
+```js
+// ❌ 拼接
+line.match('^' + req.query.name + '$')
+
+// ✅ 先转义元字符再编译
+const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+line.match(new RegExp('^' + esc(req.query.name) + '$'))
+
+// ✅ 能不用正则就不用
+line === req.query.name
+```
+
+---
+
+## 十、题目记录与待打
+
+| 项 | 来源 | 状态 |
+|---|---|---|
+| 登录绕过 `$ne`（字符串参数） | 西部商店 | ✅ |
+| 正则注入拖全表 + 路由拼参 | [BCACTF 2024] NoSQL | ✅ |
+| 登录绕过进阶 | picoCTF 2024 *No Sql Injection* | ⬜ |
+| Flask session 伪造 / unicode 欺骗 / 条件竞争 | [HCTF 2018] admin | ⬜ |
+| `$regex` 盲注逐字符拖数据 | — | ⬜ |
+| `$where` 执行 JS / 延时 | — | ⬜ |
+| `$or` 顶层逻辑注入（要求注入点在查询顶层） | — | ⬜ |
+| Redis / Elasticsearch 场景 | — | ⬜ |
