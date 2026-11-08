@@ -117,6 +117,9 @@ nav:
           - OOB 带外注入: knowledge/sql/06-OOB带外注入.md
           - 报错注入专题: knowledge/sql/07-报错注入专题.md
           - 逐行讲解(盲注脚本): knowledge/sql/blind_sqli_error_逐行讲解.md
+      - NoSQL 注入:
+          - knowledge/nosql/index.md
+          - NoSQL 注入专题: knowledge/nosql/NoSQL注入专题.md
       - 文件上传:
           - knowledge/upload/index.md
           - 文件上传专题: knowledge/upload/文件上传专题.md
