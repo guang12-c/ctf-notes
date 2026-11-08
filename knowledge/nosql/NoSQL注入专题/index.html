@@ -1171,7 +1171,79 @@
   <a href="#_11" class="md-nav__link">
     <span class="md-ellipsis">
       
-        九、待打
+        九、变体：正则注入（同一个根，换个载体）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="九、变体：正则注入（同一个根，换个载体）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        病灶
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        拖全表：?name=.*
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        两个必须记住的坑
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        这题完整的链
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        防御
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十、题目记录与待打
       
     </span>
   </a>
@@ -4013,7 +4085,79 @@
   <a href="#_11" class="md-nav__link">
     <span class="md-ellipsis">
       
-        九、待打
+        九、变体：正则注入（同一个根，换个载体）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="九、变体：正则注入（同一个根，换个载体）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        病灶
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        拖全表：?name=.*
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        两个必须记住的坑
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        这题完整的链
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        防御
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        十、题目记录与待打
       
     </span>
   </a>
@@ -4479,29 +4623,160 @@
 </span></code></pre></div>
 <p><strong>共同的根都是一句话：用户输入跑到了「被当作代码解释」的位置。</strong></p>
 <hr />
-<h2 id="_11">九、待打<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h2>
+<h2 id="_11">九、变体：正则注入（同一个根，换个载体）<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p>打完 [BCACTF 2024] NoSQL 补的。那题挂着 NoSQL 的名，源码里一行数据库都没有 —— 但病根和前面完全一样。</p>
+</blockquote>
+<h3 id="_12">病灶<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h3>
+<div class="language-js highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nx">text</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="nx">line</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">line</span><span class="p">.</span><span class="nx">match</span><span class="p">(</span><span class="s1">'^'</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">req</span><span class="p">.</span><span class="nx">query</span><span class="p">.</span><span class="nx">name</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">'$'</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">     </span><span class="c1">// ← 字符串拼进 RegExp</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">        </span><span class="nx">goodLines</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">line</span><span class="p">);</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="p">});</span>
+</span></code></pre></div>
+<p><code>String.prototype.match</code> 收到字符串时，内部就是 <code>new RegExp(str)</code>。<strong>所以 <code>req.query.name</code> 是被当作正则源码编译的，不是当字面量。</strong></p>
+<p>三种载体，一个根：</p>
+<table>
+<thead>
+<tr>
+<th>载体</th>
+<th>输入进到哪</th>
+<th>源码里的信号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SQL</td>
+<td>拼进语句</td>
+<td><code>"... WHERE id = " + id</code></td>
+</tr>
+<tr>
+<td>Mongo</td>
+<td>进查询文档</td>
+<td><code>find_one({"username": u, "password": p})</code></td>
+</tr>
+<tr>
+<td>正则</td>
+<td>拼进 RegExp</td>
+<td><code>match('^' + x + '$')</code>、<code>new RegExp(x)</code></td>
+</tr>
+</tbody>
+</table>
+<p>判断动作也完全一样：<strong>找到那个位置，问一句「这里会不会被当语法解释」。</strong></p>
+<h3 id="name">拖全表：<code>?name=.*</code><a class="headerlink" href="#name" title="Permanent link">&para;</a></h3>
+<p><code>^</code> 和 <code>$</code> 都是代码写死的，所以只要让中间那段「匹配一切」：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>name=.*      →  ^.*$      →  全部行
+</span></code></pre></div>
+<h3 id="_13">两个必须记住的坑<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h3>
+<p><strong>① <code>$</code> 也写死了，所以「包含」不等于「等于」</strong></p>
+<table>
+<thead>
+<tr>
+<th>传</th>
+<th>实际正则</th>
+<th>命中</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.</code></td>
+<td><code>^.$</code></td>
+<td><strong>0 行</strong> —— 要求整行恰好一个字符</td>
+</tr>
+<tr>
+<td><code>Ricardo</code></td>
+<td><code>^Ricardo$</code></td>
+<td><strong>0 行</strong> —— 行尾还有 <code>Olsen</code></td>
+</tr>
+<tr>
+<td><code>R.*</code></td>
+<td><code>^R.*$</code></td>
+<td>7 行 —— R 开头</td>
+</tr>
+<tr>
+<td><code>.*Ricardo.*</code></td>
+<td><code>^.*Ricardo.*$</code></td>
+<td>含 <code>Ricardo</code> 的行</td>
+</tr>
+</tbody>
+</table>
+<p>我第一次拿 <code>.</code> 当「正则生效了吗」的探针，说它「会返回一堆」，就是漏看了 <code>$</code> —— 两端锚死之后，<code>^.$</code> 只剩「一个字符」这一个意思。<strong>在 <code>^...$</code> 的语境下，想搜包含必须自己补 <code>.*</code></strong>，这和 SQL 里 <code>=</code> 和 <code>LIKE '%x%'</code> 的区别是同一件事。</p>
+<p><strong>② 路由里的 <code>:id</code> 是占位符，不是 URL 的一部分</strong></p>
+<div class="language-js highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'/:id/:firstName/:lastName'</span><span class="p">,</span><span class="w"> </span><span class="p">...)</span>
+</span></code></pre></div>
+<p>照着文档把 <code>/:id/Flag/Holder</code> 打进浏览器，<code>id</code> 就变成字面量 <code>:id</code>，怎么都匹配不上。<strong>冒号只是「这一段取个名」，实际请求直接换成值：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>❌ /:51/Flag/Holder
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>✅ /51/Flag/Holder
+</span></code></pre></div>
+<h3 id="_14">这题完整的链<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>源码一行拼接（正则注入）
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>  → ?name=.* 拖出 51 行表
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>  → 第 51 行是 Flag Holder
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>  → 路由要 id + firstName + lastName
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>  → id 是 1 起行号（/0/… 和 /a/… 都返回 Not Valid Query）
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>  → /51/Flag/Holder → flag
+</span></code></pre></div>
+<p>flag：<code>bcactf{R3gex_WH1z_54dfa9cdba13}</code>（2024 年的题，不涉及现行赛程）</p>
+<h3 id="_15">防御<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h3>
+<div class="language-js highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1">// ❌ 拼接</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="nx">line</span><span class="p">.</span><span class="nx">match</span><span class="p">(</span><span class="s1">'^'</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">req</span><span class="p">.</span><span class="nx">query</span><span class="p">.</span><span class="nx">name</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">'$'</span><span class="p">)</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="c1">// ✅ 先转义元字符再编译</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="kd">const</span><span class="w"> </span><span class="nx">esc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">s</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/[.*+?^${}()|[\]\\]/g</span><span class="p">,</span><span class="w"> </span><span class="s1">'\\$&amp;'</span><span class="p">);</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="nx">line</span><span class="p">.</span><span class="nx">match</span><span class="p">(</span><span class="ow">new</span><span class="w"> </span><span class="nb">RegExp</span><span class="p">(</span><span class="s1">'^'</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">esc</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">query</span><span class="p">.</span><span class="nx">name</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">'$'</span><span class="p">))</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="c1">// ✅ 能不用正则就不用</span>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="nx">line</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="nx">req</span><span class="p">.</span><span class="nx">query</span><span class="p">.</span><span class="nx">name</span>
+</span></code></pre></div>
+<hr />
+<h2 id="_16">十、题目记录与待打<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>项</th>
+<th>来源</th>
 <th>状态</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td>登录绕过 <code>$ne</code>（字符串参数）</td>
+<td>西部商店</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>正则注入拖全表 + 路由拼参</td>
+<td>[BCACTF 2024] NoSQL</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>登录绕过进阶</td>
+<td>picoCTF 2024 <em>No Sql Injection</em></td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>Flask session 伪造 / unicode 欺骗 / 条件竞争</td>
+<td>[HCTF 2018] admin</td>
+<td>⬜</td>
+</tr>
+<tr>
 <td><code>$regex</code> 盲注逐字符拖数据</td>
+<td>—</td>
 <td>⬜</td>
 </tr>
 <tr>
 <td><code>$where</code> 执行 JS / 延时</td>
+<td>—</td>
 <td>⬜</td>
 </tr>
 <tr>
 <td><code>$or</code> 顶层逻辑注入（要求注入点在查询顶层）</td>
+<td>—</td>
 <td>⬜</td>
 </tr>
 <tr>
 <td>Redis / Elasticsearch 场景</td>
+<td>—</td>
 <td>⬜</td>
 </tr>
 </tbody>

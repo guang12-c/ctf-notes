@@ -3648,7 +3648,7 @@
 </table>
 <h2 id="_2">章节<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong><a href="NoSQL%E6%B3%A8%E5%85%A5%E4%B8%93%E9%A2%98/">NoSQL 注入专题</a></strong> —— <code>$</code> 的机制、操作符速查、登录绕过四种写法、实测边界、实战「西部商店」</li>
+<li><strong><a href="NoSQL%E6%B3%A8%E5%85%A5%E4%B8%93%E9%A2%98/">NoSQL 注入专题</a></strong> —— <code>$</code> 的机制、操作符速查、登录绕过四种写法、实测边界、实战「西部商店」、变体「正则注入」</li>
 </ul>
 <h2 id="_3">状态<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <table>
@@ -3666,6 +3666,10 @@
 <tr>
 <td>操作符边界（哪些算子的参数类型不通）</td>
 <td>✅ 实测过</td>
+</tr>
+<tr>
+<td>正则注入（同一个根：拼接进 RegExp）</td>
+<td>✅ 实战过（BCACTF 2024 NoSQL）</td>
 </tr>
 <tr>
 <td><code>$regex</code> 盲注逐字符拖数据</td>
