@@ -3546,6 +3546,149 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-19 16:20:00+00:00">2026-11-19</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="./" class="md-meta__link">信息收集</a>, 
+              <a href="../%E6%BA%90%E7%A0%81%E6%B3%84%E9%9C%B2/" class="md-meta__link">源码泄露</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="ctfshow-tzphp"><a class="toclink" href="../../ctfshow-probe-leak/">ctfshow — 探针泄露：一个 tz.php 把整台机器摊在页面上</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：信息收集 — 服务器探针（phpinfo）泄露环境信息</p>
+<p><strong>Flag</strong>：<code>ctfshow{b331ef56-d57c-4486-a229-0fa42200b6bf}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../ctfshow-probe-leak/#_1">题目概述</a></h3>
+<p>进去是个普通页面，看不出东西。<strong>这题考的不是漏洞，是“服务器上不该存在的文件”。</strong></p>
+<p><strong>服务器探针</strong>是运维用来排查环境的小工具（PHP 版本、扩展、路径、环境变量全列出来）。<strong>忘了删，就等于把机器的体检报告挂在公网上。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../ctfshow-probe-leak/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../ctfshow-probe-leak/#step-1">Step 1：先猜探针文件名</a></h4>
+<p><strong>探针文件名没有标准，但圈内有几个“约定俗成”的：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>tz.php        ← 这题用的（雅黑探针系列）
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>y.php
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>i.php
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>l.php
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>p.php
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>x.php
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>info.php
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>phpinfo.php
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>test.php
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>1.php
+</span></code></pre></div>
+<p><strong>为什么是这几个：</strong>探针类工具（雅黑探针、iProber 等）默认文件名就是这些短名，很多人下载后直接丢到根目录不改名。</p>
+<p><strong>扫目录时把 <code>php</code> 后缀配上这几个单词；实在扫不出来，也可以手工挨个试——都是 GET，成本很低。</strong></p>
+<h4 id="step-2-phpinfo"><a class="toclink" href="../../ctfshow-probe-leak/#step-2-phpinfo">Step 2：探针页面 → 点 phpinfo</a></h4>
+<p><strong>访问 <code>tz.php</code>，会看到一个功能页，上面有服务器信息汇总，还有几个链接，其中一个就是 <code>phpinfo()</code>。</strong></p>
+<p><strong>点进去之后，页面变成一大坨信息：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>PHP Version         7.3.11
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>System              Linux ...
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>Server API          FPM/FastCGI
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>Loaded Configuration File
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>Environment          ← 重点
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>PHP Variables        ← 重点
+</span></code></pre></div>
+<p><strong><code>phpinfo()</code> 会把当前进程的</strong>环境变量<strong>整段打印出来。</strong></p>
+<p><strong>而很多部署方式（Docker、docker-compose、K8s）会把 flag 作为环境变量注入容器——因为写进文件容易被镜像带上，放环境变量“看起来安全”。</strong></p>
+<h4 id="step-3-flag"><a class="toclink" href="../../ctfshow-probe-leak/#step-3-flag">Step 3：在页面里找 flag</a></h4>
+<p><strong>phpinfo 页面非常长，靠肉眼翻基本翻不到。用浏览器搜索：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>Ctrl + F  →  输入 flag  →  回车
+</span></code></pre></div>
+<p><strong>命中之后会高亮，直接看右边那一列的值：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>FLAG    ctfshow{b331ef56-d57c-4486-a229-0fa42200b6bf}
+</span></code></pre></div>
+<p><strong>如果是命令行，就更省事：</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/tz.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="n">-Pattern</span> <span class="s2">"flag"</span>
+</span></code></pre></div>
+<p><strong>或者直接抓 phpinfo 输出并过滤：</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/phpinfo.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="n">-Pattern</span> <span class="s2">"FLAG"</span>
+</span></code></pre></div>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>探针</td>
+<td>运维排查用的小工具，暴露版本/路径/扩展/环境变量</td>
+</tr>
+<tr>
+<td>常见文件名</td>
+<td><code>tz.php</code>、<code>y.php</code>、<code>i.php</code>、<code>info.php</code>、<code>phpinfo.php</code>、<code>1.php</code></td>
+</tr>
+<tr>
+<td>phpinfo 的价值</td>
+<td><code>Environment</code> 区块包含进程环境变量</td>
+</tr>
+<tr>
+<td>为什么 flag 在环境变量</td>
+<td>容器部署时常把敏感值放 env，避免写进镜像文件</td>
+</tr>
+<tr>
+<td>怎么快速定位</td>
+<td>浏览器 <code>Ctrl+F</code> 搜 <code>flag</code>，或 <code>curl \| Select-String</code></td>
+</tr>
+<tr>
+<td>这类文件为什么危险</td>
+<td>除了 flag，还可能泄露数据库账号、内部路径、AK/SK</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>命令行一把梭</summary>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c"># 先找探针</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="k">foreach</span> <span class="p">(</span><span class="nv">$p</span> <span class="k">in</span> <span class="s2">"tz.php"</span><span class="p">,</span><span class="s2">"y.php"</span><span class="p">,</span><span class="s2">"i.php"</span><span class="p">,</span><span class="s2">"info.php"</span><span class="p">,</span><span class="s2">"phpinfo.php"</span><span class="p">,</span><span class="s2">"1.php"</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>  <span class="nv">$code</span> <span class="p">=</span> <span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-o</span> <span class="n">NUL</span> <span class="n">-w</span> <span class="s2">"%{http_code}"</span> <span class="n">-k</span> <span class="s2">"https://目标/$p"</span>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>  <span class="k">if</span> <span class="p">(</span><span class="nv">$code</span> <span class="o">-eq</span> <span class="s2">"200"</span><span class="p">)</span> <span class="p">{</span> <span class="nb">Write-Output</span> <span class="s2">"$p 存在"</span> <span class="p">}</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="p">}</span>
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="c"># 再搜 flag</span>
+</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/tz.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="s2">"flag"</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 只看首页</strong></p>
+<p>探针不在首页链接里，得自己敲路径。<strong>这类题的关键动作是“猜文件名”，不是“看页面”。</strong></p>
+<p><strong>② 进了探针页就停住</strong></p>
+<p>探针页只是汇总，<strong>真正有 env 的是它里面的 <code>phpinfo()</code> 子页面</strong>，还得再点一次。</p>
+<p><strong>③ 肉眼翻 phpinfo</strong></p>
+<p>页面几千行，翻不到很正常。<strong><code>Ctrl+F</code> 搜 <code>flag</code> 是最快的，其次是 <code>Select-String</code>。</strong></p>
+<p><strong>④ 只搜“环境变量”一个区块</strong></p>
+<p>有些题把 flag 放在 <code>PHP Variables</code> 或 <code>$_SERVER</code> 里。<strong>搜关键字比找区块快。</strong></p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-19 16:00:00+00:00">2026-11-19</time></li>
         
           <li class="md-meta__item">
