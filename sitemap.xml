@@ -245,6 +245,10 @@
          <lastmod>2026-11-24</lastmod>
     </url>
     <url>
+         <loc>https://guang12-c.github.io/ctf-notes/blog/mingyuebei-jinghua-shuiyue/</loc>
+         <lastmod>2026-11-24</lastmod>
+    </url>
+    <url>
          <loc>https://guang12-c.github.io/ctf-notes/blog/roarctf2019-easy-java/</loc>
          <lastmod>2026-11-24</lastmod>
     </url>
@@ -393,15 +397,23 @@
          <lastmod>2026-11-24</lastmod>
     </url>
     <url>
+         <loc>https://guang12-c.github.io/ctf-notes/blog/category/ssrf/</loc>
+         <lastmod>2026-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://guang12-c.github.io/ctf-notes/blog/category/web/</loc>
+         <lastmod>2026-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://guang12-c.github.io/ctf-notes/blog/category/redis/</loc>
+         <lastmod>2026-11-24</lastmod>
+    </url>
+    <url>
          <loc>https://guang12-c.github.io/ctf-notes/blog/category/java/</loc>
          <lastmod>2026-11-24</lastmod>
     </url>
     <url>
          <loc>https://guang12-c.github.io/ctf-notes/blog/category/%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96/</loc>
-         <lastmod>2026-11-24</lastmod>
-    </url>
-    <url>
-         <loc>https://guang12-c.github.io/ctf-notes/blog/category/web/</loc>
          <lastmod>2026-11-24</lastmod>
     </url>
     <url>
@@ -454,10 +466,6 @@
     </url>
     <url>
          <loc>https://guang12-c.github.io/ctf-notes/blog/category/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/</loc>
-         <lastmod>2026-11-24</lastmod>
-    </url>
-    <url>
-         <loc>https://guang12-c.github.io/ctf-notes/blog/category/ssrf/</loc>
          <lastmod>2026-11-24</lastmod>
     </url>
     <url>

