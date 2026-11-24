@@ -2271,6 +2271,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2426,6 +2430,36 @@
     
   
     JWT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/java/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Java
   
 
     
@@ -3378,6 +3412,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../../category/%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件读取
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../../../../category/%E6%96%B0%E6%89%8B%E5%85%A5%E9%97%A8/" class="md-nav__link">
         
   
@@ -3665,6 +3729,149 @@
       <header class="md-typeset">
         <h1 id="2026">2026<a class="headerlink" href="#2026" title="Permanent link">&para;</a></h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-11-19 16:20:00+00:00">2026-11-19</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="../../../../category/%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86/" class="md-meta__link">信息收集</a>, 
+              <a href="../../../../category/%E6%BA%90%E7%A0%81%E6%B3%84%E9%9C%B2/" class="md-meta__link">源码泄露</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="ctfshow-tzphp"><a class="toclink" href="../../../../ctfshow-probe-leak/">ctfshow — 探针泄露：一个 tz.php 把整台机器摊在页面上</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：信息收集 — 服务器探针（phpinfo）泄露环境信息</p>
+<p><strong>Flag</strong>：<code>ctfshow{b331ef56-d57c-4486-a229-0fa42200b6bf}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="../../../../ctfshow-probe-leak/#_1">题目概述</a></h3>
+<p>进去是个普通页面，看不出东西。<strong>这题考的不是漏洞，是“服务器上不该存在的文件”。</strong></p>
+<p><strong>服务器探针</strong>是运维用来排查环境的小工具（PHP 版本、扩展、路径、环境变量全列出来）。<strong>忘了删，就等于把机器的体检报告挂在公网上。</strong></p>
+<hr />
+<h3 id="_2"><a class="toclink" href="../../../../ctfshow-probe-leak/#_2">解题过程</a></h3>
+<h4 id="step-1"><a class="toclink" href="../../../../ctfshow-probe-leak/#step-1">Step 1：先猜探针文件名</a></h4>
+<p><strong>探针文件名没有标准，但圈内有几个“约定俗成”的：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>tz.php        ← 这题用的（雅黑探针系列）
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>y.php
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>i.php
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>l.php
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>p.php
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>x.php
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>info.php
+</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>phpinfo.php
+</span><span id="__span-21-9"><a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>test.php
+</span><span id="__span-21-10"><a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>1.php
+</span></code></pre></div>
+<p><strong>为什么是这几个：</strong>探针类工具（雅黑探针、iProber 等）默认文件名就是这些短名，很多人下载后直接丢到根目录不改名。</p>
+<p><strong>扫目录时把 <code>php</code> 后缀配上这几个单词；实在扫不出来，也可以手工挨个试——都是 GET，成本很低。</strong></p>
+<h4 id="step-2-phpinfo"><a class="toclink" href="../../../../ctfshow-probe-leak/#step-2-phpinfo">Step 2：探针页面 → 点 phpinfo</a></h4>
+<p><strong>访问 <code>tz.php</code>，会看到一个功能页，上面有服务器信息汇总，还有几个链接，其中一个就是 <code>phpinfo()</code>。</strong></p>
+<p><strong>点进去之后，页面变成一大坨信息：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>PHP Version         7.3.11
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>System              Linux ...
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>Server API          FPM/FastCGI
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>Loaded Configuration File
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>Environment          ← 重点
+</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>PHP Variables        ← 重点
+</span></code></pre></div>
+<p><strong><code>phpinfo()</code> 会把当前进程的</strong>环境变量<strong>整段打印出来。</strong></p>
+<p><strong>而很多部署方式（Docker、docker-compose、K8s）会把 flag 作为环境变量注入容器——因为写进文件容易被镜像带上，放环境变量“看起来安全”。</strong></p>
+<h4 id="step-3-flag"><a class="toclink" href="../../../../ctfshow-probe-leak/#step-3-flag">Step 3：在页面里找 flag</a></h4>
+<p><strong>phpinfo 页面非常长，靠肉眼翻基本翻不到。用浏览器搜索：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>Ctrl + F  →  输入 flag  →  回车
+</span></code></pre></div>
+<p><strong>命中之后会高亮，直接看右边那一列的值：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>FLAG    ctfshow{b331ef56-d57c-4486-a229-0fa42200b6bf}
+</span></code></pre></div>
+<p><strong>如果是命令行，就更省事：</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/tz.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="n">-Pattern</span> <span class="s2">"flag"</span>
+</span></code></pre></div>
+<p><strong>或者直接抓 phpinfo 输出并过滤：</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/phpinfo.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="n">-Pattern</span> <span class="s2">"FLAG"</span>
+</span></code></pre></div>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>探针</td>
+<td>运维排查用的小工具，暴露版本/路径/扩展/环境变量</td>
+</tr>
+<tr>
+<td>常见文件名</td>
+<td><code>tz.php</code>、<code>y.php</code>、<code>i.php</code>、<code>info.php</code>、<code>phpinfo.php</code>、<code>1.php</code></td>
+</tr>
+<tr>
+<td>phpinfo 的价值</td>
+<td><code>Environment</code> 区块包含进程环境变量</td>
+</tr>
+<tr>
+<td>为什么 flag 在环境变量</td>
+<td>容器部署时常把敏感值放 env，避免写进镜像文件</td>
+</tr>
+<tr>
+<td>怎么快速定位</td>
+<td>浏览器 <code>Ctrl+F</code> 搜 <code>flag</code>，或 <code>curl \| Select-String</code></td>
+</tr>
+<tr>
+<td>这类文件为什么危险</td>
+<td>除了 flag，还可能泄露数据库账号、内部路径、AK/SK</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>命令行一把梭</summary>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="c"># 先找探针</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="k">foreach</span> <span class="p">(</span><span class="nv">$p</span> <span class="k">in</span> <span class="s2">"tz.php"</span><span class="p">,</span><span class="s2">"y.php"</span><span class="p">,</span><span class="s2">"i.php"</span><span class="p">,</span><span class="s2">"info.php"</span><span class="p">,</span><span class="s2">"phpinfo.php"</span><span class="p">,</span><span class="s2">"1.php"</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>  <span class="nv">$code</span> <span class="p">=</span> <span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-o</span> <span class="n">NUL</span> <span class="n">-w</span> <span class="s2">"%{http_code}"</span> <span class="n">-k</span> <span class="s2">"https://目标/$p"</span>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>  <span class="k">if</span> <span class="p">(</span><span class="nv">$code</span> <span class="o">-eq</span> <span class="s2">"200"</span><span class="p">)</span> <span class="p">{</span> <span class="nb">Write-Output</span> <span class="s2">"$p 存在"</span> <span class="p">}</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="p">}</span>
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>
+</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="c"># 再搜 flag</span>
+</span><span id="__span-27-8"><a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/tz.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="s2">"flag"</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 只看首页</strong></p>
+<p>探针不在首页链接里，得自己敲路径。<strong>这类题的关键动作是“猜文件名”，不是“看页面”。</strong></p>
+<p><strong>② 进了探针页就停住</strong></p>
+<p>探针页只是汇总，<strong>真正有 env 的是它里面的 <code>phpinfo()</code> 子页面</strong>，还得再点一次。</p>
+<p><strong>③ 肉眼翻 phpinfo</strong></p>
+<p>页面几千行，翻不到很正常。<strong><code>Ctrl+F</code> 搜 <code>flag</code> 是最快的，其次是 <code>Select-String</code>。</strong></p>
+<p><strong>④ 只搜“环境变量”一个区块</strong></p>
+<p>有些题把 flag 放在 <code>PHP Variables</code> 或 <code>$_SERVER</code> 里。<strong>搜关键字比找区块快。</strong></p>
+</details>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -5608,174 +5815,6 @@
 <p>链子上每一环的答案都藏在别的类里，<strong>不需要写新代码，只需要摆对象</strong>。</p>
 <p><strong>③ 本地搭一份再改</strong></p>
 <p>把四个类复制到本地 PHP 里，用 <code>serialize()</code> 生成基础串，再对着改属性——比自己手数括号可靠得多。</p>
-</details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-11-03 18:30:00+00:00">2026-11-03</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="../../../../category/php/" class="md-meta__link">PHP</a>, 
-              <a href="../../../../category/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="md-meta__link">代码审计</a>, 
-              <a href="../../../../category/web/" class="md-meta__link">Web</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="ctf2-ezphp"><a class="toclink" href="../../../../ctf2-ezphp-error-handler/">[CTF2] EZPHP — 条件永远为假，但错误处理器会说话</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：Web — PHP 代码审计，利用 <code>set_error_handler</code> 触发信息泄露</p>
-<p><strong>Flag</strong>：<code>CTF2{558d08e2-3e2c-43bc-be5b-6058c095641b}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="../../../../ctf2-ezphp-error-handler/#_1">题目概述</a></h3>
-<p>页面给了一段 PHP 源码（<code>highlight_file(__FILE__)</code> 把自身打印出来），底下永远显示 <code>Try harder!</code>。</p>
-<hr />
-<h3 id="_2"><a class="toclink" href="../../../../ctf2-ezphp-error-handler/#_2">解题过程</a></h3>
-<h4 id="step-1"><a class="toclink" href="../../../../ctf2-ezphp-error-handler/#step-1">Step 1：先读代码</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
-</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
-</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
-</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
-</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
-</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>
-</span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
-</span><span id="__span-24-10"><a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-24-11"><a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
-</span><span id="__span-24-12"><a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
-</span><span id="__span-24-13"><a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a><span class="p">}</span>
-</span><span id="__span-24-14"><a id="__codelineno-24-14" name="__codelineno-24-14" href="#__codelineno-24-14"></a>
-</span><span id="__span-24-15"><a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a><span class="nb">set_error_handler</span><span class="p">(</span>
-</span><span id="__span-24-16"><a id="__codelineno-24-16" name="__codelineno-24-16" href="#__codelineno-24-16"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-24-17"><a id="__codelineno-24-17" name="__codelineno-24-17" href="#__codelineno-24-17"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-24-18"><a id="__codelineno-24-18" name="__codelineno-24-18" href="#__codelineno-24-18"></a>    <span class="p">}</span>
-</span><span id="__span-24-19"><a id="__codelineno-24-19" name="__codelineno-24-19" href="#__codelineno-24-19"></a><span class="p">);</span>
-</span><span id="__span-24-20"><a id="__codelineno-24-20" name="__codelineno-24-20" href="#__codelineno-24-20"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
-</span><span id="__span-24-21"><a id="__codelineno-24-21" name="__codelineno-24-21" href="#__codelineno-24-21"></a><span class="cp">?&gt;</span>
-</span></code></pre></div>
-<h4 id="step-2-if"><a class="toclink" href="../../../../ctf2-ezphp-error-handler/#step-2-if">Step 2：第一个想法——绕开那个 if</a></h4>
-<p><strong><code>include</code> 已经把 <code>fl4g.php</code> 引进来了，那直接让 <code>if</code> 成立不就能输出 <code>$fl4g</code> 了吗？</strong></p>
-<p><strong>看三个判断：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>date("H")   小时   00–23     永远不可能 &gt; 24
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>date("d")   日期   01–31     永远不可能 &gt; 31
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>date("i")   分钟   00–59     永远不可能 &gt; 60
-</span></code></pre></div>
-<p><strong>三个都是“边界值本身等于上限”的情况，所以整条 <code>or</code> 永远是假。这条路封死。</strong></p>
-<h4 id="step-3"><a class="toclink" href="../../../../ctf2-ezphp-error-handler/#step-3">Step 3：真正的入口在下面</a></h4>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="x">set_error_handler(function() use(&amp;$fl4g){ print $fl4g; });</span>
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="x">$fl4g .= $dest0g3;</span>
-</span></code></pre></div>
-<p><strong><code>set_error_handler</code> 注册了一个自定义处理器——</strong>只要发生能被它捕获的错误，就会执行里面的 <code>print $fl4g</code><strong>。</strong></p>
-<p><strong>而下一行就是触发器：<code>$fl4g .= $dest0g3</code>。</strong></p>
-<h4 id="step-4"><a class="toclink" href="../../../../ctf2-ezphp-error-handler/#step-4">Step 4：让拼接出错</a></h4>
-<p><strong><code>$dest0g3</code> 来自 <code>$_POST['ctf']</code>，类型完全由我们决定。</strong></p>
-<p><strong>如果传一个</strong>字符串<strong>，拼接正常，什么都不会发生。</strong></p>
-<p><strong>如果传一个</strong>数组<strong>，PHP 试图把数组转成字符串来拼接，转不了——抛出 <code>Warning: Array to string conversion</code>。</strong></p>
-<p><strong>这个 warning 被刚刚注册的处理器捕获，于是 <code>print $fl4g</code> 执行，flag 就出来了。</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>POST ctf[]=1
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>→ Array to string conversion
-</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>→ error handler
-</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>→ 打印 $fl4g
-</span></code></pre></div>
-<hr />
-<h3 id="_3"><a class="toclink" href="../../../../ctf2-ezphp-error-handler/#_3">解题思路总结</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>读源码 → include 了 fl4g.php，但 if 永远为假（小时≤23、日≤31、分≤59）
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>       → 往下看，set_error_handler 注册了 print $fl4g
-</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>         → 找触发器：$fl4g .= $_POST['ctf']
-</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>           → 传数组 → 拼接失败 → warning → 处理器执行 → 拿到 flag
-</span></code></pre></div>
-<h4 id="_4"><a class="toclink" href="../../../../ctf2-ezphp-error-handler/#_4">漏洞原理</a></h4>
-<p><strong>① 错误处理器会把“错误”变成“输出”</strong></p>
-<p><strong><code>set_error_handler</code> 本来是用来记日志、兜异常的，但它注册的回调里做了什么，就是另一回事。</strong>这题的回调里是 <code>print $fl4g</code>——<strong>等于把“出错”这个事件接了一根线到“泄露变量”上。</strong></p>
-<p><strong>② 数组与字符串拼接会抛 warning</strong></p>
-<p><strong>PHP 允许很多隐式类型转换，但</strong>数组转字符串不在其中<strong>。<code>$str .= $array</code> 不会静默失败，它会抛 <code>Array to string conversion</code>。</strong></p>
-<p><strong>这个 warning 默认是</strong>不致命<strong>的，页面照常返回——但 <code>set_error_handler</code> 能接住它。</strong></p>
-<p><strong>③ 参数类型可控，是最容易被忽略的输入面</strong></p>
-<p><strong><code>$_POST['ctf']</code> 不一定是字符串。</strong>在表单里写成 <code>ctf[]=1</code>，PHP 就会把它解析成数组。<strong>很多开发者的防御只考虑了“值”，没考虑“类型”。</strong></p>
-<h4 id="_5"><a class="toclink" href="../../../../ctf2-ezphp-error-handler/#_5">关键知识点</a></h4>
-<table>
-<thead>
-<tr>
-<th>知识点</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>date("H")</code> / <code>"d"</code> / <code>"i"</code></td>
-<td>小时 00–23、日 01–31、分 00–59，与判断边界相同，永远不可能大于</td>
-</tr>
-<tr>
-<td><code>set_error_handler</code></td>
-<td>注册自定义错误处理函数，可捕获 warning/notice</td>
-</tr>
-<tr>
-<td><code>Array to string conversion</code></td>
-<td>数组与字符串拼接时抛出的 warning，被处理器接住</td>
-</tr>
-<tr>
-<td><code>ctf[]=1</code></td>
-<td>表单里这样写，后端 <code>$_POST['ctf']</code> 就是数组</td>
-</tr>
-<tr>
-<td><code>use (&amp;$fl4g)</code></td>
-<td>引用捕获，让闭包能读到外部变量</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<details class="note">
-<summary>完整源码</summary>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="cp">&lt;?php</span>
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
-</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="k">include</span> <span class="s2">"fl4g.php"</span><span class="p">;</span>
-</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="nv">$dest0g3</span> <span class="o">=</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'ctf'</span><span class="p">];</span>
-</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a><span class="nv">$time</span>    <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"H"</span><span class="p">);</span>
-</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a><span class="nv">$timme</span>   <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"d"</span><span class="p">);</span>
-</span><span id="__span-29-7"><a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a><span class="nv">$timmme</span>  <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s2">"i"</span><span class="p">);</span>
-</span><span id="__span-29-8"><a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a><span class="k">if</span><span class="p">((</span><span class="nv">$time</span> <span class="o">&gt;</span> <span class="s2">"24"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timme</span> <span class="o">&gt;</span> <span class="s2">"31"</span><span class="p">)</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$timmme</span> <span class="o">&gt;</span> <span class="s2">"60"</span><span class="p">)){</span>
-</span><span id="__span-29-9"><a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a>    <span class="k">echo</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-29-10"><a id="__codelineno-29-10" name="__codelineno-29-10" href="#__codelineno-29-10"></a><span class="p">}</span><span class="k">else</span><span class="p">{</span>
-</span><span id="__span-29-11"><a id="__codelineno-29-11" name="__codelineno-29-11" href="#__codelineno-29-11"></a>    <span class="k">echo</span> <span class="s2">"Try harder!"</span><span class="p">;</span>
-</span><span id="__span-29-12"><a id="__codelineno-29-12" name="__codelineno-29-12" href="#__codelineno-29-12"></a><span class="p">}</span>
-</span><span id="__span-29-13"><a id="__codelineno-29-13" name="__codelineno-29-13" href="#__codelineno-29-13"></a><span class="nb">set_error_handler</span><span class="p">(</span>
-</span><span id="__span-29-14"><a id="__codelineno-29-14" name="__codelineno-29-14" href="#__codelineno-29-14"></a>    <span class="k">function</span><span class="p">()</span> <span class="k">use</span><span class="p">(</span><span class="o">&amp;</span><span class="nv">$fl4g</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-29-15"><a id="__codelineno-29-15" name="__codelineno-29-15" href="#__codelineno-29-15"></a>        <span class="k">print</span> <span class="nv">$fl4g</span><span class="p">;</span>
-</span><span id="__span-29-16"><a id="__codelineno-29-16" name="__codelineno-29-16" href="#__codelineno-29-16"></a>    <span class="p">}</span>
-</span><span id="__span-29-17"><a id="__codelineno-29-17" name="__codelineno-29-17" href="#__codelineno-29-17"></a><span class="p">);</span>
-</span><span id="__span-29-18"><a id="__codelineno-29-18" name="__codelineno-29-18" href="#__codelineno-29-18"></a><span class="nv">$fl4g</span> <span class="o">.=</span> <span class="nv">$dest0g3</span><span class="p">;</span>
-</span><span id="__span-29-19"><a id="__codelineno-29-19" name="__codelineno-29-19" href="#__codelineno-29-19"></a><span class="cp">?&gt;</span>
-</span></code></pre></div>
-</details>
-<details class="note">
-<summary>这题踩的坑</summary>
-<p><strong>① 一开始死磕那个 if</strong></p>
-<p><strong>三个条件都卡在边界上（≤23、≤31、≤59），不是“运气不好没凑上”，是</strong>设计上就不可能<strong>。看到这种精度边界，就该立刻换路。</strong></p>
-<p><strong>② 把 warning 当成“不影响”</strong></p>
-<p><strong>warning 确实不中断脚本，但这题的整个入口就在“warning 会被谁接住”上。</strong><strong>错误级别不重要，谁在处理它才重要。</strong></p>
 </details>
     
     

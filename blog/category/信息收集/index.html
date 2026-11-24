@@ -2261,6 +2261,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2416,6 +2420,36 @@
     
   
     JWT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../java/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Java
   
 
     
@@ -3380,6 +3414,36 @@
   
   
     <li class="md-nav__item">
+      <a href="../%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件读取
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
       <a href="../%E6%96%B0%E6%89%8B%E5%85%A5%E9%97%A8/" class="md-nav__link">
         
   
@@ -3709,43 +3773,43 @@
 <h3 id="_2"><a class="toclink" href="../../ctfshow-probe-leak/#_2">解题过程</a></h3>
 <h4 id="step-1"><a class="toclink" href="../../ctfshow-probe-leak/#step-1">Step 1：先猜探针文件名</a></h4>
 <p><strong>探针文件名没有标准，但圈内有几个“约定俗成”的：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>tz.php        ← 这题用的（雅黑探针系列）
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>y.php
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>i.php
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>l.php
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>p.php
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>x.php
-</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>info.php
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>phpinfo.php
-</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>test.php
-</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>1.php
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>tz.php        ← 这题用的（雅黑探针系列）
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>y.php
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>i.php
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>l.php
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>p.php
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>x.php
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>info.php
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>phpinfo.php
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>test.php
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>1.php
 </span></code></pre></div>
 <p><strong>为什么是这几个：</strong>探针类工具（雅黑探针、iProber 等）默认文件名就是这些短名，很多人下载后直接丢到根目录不改名。</p>
 <p><strong>扫目录时把 <code>php</code> 后缀配上这几个单词；实在扫不出来，也可以手工挨个试——都是 GET，成本很低。</strong></p>
 <h4 id="step-2-phpinfo"><a class="toclink" href="../../ctfshow-probe-leak/#step-2-phpinfo">Step 2：探针页面 → 点 phpinfo</a></h4>
 <p><strong>访问 <code>tz.php</code>，会看到一个功能页，上面有服务器信息汇总，还有几个链接，其中一个就是 <code>phpinfo()</code>。</strong></p>
 <p><strong>点进去之后，页面变成一大坨信息：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>PHP Version         7.3.11
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>System              Linux ...
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>Server API          FPM/FastCGI
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>Loaded Configuration File
-</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>Environment          ← 重点
-</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>PHP Variables        ← 重点
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>PHP Version         7.3.11
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>System              Linux ...
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>Server API          FPM/FastCGI
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>Loaded Configuration File
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>Environment          ← 重点
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>PHP Variables        ← 重点
 </span></code></pre></div>
 <p><strong><code>phpinfo()</code> 会把当前进程的</strong>环境变量<strong>整段打印出来。</strong></p>
 <p><strong>而很多部署方式（Docker、docker-compose、K8s）会把 flag 作为环境变量注入容器——因为写进文件容易被镜像带上，放环境变量“看起来安全”。</strong></p>
 <h4 id="step-3-flag"><a class="toclink" href="../../ctfshow-probe-leak/#step-3-flag">Step 3：在页面里找 flag</a></h4>
 <p><strong>phpinfo 页面非常长，靠肉眼翻基本翻不到。用浏览器搜索：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>Ctrl + F  →  输入 flag  →  回车
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Ctrl + F  →  输入 flag  →  回车
 </span></code></pre></div>
 <p><strong>命中之后会高亮，直接看右边那一列的值：</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>FLAG    ctfshow{b331ef56-d57c-4486-a229-0fa42200b6bf}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>FLAG    ctfshow{b331ef56-d57c-4486-a229-0fa42200b6bf}
 </span></code></pre></div>
 <p><strong>如果是命令行，就更省事：</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/tz.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="n">-Pattern</span> <span class="s2">"flag"</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/tz.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="n">-Pattern</span> <span class="s2">"flag"</span>
 </span></code></pre></div>
 <p><strong>或者直接抓 phpinfo 输出并过滤：</strong></p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/phpinfo.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="n">-Pattern</span> <span class="s2">"FLAG"</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/phpinfo.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="n">-Pattern</span> <span class="s2">"FLAG"</span>
 </span></code></pre></div>
 <hr />
 <table>
@@ -3785,14 +3849,14 @@
 <hr />
 <details class="note">
 <summary>命令行一把梭</summary>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c"># 先找探针</span>
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="k">foreach</span> <span class="p">(</span><span class="nv">$p</span> <span class="k">in</span> <span class="s2">"tz.php"</span><span class="p">,</span><span class="s2">"y.php"</span><span class="p">,</span><span class="s2">"i.php"</span><span class="p">,</span><span class="s2">"info.php"</span><span class="p">,</span><span class="s2">"phpinfo.php"</span><span class="p">,</span><span class="s2">"1.php"</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>  <span class="nv">$code</span> <span class="p">=</span> <span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-o</span> <span class="n">NUL</span> <span class="n">-w</span> <span class="s2">"%{http_code}"</span> <span class="n">-k</span> <span class="s2">"https://目标/$p"</span>
-</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>  <span class="k">if</span> <span class="p">(</span><span class="nv">$code</span> <span class="o">-eq</span> <span class="s2">"200"</span><span class="p">)</span> <span class="p">{</span> <span class="nb">Write-Output</span> <span class="s2">"$p 存在"</span> <span class="p">}</span>
-</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="p">}</span>
-</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>
-</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="c"># 再搜 flag</span>
-</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/tz.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="s2">"flag"</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c"># 先找探针</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">foreach</span> <span class="p">(</span><span class="nv">$p</span> <span class="k">in</span> <span class="s2">"tz.php"</span><span class="p">,</span><span class="s2">"y.php"</span><span class="p">,</span><span class="s2">"i.php"</span><span class="p">,</span><span class="s2">"info.php"</span><span class="p">,</span><span class="s2">"phpinfo.php"</span><span class="p">,</span><span class="s2">"1.php"</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>  <span class="nv">$code</span> <span class="p">=</span> <span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-o</span> <span class="n">NUL</span> <span class="n">-w</span> <span class="s2">"%{http_code}"</span> <span class="n">-k</span> <span class="s2">"https://目标/$p"</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>  <span class="k">if</span> <span class="p">(</span><span class="nv">$code</span> <span class="o">-eq</span> <span class="s2">"200"</span><span class="p">)</span> <span class="p">{</span> <span class="nb">Write-Output</span> <span class="s2">"$p 存在"</span> <span class="p">}</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">}</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="c"># 再搜 flag</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-k</span> <span class="s2">"https://目标/tz.php"</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="s2">"flag"</span>
 </span></code></pre></div>
 </details>
 <details class="note">
