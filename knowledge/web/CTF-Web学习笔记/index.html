@@ -6055,6 +6055,11 @@
 <td><strong>0e 魔术哈希</strong>：<code>QNKCDZO</code> 与 <code>240610708</code></td>
 </tr>
 <tr>
+<td><code>sha1($a) == sha1($b)</code></td>
+<td>✅ 能</td>
+<td><strong>0e 魔术哈希</strong>：<code>aaroZmOk</code> 与 <code>aaK1STfY</code></td>
+</tr>
+<tr>
 <td><code>md5($a) === md5($b)</code></td>
 <td>✅ 能</td>
 <td><strong>真实 MD5 碰撞字符串对</strong>（TEXTCOLL，仅第 22 字符 <code>A</code>/<code>E</code> 不同）</td>
@@ -6073,6 +6078,36 @@
 </table>
 <blockquote>
 <p>补充：<code>"abc" == 0</code> 在 PHP 8 已变为 <code>false</code>，弱类型类技巧要先确认目标 PHP 版本。</p>
+</blockquote>
+<p><strong>SHA1 的 0e 魔术哈希（已用 PHP <code>sha1()</code> 复核）</strong></p>
+<table>
+<thead>
+<tr>
+<th>字符串</th>
+<th><code>sha1()</code> 结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>aaroZmOk</code></td>
+<td><code>0e66507019969427134894567494305185566735</code></td>
+</tr>
+<tr>
+<td><code>aaK1STfY</code></td>
+<td><code>0e76658526655756207688271159624026011393</code></td>
+</tr>
+<tr>
+<td><code>aaO8zKZF</code></td>
+<td><code>0e89257456677279068558073954252716165668</code></td>
+</tr>
+<tr>
+<td><code>aa3OFF9m</code></td>
+<td><code>0e36977786278517984959260394024281014729</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>这些值都是 <code>0e</code> 开头、后面全数字，<code>==</code> 比较时两边都被转成数字 <code>0</code>，所以任意两个<strong>不同</strong>字符串都能通过 <code>sha1($a) == sha1($b)</code>。前两组是常用组，后两组备用；注意别和 MD5 的 <code>QNKCDZO</code> 混用。</p>
 </blockquote>
 <hr />
 <h3 id="185">18.5 整数溢出：两个正数为什么会得到负数<a class="headerlink" href="#185" title="Permanent link">&para;</a></h3>
